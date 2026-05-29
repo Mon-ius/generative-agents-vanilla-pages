@@ -1,13 +1,16 @@
 {
-  "frameW": 16,
-  "frameH": 24,
-  "anchorX": 8,
-  "anchorY": 22,
+  "frameW": 32,
+  "frameH": 48,
+  "anchorX": 16,
+  "anchorY": 46,
   "fps": 6,
+  "atlas": "characters/atlas.png",
   "sheets": {
     "townsfolk_01": {
-      "file": "characters/townsfolk_01.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 0,
+      "oy": 0,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -16,16 +19,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_02": {
-      "file": "characters/townsfolk_02.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 96,
+      "oy": 0,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -34,16 +37,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_03": {
-      "file": "characters/townsfolk_03.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 192,
+      "oy": 0,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -52,16 +55,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_04": {
-      "file": "characters/townsfolk_04.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 288,
+      "oy": 0,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -70,16 +73,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_05": {
-      "file": "characters/townsfolk_05.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 384,
+      "oy": 0,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -88,16 +91,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_06": {
-      "file": "characters/townsfolk_06.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 0,
+      "oy": 192,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -106,16 +109,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_07": {
-      "file": "characters/townsfolk_07.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 96,
+      "oy": 192,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -124,16 +127,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_08": {
-      "file": "characters/townsfolk_08.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 192,
+      "oy": 192,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -142,16 +145,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_09": {
-      "file": "characters/townsfolk_09.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 288,
+      "oy": 192,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -160,16 +163,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_10": {
-      "file": "characters/townsfolk_10.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 384,
+      "oy": 192,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -178,16 +181,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_11": {
-      "file": "characters/townsfolk_11.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 0,
+      "oy": 384,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -196,16 +199,16 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     },
     "townsfolk_12": {
-      "file": "characters/townsfolk_12.png",
-      "cols": 4,
+      "file": "characters/atlas.png",
+      "ox": 96,
+      "oy": 384,
+      "cols": 3,
       "rows": 4,
       "dirRows": {
         "down": 0,
@@ -214,154 +217,8 @@
         "up": 3
       },
       "walkCols": [
-        0,
         1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_13": {
-      "file": "characters/townsfolk_13.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_14": {
-      "file": "characters/townsfolk_14.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_15": {
-      "file": "characters/townsfolk_15.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_16": {
-      "file": "characters/townsfolk_16.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_17": {
-      "file": "characters/townsfolk_17.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_18": {
-      "file": "characters/townsfolk_18.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_19": {
-      "file": "characters/townsfolk_19.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
-      ],
-      "idleCol": 0
-    },
-    "townsfolk_20": {
-      "file": "characters/townsfolk_20.png",
-      "cols": 4,
-      "rows": 4,
-      "dirRows": {
-        "down": 0,
-        "left": 1,
-        "right": 2,
-        "up": 3
-      },
-      "walkCols": [
-        0,
-        1,
-        2,
-        3
+        2
       ],
       "idleCol": 0
     }
@@ -378,15 +235,7 @@
     "townsfolk_09",
     "townsfolk_10",
     "townsfolk_11",
-    "townsfolk_12",
-    "townsfolk_13",
-    "townsfolk_14",
-    "townsfolk_15",
-    "townsfolk_16",
-    "townsfolk_17",
-    "townsfolk_18",
-    "townsfolk_19",
-    "townsfolk_20"
+    "townsfolk_12"
   ],
   "palette": {
     "skins": [

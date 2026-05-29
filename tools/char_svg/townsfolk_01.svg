@@ -1,0 +1,290 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="192" viewBox="0 0 96 192">
+
+  <!-- ============ ROW 0: FACING DOWN (toward viewer) ============ -->
+
+  <!-- (0,0) DOWN STAND -->
+  <g>
+    <!-- legs -->
+    <rect x="13" y="59" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="19" y="59" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="13" y="59" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <rect x="19" y="59" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <!-- feet -->
+    <ellipse cx="15" cy="74" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="21" cy="74" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <!-- arms -->
+    <rect x="8" y="46" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <rect x="25" y="46" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="9.5" cy="57" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="26.5" cy="57" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <!-- torso -->
+    <rect x="10" y="44" width="12" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="10" y="44" width="12" height="5" rx="4" fill="#6485e8"/>
+    <rect x="10" y="53" width="12" height="5" rx="3" fill="#3a55b8" fill-opacity="0.55"/>
+    <!-- neck -->
+    <rect x="14" y="40" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <!-- head -->
+    <circle cx="16" cy="35" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="13.5" cy="32" rx="2.4" ry="2" fill="#ffe0c4" fill-opacity="0.6"/>
+    <!-- hair -->
+    <path d="M9.5 34 Q9 27 16 27 Q23 27 22.5 34 Q22 30 16 30 Q10 30 9.5 34 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M10.5 31 Q11 28.5 16 28.5 Q21 28.5 21.5 31 Z" fill="#4a3c34"/>
+    <!-- face -->
+    <circle cx="13.4" cy="35.5" r="0.95" fill="#241f2e"/>
+    <circle cx="18.6" cy="35.5" r="0.95" fill="#241f2e"/>
+    <circle cx="16" cy="37.4" r="0.5" fill="#d99f78"/>
+    <path d="M13.8 39 Q16 40.8 18.2 39" fill="none" stroke="#241f2e" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <!-- (1,0) DOWN STEP-LEFT (left leg fwd) -->
+  <g>
+    <rect x="44" y="59" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="51" y="61" width="4" height="12" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="44" y="59" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <rect x="51" y="61" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <ellipse cx="46" cy="74" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="53" cy="74" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <rect x="40" y="47" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <rect x="57" y="45" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="41.5" cy="58" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="58.5" cy="56" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="42" y="44" width="12" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="42" y="44" width="12" height="5" rx="4" fill="#6485e8"/>
+    <rect x="42" y="53" width="12" height="5" rx="3" fill="#3a55b8" fill-opacity="0.55"/>
+    <rect x="46" y="40" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="48" cy="35" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="45.5" cy="32" rx="2.4" ry="2" fill="#ffe0c4" fill-opacity="0.6"/>
+    <path d="M41.5 34 Q41 27 48 27 Q55 27 54.5 34 Q54 30 48 30 Q42 30 41.5 34 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M42.5 31 Q43 28.5 48 28.5 Q53 28.5 53.5 31 Z" fill="#4a3c34"/>
+    <circle cx="45.4" cy="35.5" r="0.95" fill="#241f2e"/>
+    <circle cx="50.6" cy="35.5" r="0.95" fill="#241f2e"/>
+    <circle cx="48" cy="37.4" r="0.5" fill="#d99f78"/>
+    <path d="M45.8 39 Q48 40.8 50.2 39" fill="none" stroke="#241f2e" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <!-- (2,0) DOWN STEP-RIGHT (right leg fwd) -->
+  <g>
+    <rect x="75" y="61" width="4" height="12" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="82" y="59" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="75" y="61" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <rect x="82" y="59" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <ellipse cx="77" cy="74" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="84" cy="74" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <rect x="72" y="45" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <rect x="89" y="47" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="73.5" cy="56" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="90.5" cy="58" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="74" y="44" width="12" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="74" y="44" width="12" height="5" rx="4" fill="#6485e8"/>
+    <rect x="74" y="53" width="12" height="5" rx="3" fill="#3a55b8" fill-opacity="0.55"/>
+    <rect x="78" y="40" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="80" cy="35" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="77.5" cy="32" rx="2.4" ry="2" fill="#ffe0c4" fill-opacity="0.6"/>
+    <path d="M73.5 34 Q73 27 80 27 Q87 27 86.5 34 Q86 30 80 30 Q74 30 73.5 34 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M74.5 31 Q75 28.5 80 28.5 Q85 28.5 85.5 31 Z" fill="#4a3c34"/>
+    <circle cx="77.4" cy="35.5" r="0.95" fill="#241f2e"/>
+    <circle cx="82.6" cy="35.5" r="0.95" fill="#241f2e"/>
+    <circle cx="80" cy="37.4" r="0.5" fill="#d99f78"/>
+    <path d="M77.8 39 Q80 40.8 82.2 39" fill="none" stroke="#241f2e" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <!-- ============ ROW 1: FACING LEFT ============ -->
+
+  <!-- (0,1) LEFT STAND -->
+  <g>
+    <rect x="14" y="107" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="14" y="107" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <ellipse cx="14" cy="122" rx="3" ry="1.7" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <!-- back arm -->
+    <rect x="18" y="93" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <!-- torso (profile, narrower) -->
+    <rect x="11" y="92" width="10" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="11" y="92" width="10" height="5" rx="4" fill="#6485e8"/>
+    <!-- front arm -->
+    <rect x="11" y="93" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="12.5" cy="104" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <!-- neck -->
+    <rect x="13" y="88" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <!-- head profile -->
+    <circle cx="15" cy="83" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <!-- nose hint (left side) -->
+    <path d="M9 83 Q7.5 84 9 85.2" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <!-- hair to back (right) -->
+    <path d="M11 78 Q11 76 15 76 Q22 76 21.5 84 Q21 85 19.5 85 Q21 80 17 79 Q13 78.5 11 80 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M12 78 Q13 77 16 77 Q19 77 20 79 Z" fill="#4a3c34"/>
+    <!-- one eye -->
+    <circle cx="12" cy="83" r="0.95" fill="#241f2e"/>
+  </g>
+
+  <!-- (1,1) LEFT STEP-LEFT -->
+  <g>
+    <rect x="44" y="109" width="4" height="12" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="49" y="107" width="4" height="14" rx="1.5" fill="#26305c" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="44" cy="122" rx="3" ry="1.7" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="51" cy="122" rx="3" ry="1.7" fill="#352b27" stroke="#241f2e" stroke-width="1"/>
+    <rect x="50" y="94" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <rect x="43" y="92" width="10" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="43" y="92" width="10" height="5" rx="4" fill="#6485e8"/>
+    <rect x="43" y="92" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="44.5" cy="103" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="45" y="88" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="47" cy="83" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M41 83 Q39.5 84 41 85.2" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M43 78 Q43 76 47 76 Q54 76 53.5 84 Q53 85 51.5 85 Q53 80 49 79 Q45 78.5 43 80 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M44 78 Q45 77 48 77 Q51 77 52 79 Z" fill="#4a3c34"/>
+    <circle cx="44" cy="83" r="0.95" fill="#241f2e"/>
+  </g>
+
+  <!-- (2,1) LEFT STEP-RIGHT -->
+  <g>
+    <rect x="76" y="109" width="4" height="12" rx="1.5" fill="#26305c" stroke="#241f2e" stroke-width="1"/>
+    <rect x="81" y="107" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="76" cy="122" rx="3" ry="1.7" fill="#352b27" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="83" cy="122" rx="3" ry="1.7" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <rect x="82" y="94" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <rect x="75" y="92" width="10" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="75" y="92" width="10" height="5" rx="4" fill="#6485e8"/>
+    <rect x="75" y="92" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="76.5" cy="103" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="77" y="88" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="79" cy="83" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M73 83 Q71.5 84 73 85.2" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M75 78 Q75 76 79 76 Q86 76 85.5 84 Q85 85 83.5 85 Q85 80 81 79 Q77 78.5 75 80 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M76 78 Q77 77 80 77 Q83 77 84 79 Z" fill="#4a3c34"/>
+    <circle cx="76" cy="83" r="0.95" fill="#241f2e"/>
+  </g>
+
+  <!-- ============ ROW 2: FACING RIGHT ============ -->
+
+  <!-- (0,2) RIGHT STAND -->
+  <g>
+    <rect x="14" y="155" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="14" y="155" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <ellipse cx="18" cy="170" rx="3" ry="1.7" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <!-- back arm -->
+    <rect x="11" y="141" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <!-- torso -->
+    <rect x="11" y="140" width="10" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="11" y="140" width="10" height="5" rx="4" fill="#6485e8"/>
+    <!-- front arm -->
+    <rect x="18" y="141" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="19.5" cy="152" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <!-- neck -->
+    <rect x="15" y="136" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <!-- head -->
+    <circle cx="17" cy="131" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <!-- nose hint (right side) -->
+    <path d="M23 131 Q24.5 132 23 133.2" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <!-- hair to back (left) -->
+    <path d="M21 126 Q21 124 17 124 Q10 124 10.5 132 Q11 133 12.5 133 Q11 128 15 127 Q19 126.5 21 128 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M20 126 Q19 125 16 125 Q13 125 12 127 Z" fill="#4a3c34"/>
+    <!-- one eye -->
+    <circle cx="20" cy="131" r="0.95" fill="#241f2e"/>
+  </g>
+
+  <!-- (1,2) RIGHT STEP-LEFT -->
+  <g>
+    <rect x="43" y="157" width="4" height="12" rx="1.5" fill="#26305c" stroke="#241f2e" stroke-width="1"/>
+    <rect x="48" y="155" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="45" cy="170" rx="3" ry="1.7" fill="#352b27" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="52" cy="170" rx="3" ry="1.7" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <rect x="43" y="142" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <rect x="43" y="140" width="10" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="43" y="140" width="10" height="5" rx="4" fill="#6485e8"/>
+    <rect x="50" y="142" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="51.5" cy="153" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="47" y="136" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="49" cy="131" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M55 131 Q56.5 132 55 133.2" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M53 126 Q53 124 49 124 Q42 124 42.5 132 Q43 133 44.5 133 Q43 128 47 127 Q51 126.5 53 128 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M52 126 Q51 125 48 125 Q45 125 44 127 Z" fill="#4a3c34"/>
+    <circle cx="52" cy="131" r="0.95" fill="#241f2e"/>
+  </g>
+
+  <!-- (2,2) RIGHT STEP-RIGHT -->
+  <g>
+    <rect x="44" y="155" width="0" height="0"/>
+    <rect x="75" y="157" width="4" height="12" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="80" y="155" width="4" height="14" rx="1.5" fill="#26305c" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="77" cy="170" rx="3" ry="1.7" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="84" cy="170" rx="3" ry="1.7" fill="#352b27" stroke="#241f2e" stroke-width="1"/>
+    <rect x="75" y="142" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <rect x="75" y="140" width="10" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="75" y="140" width="10" height="5" rx="4" fill="#6485e8"/>
+    <rect x="82" y="142" width="3" height="11" rx="1.5" fill="#3f5bc0" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="83.5" cy="153" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="79" y="136" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="81" cy="131" r="6.5" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M87 131 Q88.5 132 87 133.2" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <path d="M85 126 Q85 124 81 124 Q74 124 74.5 132 Q75 133 76.5 133 Q75 128 79 127 Q83 126.5 85 128 Z" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M84 126 Q83 125 80 125 Q77 125 76 127 Z" fill="#4a3c34"/>
+    <circle cx="84" cy="131" r="0.95" fill="#241f2e"/>
+  </g>
+
+  <!-- ============ ROW 3: FACING UP (away) ============ -->
+
+  <!-- (0,3) UP STAND -->
+  <g>
+    <rect x="13" y="173" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="19" y="173" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="13" y="173" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <rect x="19" y="173" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <ellipse cx="15" cy="188" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="21" cy="188" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <rect x="8" y="160" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <rect x="25" y="160" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="9.5" cy="171" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="26.5" cy="171" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="10" y="158" width="12" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="10" y="158" width="12" height="5" rx="4" fill="#6485e8"/>
+    <rect x="10" y="167" width="12" height="5" rx="3" fill="#3a55b8" fill-opacity="0.55"/>
+    <rect x="14" y="154" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <!-- back of head: hair only -->
+    <circle cx="16" cy="149" r="6.5" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M10 148 Q10 143 16 143 Q22 143 22 148 Q22 151 16 151 Q10 151 10 148 Z" fill="#4a3c34"/>
+    <path d="M13 145 Q16 144 19 145" fill="none" stroke="#2a2220" stroke-width="0.8" stroke-linecap="round"/>
+  </g>
+
+  <!-- (1,3) UP STEP-LEFT -->
+  <g>
+    <rect x="44" y="173" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="51" y="175" width="4" height="12" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="44" y="173" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <rect x="51" y="175" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <ellipse cx="46" cy="188" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="53" cy="188" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <rect x="40" y="162" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <rect x="57" y="160" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="41.5" cy="173" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="58.5" cy="171" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="42" y="158" width="12" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="42" y="158" width="12" height="5" rx="4" fill="#6485e8"/>
+    <rect x="42" y="167" width="12" height="5" rx="3" fill="#3a55b8" fill-opacity="0.55"/>
+    <rect x="46" y="154" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="48" cy="149" r="6.5" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M42 148 Q42 143 48 143 Q54 143 54 148 Q54 151 48 151 Q42 151 42 148 Z" fill="#4a3c34"/>
+    <path d="M45 145 Q48 144 51 145" fill="none" stroke="#2a2220" stroke-width="0.8" stroke-linecap="round"/>
+  </g>
+
+  <!-- (2,3) UP STEP-RIGHT -->
+  <g>
+    <rect x="75" y="175" width="4" height="12" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="82" y="173" width="4" height="14" rx="1.5" fill="#1c2440" stroke="#241f2e" stroke-width="1"/>
+    <rect x="75" y="175" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <rect x="82" y="173" width="4" height="6" rx="1.5" fill="#26305c"/>
+    <ellipse cx="77" cy="188" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <ellipse cx="84" cy="188" rx="2.6" ry="1.6" fill="#2a2320" stroke="#241f2e" stroke-width="1"/>
+    <rect x="72" y="160" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <rect x="89" y="162" width="3" height="11" rx="1.5" fill="#3a55b8" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="73.5" cy="171" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="90.5" cy="173" r="1.8" fill="#f1c9a5" stroke="#241f2e" stroke-width="1"/>
+    <rect x="74" y="158" width="12" height="14" rx="4" fill="#4b6bdc" stroke="#241f2e" stroke-width="1"/>
+    <rect x="74" y="158" width="12" height="5" rx="4" fill="#6485e8"/>
+    <rect x="74" y="167" width="12" height="5" rx="3" fill="#3a55b8" fill-opacity="0.55"/>
+    <rect x="78" y="154" width="4" height="4" fill="#e6b893" stroke="#241f2e" stroke-width="1"/>
+    <circle cx="80" cy="149" r="6.5" fill="#3a2f2a" stroke="#241f2e" stroke-width="1"/>
+    <path d="M74 148 Q74 143 80 143 Q86 143 86 148 Q86 151 80 151 Q74 151 74 148 Z" fill="#4a3c34"/>
+    <path d="M77 145 Q80 144 83 145" fill="none" stroke="#2a2220" stroke-width="0.8" stroke-linecap="round"/>
+  </g>
+
+</svg>

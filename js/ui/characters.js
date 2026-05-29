@@ -107,7 +107,11 @@ export function normalizeManifest(m) {
       ? d.walkCols.map((c) => clampInt(c, 0, cols - 1, 0))
       : Array.from({ length: cols }, (_, i) => i);
     const idleCol = clampInt(d.idleCol, 0, cols - 1, walkCols[0] ?? 0);
-    sheets[key] = { file: d.file, cols, rows, dirRows, walkCols, idleCol };
+    // ox/oy: this variant's frame-block origin (px) inside a shared atlas.
+    // Default 0 keeps the OLD one-file-per-variant manifests working unchanged.
+    const ox = num(d.ox, 0);
+    const oy = num(d.oy, 0);
+    sheets[key] = { file: d.file, cols, rows, dirRows, walkCols, idleCol, ox, oy };
   }
   const variants = Array.isArray(m.variants) && m.variants.length
     ? m.variants.filter((k) => sheets[k])
@@ -118,7 +122,7 @@ export function normalizeManifest(m) {
     hairs: arrOf(p.hairs, DEFAULT_PALETTE.hairs),
     outfits: arrOf(p.outfits, DEFAULT_PALETTE.outfits),
   };
-  return {
+  const out = {
     frameW,
     frameH,
     anchorX: num(m.anchorX, Math.round(frameW / 2)),
@@ -128,6 +132,10 @@ export function normalizeManifest(m) {
     variants,
     palette,
   };
+  // Tolerate an optional top-level `atlas` (the shared PNG every variant points
+  // at); carried through so loaders/tools can read it without breaking old data.
+  if (typeof m.atlas === "string") out.atlas = m.atlas;
+  return out;
 }
 
 /**
@@ -142,26 +150,36 @@ export async function loadCharacterSheets(manifest, base = "assets/") {
   if (!manifest || typeof Image === "undefined") return {};
   const keys = Object.keys(manifest.sheets || {});
   if (!keys.length) return {};
-  const out = {};
+
+  // Single-request optimisation (the CSS-sprite win): many variants can share
+  // one atlas PNG, so fetch each UNIQUE def.file exactly once, then point every
+  // sheetKey that uses that file at the SAME decoded HTMLImageElement.
+  const files = [...new Set(keys.map((k) => manifest.sheets[k].file))];
+  const byFile = {};
   await Promise.all(
-    keys.map(
-      (key) =>
+    files.map(
+      (file) =>
         new Promise((resolve) => {
-          const def = manifest.sheets[key];
           const img = new Image();
           img.onload = () => {
-            out[key] = img;
+            byFile[file] = img;
             resolve();
           };
-          img.onerror = () => resolve(); // drop the failed sheet, keep the rest
+          img.onerror = () => resolve(); // drop the failed atlas, keep the rest
           try {
-            img.src = `${base}${def.file}`;
+            img.src = `${base}${file}`;
           } catch {
             resolve();
           }
         })
     )
   );
+
+  const out = {};
+  for (const key of keys) {
+    const img = byFile[manifest.sheets[key].file];
+    if (img) out[key] = img; // shared atlas → same element across keys
+  }
   return out;
 }
 
@@ -191,27 +209,33 @@ export function sliceSheet(img, sheetDef, manifest, sheetKey) {
   if (!img || !canMakeCanvas()) return null;
   const fw = manifest.frameW;
   const fh = manifest.frameH;
+  // This variant's frame-block origin within the atlas (0,0 for legacy sheets).
+  const ox = sheetDef.ox || 0;
+  const oy = sheetDef.oy || 0;
   const result = {};
   for (const dir of DIRS) {
     const row = sheetDef.dirRows[dir];
-    const walk = sheetDef.walkCols.map((col) => cutCell(img, col, row, fw, fh));
+    const walk = sheetDef.walkCols.map((col) => cutCell(img, col, row, fw, fh, ox, oy));
     const idle =
       sheetDef.idleCol === sheetDef.walkCols[0]
         ? walk[0]
-        : cutCell(img, sheetDef.idleCol, row, fw, fh);
+        : cutCell(img, sheetDef.idleCol, row, fw, fh, ox, oy);
     result[dir] = { walk, idle: idle || walk[0] };
   }
   if (sheetKey) _sliceCache.set(sheetKey, result);
   return result;
 }
 
-/** Draw one grid cell into its own frameW×frameH canvas (1×, nearest-neighbour). */
-function cutCell(img, col, row, fw, fh) {
+/**
+ * Draw one grid cell into its own frameW×frameH canvas (1×, nearest-neighbour).
+ * The source cell sits at the atlas offset: ((ox)+col*fw, (oy)+row*fh).
+ */
+function cutCell(img, col, row, fw, fh, ox = 0, oy = 0) {
   const cv = newCanvas(fw, fh);
   const g = cv.getContext && cv.getContext("2d");
   if (!g) return cv;
   if (g.imageSmoothingEnabled !== undefined) g.imageSmoothingEnabled = false;
-  g.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, fw, fh);
+  g.drawImage(img, ox + col * fw, oy + row * fh, fw, fh, 0, 0, fw, fh);
   return cv;
 }
 

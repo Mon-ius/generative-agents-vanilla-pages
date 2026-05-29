@@ -70,7 +70,7 @@ export const CONFIG = {
   characters: {
     useSpritesheets: true,
     fps: 6,
-    frameScale: 1.4, // on-screen display scale of the 16×24 avatar art (both renderers)
+    frameScale: 0.7, // on-screen display scale of the 32×48 SVG avatar art (≈22px wide, crisp downscale)
   },
 
   // ----- Debug toggles -----
