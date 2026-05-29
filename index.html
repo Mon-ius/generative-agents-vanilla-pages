@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generative Agents — Vanilla Simulation</title>
+  <meta name="description" content="A dependency-free browser simulation of generative agents: memory streams, planning, reflection, conversations, and relationships. Inspired by 'Generative Agents: Interactive Simulacra of Human Behavior'." />
+  <!-- Relative asset paths so the app works from a GitHub Pages project subpath -->
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <h1>Generative Agents <span class="brand-sub">· Willow Creek</span></h1>
+      <p class="tagline">A dependency-free simulacrum: agents observe, remember, plan, reflect, talk, and form relationships.</p>
+    </div>
+    <div class="header-status" role="status" aria-live="polite">
+      <span id="status-pill" class="status-pill" data-state="paused">Paused</span>
+      <span id="time-indicator" class="time-indicator">Day 1, 08:00</span>
+    </div>
+  </header>
+
+  <main id="main" class="app-main">
+    <!-- Column 1: world + controls -->
+    <section class="col col-world" aria-label="World and controls">
+      <div class="panel panel--map">
+        <h2>Town Map</h2>
+        <div id="map" class="map" role="group" aria-label="Town map showing agents at their current locations"></div>
+        <div id="map-legend" class="map-legend" aria-label="Agents (click to select)"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Controls</h2>
+        <div id="controls" class="controls">
+          <div class="control-row" role="group" aria-label="Playback">
+            <button id="btn-start" type="button" class="btn btn--primary">▶ Start</button>
+            <button id="btn-pause" type="button" class="btn" disabled>⏸ Pause</button>
+            <button id="btn-step" type="button" class="btn">⏭ Step</button>
+            <button id="btn-reset" type="button" class="btn">↺ Reset</button>
+          </div>
+          <div class="control-row">
+            <label for="speed-select">Speed</label>
+            <select id="speed-select" class="select" aria-label="Playback speed"></select>
+          </div>
+          <div class="control-row">
+            <label for="seed-input">Seed</label>
+            <input id="seed-input" class="input" type="text" value="smallville-2024" aria-label="Simulation seed (used on Reset)" />
+          </div>
+          <div class="control-row" role="group" aria-label="Persistence">
+            <button id="btn-save" type="button" class="btn">💾 Save</button>
+            <button id="btn-load" type="button" class="btn" disabled>📂 Load</button>
+            <button id="btn-clear" type="button" class="btn" disabled>🗑 Clear</button>
+          </div>
+          <div class="control-row">
+            <button id="btn-debug" type="button" class="btn btn--ghost" aria-pressed="false">Show debug</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel--debug" id="debug-panel" hidden>
+        <h2>Debug</h2>
+        <div id="debug-content" class="debug-content"></div>
+      </div>
+    </section>
+
+    <!-- Column 2: selected agent -->
+    <section class="col col-agent" aria-label="Selected agent">
+      <div class="panel">
+        <h2 id="agent-name">Agent</h2>
+        <div id="agent-details" class="agent-details"></div>
+      </div>
+      <div class="panel">
+        <h2>Plan</h2>
+        <ol id="plan-list" class="plan-list"></ol>
+      </div>
+      <div class="panel">
+        <h2>Relationships</h2>
+        <ul id="relationship-list" class="rel-list"></ul>
+      </div>
+    </section>
+
+    <!-- Column 3: memory + timeline -->
+    <section class="col col-info" aria-label="Memory and event timeline">
+      <div class="panel panel--scroll">
+        <h2>Memory Stream</h2>
+        <ul id="memory-list" class="mem-list"></ul>
+      </div>
+      <div class="panel panel--scroll">
+        <h2>Event Timeline</h2>
+        <ul id="timeline-list" class="timeline-list"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>
+      Vanilla HTML/CSS/JS · no frameworks, no build step, no backend, no API keys.
+      Open <code>window.runSmokeTest()</code> in the console to self-check.
+    </p>
+  </footer>
+
+  <!-- Relative module path so it resolves under /REPO_NAME/ on GitHub Pages -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

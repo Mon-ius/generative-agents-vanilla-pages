@@ -1,0 +1,106 @@
+/* layout.css — page shell and responsive column layout.
+   Desktop: three columns. Tablet: two columns. Mobile: single stacked column. */
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.brand h1 {
+  font-size: 1.25rem;
+}
+.brand-sub {
+  color: var(--muted);
+  font-weight: 500;
+}
+.tagline {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 60ch;
+}
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-main {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 1fr) minmax(300px, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  padding: var(--space-4) var(--space-5);
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-4);
+}
+.panel > h2 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: var(--space-3);
+}
+
+/* Scrollable panels for long lists keep the page height manageable */
+.panel--scroll .mem-list,
+.panel--scroll .timeline-list {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.app-footer {
+  padding: var(--space-4) var(--space-5);
+  color: var(--muted);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
+/* ---- Tablet: two columns (world spans the top, agent + info below) ---- */
+@media (max-width: 1180px) {
+  .app-main {
+    grid-template-columns: 1fr 1fr;
+  }
+  .col-world {
+    grid-column: 1 / -1;
+  }
+  .col-world .panel--map {
+    /* let the map breathe horizontally when it has the full width */
+  }
+}
+
+/* ---- Mobile: single column ---- */
+@media (max-width: 720px) {
+  .app-header {
+    padding: var(--space-3) var(--space-4);
+  }
+  .app-main {
+    grid-template-columns: 1fr;
+    padding: var(--space-3) var(--space-4);
+  }
+  .col-world {
+    grid-column: auto;
+  }
+}
