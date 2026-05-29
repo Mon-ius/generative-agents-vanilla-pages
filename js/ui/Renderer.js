@@ -1,12 +1,13 @@
-// Renderer.js — coordinates all on-screen rendering.
+// Renderer.js — coordinates on-screen rendering.
 //
-// It caches the DOM containers declared in index.html, renders the town map and
-// legend itself, and delegates the side panels to their modules. It subscribes
-// to the Simulation's EventBus so the UI re-renders after every tick / selection
-// / reset / load. The Renderer is the only place that maps simulation state to
-// the DOM; the simulation core stays UI-agnostic.
+// The town map is a canvas, owned by MapView (which runs its own animation loop
+// and reads sim state each frame). The Renderer owns everything else: the status
+// header, the agent legend, the agent/plan/relationship panels, the memory
+// stream, the timeline, and the debug panel. It subscribes to the Simulation's
+// EventBus so the panels re-render after every tick / selection / reset / load.
+// The simulation core never touches the DOM.
 
-import { el, clear, qs, on } from "../utils/dom.js";
+import { qs, on } from "../utils/dom.js";
 import { renderAgentDetails, renderPlan, renderRelationships } from "./AgentPanel.js";
 import { renderMemory } from "./MemoryPanel.js";
 import { renderTimeline } from "./TimelinePanel.js";
@@ -17,7 +18,7 @@ export class Renderer {
     this.running = false;
     this.debugVisible = false;
     this._cache();
-    this._wireMapSelection();
+    this._wireLegendSelection();
     this._subscribe();
     this.renderAll();
   }
@@ -26,7 +27,6 @@ export class Renderer {
     this.els = {
       statusPill: qs("#status-pill"),
       timeIndicator: qs("#time-indicator"),
-      map: qs("#map"),
       legend: qs("#map-legend"),
       agentName: qs("#agent-name"),
       agentDetails: qs("#agent-details"),
@@ -48,13 +48,10 @@ export class Renderer {
     this.sim.bus.on("init", rerender);
   }
 
-  // Re-bind selection after a reset/load swaps the sim's agent objects:
-  // event delegation on the (stable) map element means we only wire this once.
-  _wireMapSelection() {
-    on(this.els.map, "click", (ev) => {
-      const btn = ev.target.closest("[data-agent-id]");
-      if (btn) this.sim.selectAgent(btn.getAttribute("data-agent-id"));
-    });
+  // Legend chips are the keyboard-accessible way to select an agent (the canvas
+  // handles mouse selection). Event delegation on the stable legend element.
+  _wireLegendSelection() {
+    if (!this.els.legend) return;
     on(this.els.legend, "click", (ev) => {
       const btn = ev.target.closest("[data-agent-id]");
       if (btn) this.sim.selectAgent(btn.getAttribute("data-agent-id"));
@@ -74,7 +71,6 @@ export class Renderer {
 
   renderAll() {
     this._renderStatus();
-    this._renderMap();
     this._renderLegend();
     this._renderAgent();
     renderMemory(this.els.memList, this.sim);
@@ -98,82 +94,52 @@ export class Renderer {
     renderRelationships(this.els.relList, this.sim);
   }
 
-  _renderMap() {
-    const sim = this.sim;
-    const locs = sim.environment.allLocations();
-    const map = this.els.map;
-    clear(map);
-    const cols = Math.max(0, ...locs.map((l) => l.x)) + 1;
-    const rows = Math.max(0, ...locs.map((l) => l.y)) + 1;
-    map.style.setProperty("--cols", String(cols));
-    map.style.setProperty("--rows", String(rows));
-    const selected = sim.getSelectedAgent();
-
-    for (const loc of locs) {
-      const present = sim.environment.agentsAt(loc.id, sim.agents);
-      const hasSelected = selected && present.some((a) => a.id === selected.id);
-      const tile = el("div", {
-        class: `tile tile--${loc.type}${hasSelected ? " tile--active" : ""}`,
-        style: { gridColumn: String(loc.x + 1), gridRow: String(loc.y + 1) },
-        role: "group",
-        "aria-label": `${loc.name}: ${present.length} ${present.length === 1 ? "person" : "people"} present`,
-        title: `${loc.name} — ${loc.description}`,
-      }, [
-        el("span", { class: "tile-name", text: loc.name }),
-        el("div", { class: "markers" }, present.map((a) => this._marker(a, loc, selected))),
-      ]);
-      map.appendChild(tile);
-    }
-  }
-
-  _marker(agent, loc, selected) {
-    const isSel = selected && agent.id === selected.id;
-    return el("button", {
-      type: "button",
-      class: `marker${isSel ? " marker--selected" : ""}`,
-      style: { "--marker-color": agent.color },
-      "data-agent-id": agent.id,
-      "aria-pressed": isSel ? "true" : "false",
-      "aria-label": `Select ${agent.name}, ${agent.role}, at ${loc.name}${isSel ? " (selected)" : ""}`,
-      title: `${agent.name} — ${agent.currentActivity}`,
-    }, [
-      el("span", { class: "marker-emoji", "aria-hidden": "true", text: agent.emoji }),
-      el("span", { class: "marker-initials", text: agent.initials }),
-      isSel ? el("span", { class: "marker-check", "aria-hidden": "true", text: "✓" }) : null,
-    ]);
-  }
-
   _renderLegend() {
     const sim = this.sim;
     const legend = this.els.legend;
-    clear(legend);
+    if (!legend) return;
+    while (legend.firstChild) legend.removeChild(legend.firstChild);
     const selected = sim.getSelectedAgent();
     for (const a of sim.agents) {
       const isSel = selected && a.id === selected.id;
-      legend.appendChild(
-        el("button", {
-          type: "button",
-          class: `legend-chip${isSel ? " legend-chip--selected" : ""}`,
-          "data-agent-id": a.id,
-          "aria-pressed": isSel ? "true" : "false",
-          "aria-label": `Select ${a.name}, ${a.role}`,
-        }, [
-          el("span", { class: "legend-swatch", "aria-hidden": "true", style: { background: a.color } }, a.emoji),
-          el("span", { class: "legend-name", text: a.name }),
-        ])
-      );
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = `legend-chip${isSel ? " legend-chip--selected" : ""}`;
+      chip.setAttribute("data-agent-id", a.id);
+      chip.setAttribute("aria-pressed", isSel ? "true" : "false");
+      chip.setAttribute("aria-label", `Select ${a.name}, ${a.role}`);
+      const sw = document.createElement("span");
+      sw.className = "legend-swatch";
+      sw.setAttribute("aria-hidden", "true");
+      sw.style.background = a.color;
+      sw.textContent = a.emoji;
+      const nm = document.createElement("span");
+      nm.className = "legend-name";
+      nm.textContent = a.name;
+      chip.appendChild(sw);
+      chip.appendChild(nm);
+      legend.appendChild(chip);
     }
   }
 
   _renderDebug() {
     if (!this.els.debugContent) return;
     const info = this.sim.getDebugInfo();
-    clear(this.els.debugContent);
-    const dl = el("dl", { class: "details" },
-      Object.entries(info).map(([k, v]) =>
-        el("div", { class: "detail-row" }, [el("dt", { text: k }), el("dd", { text: String(v) })])
-      )
-    );
-    this.els.debugContent.appendChild(dl);
+    const box = this.els.debugContent;
+    while (box.firstChild) box.removeChild(box.firstChild);
+    const dl = document.createElement("dl");
+    dl.className = "details";
+    for (const [k, v] of Object.entries(info)) {
+      const row = document.createElement("div");
+      row.className = "detail-row";
+      const dt = document.createElement("dt");
+      dt.textContent = k;
+      const dd = document.createElement("dd");
+      dd.textContent = String(v);
+      row.appendChild(dt);
+      row.appendChild(dd);
+      dl.appendChild(row);
+    }
+    box.appendChild(dl);
   }
 }

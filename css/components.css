@@ -31,88 +31,81 @@
   font-size: 1rem;
 }
 
-/* ---- Map ---- */
-.map {
-  display: grid;
-  grid-template-columns: repeat(var(--cols, 8), 1fr);
-  grid-template-rows: repeat(var(--rows, 6), minmax(58px, auto));
-  gap: 6px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 6px;
-}
-.tile {
-  position: relative;
+/* ---- Map (canvas town with a wooden frame) ---- */
+.map-stage {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 5px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line-strong);
-  background: #fbfaf6;
-  min-height: 58px;
-  font-size: 0.72rem;
+  gap: var(--space-3);
 }
-.tile-name {
-  color: var(--ink);
-  font-weight: 600;
-  line-height: 1.15;
+.map-frame {
+  position: relative;
+  padding: 9px;
+  border-radius: var(--radius);
+  line-height: 0;
+  background: repeating-linear-gradient(45deg, #6b4a2b 0 7px, #5d4024 7px 14px);
+  box-shadow: inset 0 0 0 3px #3c2a17, inset 0 0 0 4px rgba(255, 255, 255, 0.06), var(--shadow);
 }
-.tile--active {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 2px var(--accent);
-}
-/* Location-type tints — subtle, decorative; meaning also carried by the label */
-.tile--home { background: #f3f1fb; }
-.tile--cafe { background: #fdf2ea; }
-.tile--park { background: #eef8ef; }
-.tile--library { background: #eef2fb; }
-.tile--school { background: #fef6e9; }
-.tile--shop { background: #f8eef5; }
-.tile--civic { background: #eaf3fb; }
-.tile--health { background: #f3eefb; }
-.tile--studio { background: #fbeef0; }
-.tile--square { background: #f1f4ef; }
-
-.markers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-}
-.marker {
-  --marker-color: #4b6bdc;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px 2px 4px;
-  border-radius: 999px;
-  border: 2px solid rgba(0, 0, 0, 0.25);
-  background: var(--marker-color);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
+.map-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: #84b95a;
   cursor: pointer;
-  line-height: 1.2;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  image-rendering: auto;
 }
-.marker-emoji { font-size: 0.78rem; }
-.marker-initials { letter-spacing: 0.02em; }
-.marker--selected {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--ink);
+.map-host {
+  display: block;
+  line-height: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #84b95a;
+  min-height: 140px;
 }
-.marker-check {
-  background: #fff;
-  color: var(--ink);
-  border-radius: 999px;
-  width: 14px;
-  height: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.62rem;
+.map-host canvas,
+.map-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+}
+.map-overlay {
+  position: absolute;
+  inset: 9px; /* aligns with .map-frame padding so it overlaps the canvas */
+  overflow: hidden;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Floating "INITIALS: emoji" bubbles above each character */
+.speech-bubble {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: #ffffff;
+  border: 2px solid #2a2333;
+  border-radius: 9px;
+  padding: 1px 7px;
+  font: 700 11px/1.35 var(--mono);
+  letter-spacing: 0.02em;
+  color: #1e2330;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.28);
+}
+.speech-bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #2a2333;
+}
+.speech-bubble--talking { background: #fff6e2; }
+.speech-bubble--selected {
+  border-color: #b8770a;
+  box-shadow: 0 0 0 2px #ffd23f, 0 2px 0 rgba(0, 0, 0, 0.28);
+  z-index: 3;
 }
 
 /* ---- Legend ---- */

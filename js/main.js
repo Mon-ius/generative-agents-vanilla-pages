@@ -10,6 +10,7 @@ import { Simulation } from "./simulation/Simulation.js";
 import { LocalGenerationProvider } from "./agents/GenerationProvider.js";
 import { Renderer } from "./ui/Renderer.js";
 import { Controls } from "./ui/Controls.js";
+import { MapView } from "./ui/MapView.js";
 import { SEED_AGENTS } from "./data/seedAgents.js";
 import { SEED_LOCATIONS } from "./data/seedLocations.js";
 import { SEED_EVENTS } from "./data/seedEvents.js";
@@ -168,8 +169,50 @@ function runSmokeTest() {
   return { passed, total: results.length, results };
 }
 
+// ---- map renderer: PixiJS (WebGL) primary, canvas-2D fallback ----------------
+const onSelect = (id) => sim.selectAgent(id);
+
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return Boolean(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch (_) {
+    return false;
+  }
+}
+
+async function setupMap() {
+  const host = document.getElementById("map-host");
+  const overlay = document.getElementById("map-overlay");
+  if (!host) return null;
+  // Only attempt Pixi in a real browser with WebGL (the requestAnimationFrame
+  // gate also keeps Node out of the Pixi import path entirely).
+  if (typeof requestAnimationFrame === "function" && hasWebGL()) {
+    try {
+      const { PixiMapView } = await import("./ui/PixiMapView.js");
+      const view = new PixiMapView(host, sim, { onSelect });
+      await view.init();
+      host.dataset.renderer = "pixi";
+      console.log("Map renderer: PixiJS (WebGL)");
+      return view;
+    } catch (e) {
+      console.warn("PixiJS unavailable — using the canvas renderer instead.", e);
+      host.innerHTML = "";
+    }
+  }
+  const view = new MapView(host, overlay, sim, { onSelect });
+  view.start();
+  host.dataset.renderer = "canvas";
+  console.log("Map renderer: canvas 2D (fallback)");
+  return view;
+}
+
 // ---- expose for inspection / testing -----------------------------------------
-window.__app = { app, sim, renderer, controls };
+window.__app = { app, sim, renderer, controls, map: null };
 window.runSmokeTest = runSmokeTest;
+
+setupMap().then((view) => {
+  window.__app.map = view;
+});
 
 console.log("Generative Agents (vanilla) ready. Try window.runSmokeTest() in the console.");

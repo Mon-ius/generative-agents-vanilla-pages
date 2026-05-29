@@ -1,0 +1,3 @@
+PixiJS v8 (https://pixijs.com) — vendored from https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.mjs
+Resolved latest v8: 
+License: MIT. Bundled as-is (self-contained ESM, no sub-imports) so the site needs no build step or CDN at runtime.

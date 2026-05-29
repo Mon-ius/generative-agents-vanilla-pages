@@ -4,8 +4,10 @@ A dependency-free browser simulation of **generative agents**, inspired by
 *"Generative Agents: Interactive Simulacra of Human Behavior"* (Park et al., 2023).
 Six residents of the small town of **Willow Creek** observe their world, store
 memories, retrieve them, make daily plans, reflect, hold conversations, and form
-relationships — all in **vanilla HTML, CSS, and JavaScript** with **no frameworks,
-no build step, no backend, and no LLM API keys**.
+relationships. The town is rendered as a top-down pixel-style map with **PixiJS**
+(WebGL) — vendored locally so there is **no build step and no runtime CDN** — and
+an automatic **canvas-2D fallback** if WebGL is unavailable. The app needs **no
+backend and no LLM API keys**.
 
 > This project was rebuilt from the Stanford "Generative Agents" research codebase
 > (a Python/Django + Phaser stack) into a pure static web app. The original Python
@@ -71,11 +73,16 @@ everything (including `localStorage` persistence) works with no backend.
       RelationshipGraph.js   # affinity / trust / familiarity per pair
       GenerationProvider.js  # LocalGenerationProvider (deterministic) + LLM stub
     /ui/
-      Renderer.js         # map + legend + coordination; subscribes to the EventBus
+      Renderer.js         # panels + legend + status; subscribes to the EventBus
+      PixiMapView.js      # primary town renderer (PixiJS / WebGL)
+      MapView.js          # canvas-2D fallback renderer (also runs the Node UI test)
+      townArt.js          # shared town geometry + procedural art (both renderers)
       AgentPanel.js       # agent details, plan, relationships
       MemoryPanel.js      # memory stream
       TimelinePanel.js    # event feed
       Controls.js         # wires the control bar
+    /vendor/
+      pixi.min.mjs        # PixiJS v8 (MIT), vendored — no build step, no runtime CDN
     /data/
       seedAgents.js       # 6 residents
       seedLocations.js    # 15 locations (9 public + 6 homes)
@@ -293,8 +300,12 @@ node test/smoke.node.mjs    # or: npm run smoke
 
 - Conversations, reflections, and plans are **template-based** and deterministic —
   believable and inspectable, but not as open-ended as a real LLM.
-- "Movement" is instantaneous to the target location (no per-tile travel/pathfinding).
-- The world is a labelled grid, not a tile-art game map.
+- Agents walk smoothly between buildings, but movement is a straight-line tween to
+  the destination (no per-tile pathfinding around obstacles).
+- The town art is procedurally drawn (no external sprite assets), so it *evokes*
+  rather than reproduces a commercial RPG tileset.
+- The primary renderer needs WebGL; on devices without it the app falls back to a
+  canvas-2D renderer with the same layout and behaviour.
 - Reflection/relationship dynamics are intentionally simple and tuned for legibility.
 - All state is per-browser (`localStorage`); there is no multi-device sync.
 
@@ -309,8 +320,11 @@ node test/smoke.node.mjs    # or: npm run smoke
 
 ## Tech & deployment
 
-- **Vanilla HTML/CSS/JS, ES modules.** No frameworks, bundlers, transpilers,
-  runtime npm dependencies, server, or database. Dependency-free static site.
+- **HTML/CSS/JS, ES modules — no build step, bundler, transpiler, server, or
+  database.** Rendering uses **PixiJS v8** (MIT), vendored at
+  `js/vendor/pixi.min.mjs` and imported as a relative ES module, so there is **no
+  CDN dependency at runtime**; a **canvas-2D fallback** renders if WebGL is missing.
+  All simulation logic remains plain vanilla JS with no third-party dependency.
 - Asset paths are **relative**, so the app works from a GitHub Pages **project
   subpath** (`https://OWNER.github.io/REPO/`).
 

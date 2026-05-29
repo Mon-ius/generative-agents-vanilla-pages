@@ -28,9 +28,16 @@
     <!-- Column 1: world + controls -->
     <section class="col col-world" aria-label="World and controls">
       <div class="panel panel--map">
-        <h2>Town Map</h2>
-        <div id="map" class="map" role="group" aria-label="Town map showing agents at their current locations"></div>
-        <div id="map-legend" class="map-legend" aria-label="Agents (click to select)"></div>
+        <h2>Willow Creek</h2>
+        <div class="map-stage">
+          <div class="map-frame">
+            <div id="map-host" class="map-host"
+                 role="img"
+                 aria-label="Top-down map of Willow Creek showing agents walking between buildings. Use the agent list below the map to select an agent with the keyboard."></div>
+            <div id="map-overlay" class="map-overlay" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div id="map-legend" class="map-legend" aria-label="Agents — click to select"></div>
       </div>
 
       <div class="panel">
@@ -98,7 +105,7 @@
 
   <footer class="app-footer">
     <p>
-      Vanilla HTML/CSS/JS · no frameworks, no build step, no backend, no API keys.
+      HTML/CSS/JS · PixiJS (vendored, WebGL) with a canvas fallback · no build step, no backend, no API keys.
       Open <code>window.runSmokeTest()</code> in the console to self-check.
     </p>
   </footer>
