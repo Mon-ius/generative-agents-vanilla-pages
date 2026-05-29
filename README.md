@@ -16,8 +16,8 @@ no build step, no backend, and no LLM API keys**.
 
 ## Live demo
 
-- **Live site (GitHub Pages):** _pending deployment — see "How to deploy" below; this line is updated after the first deploy._
-- **Repository:** _pending deployment._
+- **Live site (GitHub Pages):** <https://mon-ius.github.io/generative-agents-vanilla-pages/>
+- **Repository:** <https://github.com/Mon-ius/generative-agents-vanilla-pages>
 
 ## Quick start (run locally)
 
