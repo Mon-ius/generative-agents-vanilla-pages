@@ -93,11 +93,19 @@ body { height: 100%; }
   flex: 0 0 auto;
   padding: 6px var(--space-5);
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   text-align: center;
   border-top: 1px solid var(--line);
   background: #0d1320;
 }
+.app-footer p { margin: 0; }
+.repo-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+}
+.repo-link:hover { text-decoration: underline; }
 
 /* ---- Responsive: stack + allow page scroll ---- */
 @media (max-width: 1040px) {
