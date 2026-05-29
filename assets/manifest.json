@@ -144,6 +144,84 @@
       "w": 30,
       "h": 10,
       "anchor": "topleft"
+    },
+    "bed_red": {
+      "file": "bed_red.png",
+      "w": 24,
+      "h": 28,
+      "anchor": "topleft"
+    },
+    "bed_green": {
+      "file": "bed_green.png",
+      "w": 24,
+      "h": 28,
+      "anchor": "topleft"
+    },
+    "chair_red": {
+      "file": "chair_red.png",
+      "w": 14,
+      "h": 14,
+      "anchor": "topleft"
+    },
+    "chair_yellow": {
+      "file": "chair_yellow.png",
+      "w": 14,
+      "h": 14,
+      "anchor": "topleft"
+    },
+    "chair_green": {
+      "file": "chair_green.png",
+      "w": 14,
+      "h": 14,
+      "anchor": "topleft"
+    },
+    "rug_blue": {
+      "file": "rug_blue.png",
+      "w": 30,
+      "h": 20,
+      "anchor": "topleft"
+    },
+    "rug_green": {
+      "file": "rug_green.png",
+      "w": 30,
+      "h": 20,
+      "anchor": "topleft"
+    },
+    "dresser": {
+      "file": "dresser.png",
+      "w": 18,
+      "h": 14,
+      "anchor": "topleft"
+    },
+    "nightstand": {
+      "file": "nightstand.png",
+      "w": 12,
+      "h": 12,
+      "anchor": "topleft"
+    },
+    "sofa": {
+      "file": "sofa.png",
+      "w": 30,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "lamp": {
+      "file": "lamp.png",
+      "w": 10,
+      "h": 18,
+      "anchor": "topleft"
+    },
+    "tv": {
+      "file": "tv.png",
+      "w": 18,
+      "h": 12,
+      "anchor": "topleft"
+    },
+    "painting": {
+      "file": "painting.png",
+      "w": 12,
+      "h": 10,
+      "anchor": "topleft"
     }
   }
 }

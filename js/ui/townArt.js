@@ -10,7 +10,7 @@
 
 import { seededRandom } from "../utils/random.js";
 
-export const CELL = 132;        // logical px per grid cell
+export const CELL = 176;        // logical px per grid cell (larger → room for multi-room detail)
 export const TEXTURE_SCALE = 2; // bake the static world at 2× for crisp detail
 
 export const ROOF = {
@@ -48,10 +48,10 @@ export function computeLayout(sim) {
   for (const l of locs) {
     const cx = l.x * CELL + CELL / 2;
     const cy = l.y * CELL + CELL / 2;
-    const bw = Math.round(CELL * 0.82);
-    const bh = Math.round(CELL * 0.64);
+    const bw = Math.round(CELL * 0.86);
+    const bh = Math.round(CELL * 0.74);
     const bx = Math.round(cx - bw / 2);
-    const by = Math.round(cy - bh / 2 - 6);
+    const by = Math.round(cy - bh / 2 - 8);
     rects.set(l.id, { loc: l, cx, cy, bx, by, bw, bh, door: { x: cx, y: by + bh + 12 } });
   }
   return { cols, rows, W, H, CELL, rects };
@@ -472,86 +472,166 @@ function flowerPatch(g, S, x, y, cw, ch, rnd) {
 
 function put(g, img, x, y) { if (img) g.drawImage(img, x, y, img.width, img.height); }
 
+function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)] : null; }
+
 function spriteBuilding(g, S, rc) {
   const { bx, by, bw, bh, cx } = rc;
-  const floor = rc.loc.type === "health" ? S.floor_tile : S.floor_wood;
-  clipTile(g, floor || S.floor_wood, bx, by, bw, bh);
+  const rng = seededRandom("furn-" + rc.loc.id);
 
-  // walls (clipped to the building footprint), with a door gap in the bottom wall
+  clipTile(g, S.floor_wood, bx, by, bw, bh); // base floor
+
   g.save();
   g.beginPath();
   g.rect(bx, by, bw, bh);
   g.clip();
+  // perimeter walls with a bottom door gap
   if (S.wall) {
     for (let x = bx; x < bx + bw; x += 16) g.drawImage(S.wall, x, by, 16, 16);
     for (let y = by; y < by + bh; y += 16) { g.drawImage(S.wall, bx, y, 16, 16); g.drawImage(S.wall, bx + bw - 16, y, 16, 16); }
-    const doorL = cx - 12, doorR = cx + 12;
+    const doorL = cx - 13, doorR = cx + 13;
     for (let x = bx; x < bx + bw; x += 16) if (x + 16 <= doorL || x >= doorR) g.drawImage(S.wall, x, by + bh - 16, 16, 16);
   }
-  // furniture, clipped so nothing spills outside the building
-  spriteInterior(g, S, rc.loc.type, bx + 17, by + 17, bw - 34, bh - 32);
+  // multi-room interior, furnished per-building for variety
+  spriteRooms(g, S, rc.loc.type, bx + 16, by + 16, bw - 32, bh - 30, rng);
   g.restore();
 
   g.strokeStyle = "#2f2a22";
   g.lineWidth = 1;
   g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
   const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
-  g.font = "600 8px ui-monospace, Menlo, monospace";
+  g.font = "600 9px ui-monospace, Menlo, monospace";
   g.textAlign = "center";
   g.textBaseline = "middle";
-  g.fillStyle = "rgba(0,0,0,0.6)";
+  g.fillStyle = "rgba(0,0,0,0.62)";
   g.fillText(label, cx, by + 8, bw - 8);
   g.textAlign = "left";
 }
 
-function spriteInterior(g, S, type, x, y, w, h) {
-  const cx = x + w / 2, cy = y + h / 2;
-  switch (type) {
-    case "home":
-      put(g, S.bed, x, y);
-      put(g, S.table, x + w - 28, y + h - 24);
-      put(g, S.plant, x, y + h - 18);
+// 2×2 room layout per building type (kinds are shuffled per building)
+const ROOMS = {
+  home: ["bedroom", "bath", "kitchen", "living"],
+  cafe: ["counter", "seating", "seating", "kitchen"],
+  shop: ["shelves", "shelves", "counter", "storage"],
+  library: ["shelves", "shelves", "study", "study"],
+  school: ["board", "desks", "desks", "study"],
+  health: ["cot", "cot", "bath", "storage"],
+  civic: ["meeting", "study", "shelves", "living"],
+  studio: ["work", "study", "living", "storage"],
+};
+
+function spriteRooms(g, S, type, x, y, w, h, rng) {
+  const kinds = (ROOMS[type] || ["living", "study", "bedroom", "kitchen"]).slice();
+  for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
+  const gap = 3;
+  const rw = (w - gap) / 2, rh = (h - gap) / 2;
+  const cells = [
+    { x, y, w: rw, h: rh },
+    { x: x + rw + gap, y, w: rw, h: rh },
+    { x, y: y + rh + gap, w: rw, h: rh },
+    { x: x + rw + gap, y: y + rh + gap, w: rw, h: rh },
+  ];
+  cells.forEach((c, i) => furnish(g, S, kinds[i % kinds.length], c, rng));
+  // interior wall dividers
+  g.fillStyle = "#bdb094";
+  g.fillRect(x + rw, y, gap, h);
+  g.fillRect(x, y + rh, w, gap);
+}
+
+function roomFloor(g, S, kind, c) {
+  let f = S.floor_wood;
+  if (kind === "bath") f = S.floor_pink || S.floor_tile;
+  else if (kind === "kitchen") f = S.floor_tile;
+  clipTile(g, f || S.floor_wood, c.x, c.y, c.w, c.h);
+}
+
+function furnish(g, S, kind, c, rng) {
+  roomFloor(g, S, kind, c);
+  g.save();
+  g.beginPath();
+  g.rect(c.x, c.y, c.w, c.h);
+  g.clip();
+  const L = c.x + 2, T = c.y + 2, R = c.x + c.w, B = c.y + c.h;
+  const beds = [S.bed, S.bed_red, S.bed_green].filter(Boolean);
+  const chairs = [S.chair, S.chair_red, S.chair_yellow, S.chair_green].filter(Boolean);
+  const rugs = [S.rug, S.rug_blue, S.rug_green].filter(Boolean);
+  switch (kind) {
+    case "bedroom":
+      put(g, pick(beds, rng), L, T);
+      put(g, S.nightstand, R - 14, T);
+      put(g, rng() < 0.6 ? S.dresser : S.bookshelf, L, B - 16);
+      if (rng() < 0.5) put(g, S.lamp, R - 12, B - 20);
+      if (rng() < 0.5) put(g, S.painting, R - 14, T + 14);
       break;
-    case "cafe":
-      put(g, S.counter, x, y);
-      put(g, S.table, x, y + h - 24);
-      put(g, S.table, x + w - 28, y + h - 24);
-      put(g, S.plant, x + w - 14, y);
+    case "bath":
+      put(g, S.toilet, L, T);
+      put(g, S.sink, R - 16, T);
+      if (rng() < 0.6) put(g, S.plant, L, B - 20);
       break;
-    case "shop":
-      put(g, S.counter, x, y);
-      put(g, S.fridge, x + w - 16, y + h - 26);
-      put(g, S.table, x, y + h - 24);
+    case "kitchen":
+      put(g, S.counter, L, T);
+      put(g, S.fridge, R - 18, T + 2);
+      put(g, S.stove, L, B - 18);
       break;
-    case "library":
-      put(g, S.bookshelf, x, y);
-      put(g, S.bookshelf, x + 20, y);
-      put(g, S.table, x + w - 28, cy - 8);
+    case "living":
+      put(g, pick(rugs, rng), L + 2, B - 22);
+      put(g, S.sofa, L, T);
+      if (rng() < 0.7) put(g, S.tv, R - 20, T + 2);
+      if (rng() < 0.6) put(g, S.plant, R - 14, B - 20);
       break;
-    case "school":
-      put(g, S.board, x, y);
-      put(g, S.desk, x, y + 14); put(g, S.desk, x + 22, y + 14);
-      put(g, S.desk, x, y + 30); put(g, S.desk, x + 22, y + 30);
+    case "shelves":
+      put(g, S.bookshelf, L, T);
+      put(g, S.bookshelf, L + 20, T);
+      if (rng() < 0.5) put(g, S.bookshelf, R - 18, T);
       break;
-    case "health":
-      put(g, S.bed, x, y);
-      put(g, S.fridge, x + w - 16, y);
-      put(g, S.sink, x + w - 16, y + h - 12);
+    case "counter":
+      put(g, S.counter, L, T);
+      put(g, pick(chairs, rng), L + 4, B - 16);
+      put(g, pick(chairs, rng), L + 22, B - 16);
       break;
-    case "civic":
-      put(g, S.table, cx - 14, cy - 12);
-      put(g, S.bookshelf, x, y);
-      put(g, S.bookshelf, x + w - 18, y);
+    case "seating":
+      put(g, S.table, L + 6, T + 6);
+      put(g, pick(chairs, rng), L, T);
+      put(g, pick(chairs, rng), R - 14, T);
+      put(g, pick(chairs, rng), L, B - 14);
+      put(g, pick(chairs, rng), R - 14, B - 14);
       break;
-    case "studio":
-      put(g, S.table, x, y);
-      put(g, S.bookshelf, x + w - 18, y);
-      put(g, S.plant, x, y + h - 18);
+    case "desks":
+      put(g, S.desk, L, T); put(g, S.desk, L + 22, T);
+      put(g, S.desk, L, T + 18); put(g, S.desk, L + 22, T + 18);
+      break;
+    case "board":
+      put(g, S.board, L, T);
+      put(g, S.desk, L, T + 14); put(g, S.desk, L + 22, T + 14);
+      break;
+    case "cot":
+      put(g, pick(beds, rng), L, T);
+      if (rng() < 0.6) put(g, S.plant, R - 14, B - 20);
+      break;
+    case "study":
+      put(g, S.desk, L, T);
+      put(g, pick(chairs, rng), L + 2, T + 14);
+      put(g, S.bookshelf, R - 18, T);
+      break;
+    case "meeting":
+      put(g, S.table, L + 8, T + 8);
+      put(g, pick(chairs, rng), L, T); put(g, pick(chairs, rng), R - 14, T);
+      put(g, pick(chairs, rng), L, B - 14); put(g, pick(chairs, rng), R - 14, B - 14);
+      break;
+    case "work":
+      put(g, S.table, L, T);
+      put(g, S.bookshelf, R - 18, T);
+      if (rng() < 0.6) put(g, S.plant, L, B - 20);
+      break;
+    case "storage":
+      put(g, S.fridge, L, T);
+      put(g, S.dresser, R - 18, T);
+      if (rng() < 0.5) put(g, S.bookshelf, L, B - 16);
       break;
     default:
-      put(g, S.table, cx - 14, cy - 12);
-      put(g, S.plant, x, y);
+      put(g, S.table, L + 6, T + 6);
+      put(g, S.plant, L, T);
   }
+  g.restore();
 }
 
 function spritePark(g, S, rc) {

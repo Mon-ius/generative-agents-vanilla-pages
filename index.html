@@ -41,6 +41,17 @@
         <label for="seed-input">Seed</label>
         <input id="seed-input" class="input input--seed" type="text" value="smallville-2024" aria-label="Simulation seed (used on Reset)" />
       </div>
+      <div class="toolbar__divider" aria-hidden="true"></div>
+      <div class="toolbar__group" role="group" aria-label="Saved state and reproducibility">
+        <button id="btn-save" type="button" class="btn">💾 Save</button>
+        <button id="btn-load" type="button" class="btn" disabled>📂 Load</button>
+        <button id="btn-clear" type="button" class="btn" disabled>🗑 Clear</button>
+        <button id="btn-export" type="button" class="btn">⬇ Export</button>
+        <button id="btn-import" type="button" class="btn">⬆ Import</button>
+        <button id="btn-share" type="button" class="btn">🔗 Share</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden aria-hidden="true" />
+        <span id="io-status" class="io-status muted" role="status" aria-live="polite"></span>
+      </div>
       <div class="toolbar__group toolbar__group--end">
         <button id="btn-debug" type="button" class="btn btn--ghost" aria-pressed="false">Show debug</button>
       </div>
@@ -120,21 +131,6 @@
             <div class="panel">
               <h2>Parameters (live ablation)</h2>
               <div id="params-mount"></div>
-            </div>
-            <div class="panel">
-              <h2>Reproducibility</h2>
-              <div class="io-row">
-                <button id="btn-save" type="button" class="btn">💾 Save</button>
-                <button id="btn-load" type="button" class="btn" disabled>📂 Load</button>
-                <button id="btn-clear" type="button" class="btn" disabled>🗑 Clear</button>
-              </div>
-              <div class="io-row" style="margin-top:8px">
-                <button id="btn-export" type="button" class="btn">⬇ Export JSON</button>
-                <button id="btn-import" type="button" class="btn">⬆ Import JSON</button>
-                <button id="btn-share" type="button" class="btn">🔗 Share seed</button>
-                <input id="import-file" type="file" accept="application/json,.json" hidden aria-hidden="true" />
-              </div>
-              <p id="io-status" class="muted" style="margin-top:8px;font-size:0.82rem"></p>
             </div>
             <section class="panel panel--debug" id="debug-panel" hidden>
               <h2>Debug</h2>

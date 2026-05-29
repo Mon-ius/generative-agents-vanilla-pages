@@ -10,6 +10,9 @@ export const SPRITE_NAMES = [
   "floor_wood", "floor_tile", "floor_pink", "wall", "rug",
   "bed", "table", "chair", "bookshelf", "fridge", "counter",
   "stove", "plant", "piano", "toilet", "sink", "desk", "board",
+  // variants + extra furniture for richer, more varied interiors
+  "bed_red", "bed_green", "chair_red", "chair_yellow", "chair_green",
+  "rug_blue", "rug_green", "dresser", "nightstand", "sofa", "lamp", "tv", "painting",
 ];
 
 let _cache = null;

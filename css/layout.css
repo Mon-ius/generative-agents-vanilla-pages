@@ -45,6 +45,7 @@ body { height: 100%; }
 .toolbar__group > label { font-size: 0.78rem; color: var(--muted); margin-left: var(--space-2); }
 .toolbar__group--end { margin-left: auto; }
 .toolbar__divider { width: 1px; align-self: stretch; background: var(--line); margin: 2px 0; }
+.io-status { font-size: 0.76rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---- Stage: map hero (fills viewport) + detail rail ---- */
 .stage {
