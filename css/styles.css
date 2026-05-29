@@ -1,29 +1,31 @@
-/* styles.css — design tokens, reset, base typography, and shared primitives.
-   Modern CSS only: custom properties, system font stack (no external fonts),
-   accessible focus styles, and prefers-reduced-motion support. */
+/* styles.css — design tokens, reset, base typography, shared primitives.
+   Dark "observatory" theme: a deep night palette with a warm amber accent (echoing
+   the town's sun and the agent selection ring). System fonts only (no external
+   dependencies); accessible focus styles; prefers-reduced-motion support. */
 
 :root {
-  /* Palette — warm "paper" light theme with high text contrast */
-  --bg: #f4f2ec;
-  --panel: #ffffff;
-  --panel-2: #faf9f5;
-  --ink: #1e2330;          /* primary text — ~13:1 on white */
-  --muted: #586073;        /* secondary text — ~5.3:1 on white */
-  --line: #e3ddd1;
-  --line-strong: #cfc8b8;
-  --accent: #2f6fed;
-  --accent-ink: #ffffff;
-  --danger: #c23b3b;
-  --ok: #2f7d4f;
+  /* Palette — deep night with high-contrast text */
+  --bg: #0a0e18;           /* page / deep space */
+  --panel: #131a29;        /* card surface */
+  --panel-2: #1a2333;      /* raised / inset surface */
+  --ink: #e9edf6;          /* primary text — ~14:1 on --panel */
+  --muted: #97a3bb;        /* secondary text — ~6:1 on --panel */
+  --line: #28324a;
+  --line-strong: #3b4763;
+  --accent: #f4b740;       /* warm amber */
+  --accent-ink: #1b1400;   /* text on amber */
+  --accent-dim: #c98f1f;
+  --danger: #ff6b6b;
+  --ok: #57c98a;
 
-  /* Memory / timeline type accents (paired with icons + labels, never colour-only) */
-  --c-observation: #3b6fd8;
-  --c-action: #8a6d2f;
-  --c-conversation: #2f9e6f;
-  --c-reflection: #8a4fd0;
-  --c-event: #d9532b;
-  --c-movement: #0e8a8a;
-  --c-plan: #586073;
+  /* Memory / timeline type accents — brightened for dark surfaces */
+  --c-observation: #5b9cff;
+  --c-action: #d6a64a;
+  --c-conversation: #46c98a;
+  --c-reflection: #b07cff;
+  --c-event: #ff7a52;
+  --c-movement: #34c5cf;
+  --c-plan: #97a3bb;
 
   /* Spacing / shape */
   --space-1: 4px;
@@ -31,9 +33,9 @@
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
-  --radius: 10px;
-  --radius-sm: 7px;
-  --shadow: 0 1px 2px rgba(20, 24, 38, 0.06), 0 4px 16px rgba(20, 24, 38, 0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.28);
 
   --font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -41,13 +43,9 @@
 
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
-html {
-  -webkit-text-size-adjust: 100%;
-}
+html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
@@ -58,15 +56,8 @@ body {
   background: var(--bg);
 }
 
-h1, h2, h3 {
-  margin: 0;
-  font-weight: 650;
-  line-height: 1.25;
-}
-
-p {
-  margin: 0 0 var(--space-2);
-}
+h1, h2, h3 { margin: 0; font-weight: 650; line-height: 1.25; }
+p { margin: 0 0 var(--space-2); }
 
 code {
   font-family: var(--mono);
@@ -77,9 +68,7 @@ code {
   padding: 1px 5px;
 }
 
-.muted {
-  color: var(--muted);
-}
+.muted { color: var(--muted); }
 
 /* ---- Buttons & form controls ---- */
 .btn {
@@ -92,56 +81,39 @@ code {
   cursor: pointer;
   transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.06s ease;
 }
-.btn:hover:not(:disabled) {
-  background: var(--panel-2);
-  border-color: var(--accent);
-}
-.btn:active:not(:disabled) {
-  transform: translateY(1px);
-}
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+.btn:hover:not(:disabled) { background: var(--panel-2); border-color: var(--accent); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn--primary {
   background: var(--accent);
   color: var(--accent-ink);
   border-color: var(--accent);
+  font-weight: 650;
 }
-.btn--primary:hover:not(:disabled) {
-  background: #245ad0;
-}
-.btn--ghost {
-  background: transparent;
-}
-.btn[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--accent-ink);
-  border-color: var(--accent);
-}
+.btn--primary:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent-dim); }
+.btn--ghost { background: transparent; }
+.btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
 .select,
 .input {
   font: inherit;
   color: var(--ink);
-  background: var(--panel);
+  background: var(--panel-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   padding: 6px 9px;
   min-width: 0;
 }
-.input {
-  flex: 1 1 120px;
-}
+.input--seed { width: 150px; }
 
-/* ---- Accessible focus (visible on keyboard, not just hover) ---- */
+/* Accessible focus (visible on keyboard) */
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* ---- Skip link ---- */
+/* Skip link */
 .skip-link {
   position: absolute;
   left: -999px;
@@ -152,11 +124,9 @@ code {
   border-radius: 0 0 var(--radius-sm) 0;
   z-index: 100;
 }
-.skip-link:focus {
-  left: 0;
-}
+.skip-link:focus { left: 0; }
 
-/* ---- Reduced motion ---- */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

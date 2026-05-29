@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Willow Creek — Generative Agents</title>
-  <meta name="description" content="Willow Creek: a browser simulation of generative agents (memory, planning, reflection, conversation, relationships) rendered with PixiJS. Inspired by 'Generative Agents: Interactive Simulacra of Human Behavior'." />
-  <!-- Relative asset paths so the app works from a GitHub Pages project subpath -->
+  <title>Willow Creek — Generative Agents Observatory</title>
+  <meta name="description" content="Willow Creek Observatory: an interactive generative-agents simulation (memory, planning, reflection, conversation, relationships) rendered with PixiJS, with live metrics, a memory-retrieval probe, a relationship network, and parameter ablation. Inspired by 'Generative Agents: Interactive Simulacra of Human Behavior'." />
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="stylesheet" href="css/layout.css" />
   <link rel="stylesheet" href="css/components.css" />
@@ -13,112 +12,144 @@
 <body>
   <a class="skip-link" href="#map-host">Skip to map</a>
 
-  <!-- Top app bar: identity + live status -->
-  <header class="app-bar">
-    <div class="app-bar__brand">
-      <span class="brand-mark" aria-hidden="true">🏘️</span>
-      <div class="brand-text">
-        <h1 class="brand-title">Willow Creek</h1>
-        <p class="brand-sub">Generative Agents · interactive simulacra</p>
+  <div class="app">
+    <header class="app-bar">
+      <div class="app-bar__brand">
+        <span class="brand-mark" aria-hidden="true">🔭</span>
+        <div class="brand-text">
+          <h1 class="brand-title">Willow Creek</h1>
+          <p class="brand-sub">Generative Agents · Observatory</p>
+        </div>
+      </div>
+      <div class="app-bar__status" role="status" aria-live="polite">
+        <span id="time-indicator" class="time-indicator">Day 1, 08:00</span>
+        <span id="status-pill" class="status-pill" data-state="paused">Paused</span>
+      </div>
+    </header>
+
+    <div class="toolbar" role="region" aria-label="Simulation controls">
+      <div class="toolbar__group" role="group" aria-label="Playback">
+        <button id="btn-start" type="button" class="btn btn--primary">▶ Start</button>
+        <button id="btn-pause" type="button" class="btn" disabled>⏸ Pause</button>
+        <button id="btn-step" type="button" class="btn">⏭ Step</button>
+        <button id="btn-reset" type="button" class="btn">↺ Reset</button>
+      </div>
+      <div class="toolbar__divider" aria-hidden="true"></div>
+      <div class="toolbar__group">
+        <label for="speed-select">Speed</label>
+        <select id="speed-select" class="select" aria-label="Playback speed"></select>
+        <label for="seed-input">Seed</label>
+        <input id="seed-input" class="input input--seed" type="text" value="smallville-2024" aria-label="Simulation seed (used on Reset)" />
+      </div>
+      <div class="toolbar__group toolbar__group--end">
+        <button id="btn-debug" type="button" class="btn btn--ghost" aria-pressed="false">Show debug</button>
       </div>
     </div>
-    <div class="app-bar__status" role="status" aria-live="polite">
-      <span id="time-indicator" class="time-indicator">Day 1, 08:00</span>
-      <span id="status-pill" class="status-pill" data-state="paused">Paused</span>
-    </div>
-  </header>
 
-  <!-- Persistent control toolbar: primary actions always reachable -->
-  <div class="toolbar" role="region" aria-label="Simulation controls">
-    <div class="toolbar__group" role="group" aria-label="Playback">
-      <button id="btn-start" type="button" class="btn btn--primary">▶ Start</button>
-      <button id="btn-pause" type="button" class="btn" disabled>⏸ Pause</button>
-      <button id="btn-step" type="button" class="btn">⏭ Step</button>
-      <button id="btn-reset" type="button" class="btn">↺ Reset</button>
-    </div>
-    <div class="toolbar__divider" aria-hidden="true"></div>
-    <div class="toolbar__group">
-      <label for="speed-select">Speed</label>
-      <select id="speed-select" class="select" aria-label="Playback speed"></select>
-      <label for="seed-input">Seed</label>
-      <input id="seed-input" class="input input--seed" type="text" value="smallville-2024" aria-label="Simulation seed (used on Reset)" />
-    </div>
-    <div class="toolbar__divider" aria-hidden="true"></div>
-    <div class="toolbar__group" role="group" aria-label="Saved state">
-      <button id="btn-save" type="button" class="btn">💾 Save</button>
-      <button id="btn-load" type="button" class="btn" disabled>📂 Load</button>
-      <button id="btn-clear" type="button" class="btn" disabled>🗑 Clear</button>
-    </div>
-    <div class="toolbar__group toolbar__group--end">
-      <button id="btn-debug" type="button" class="btn btn--ghost" aria-pressed="false">Show debug</button>
-    </div>
+    <main class="stage">
+      <section class="map-hero" aria-label="Willow Creek town map">
+        <div class="map-wrap">
+          <div id="map-host" class="map-host"
+               role="img"
+               aria-label="Top-down map of Willow Creek showing agents walking between buildings. Use the resident list below the map to select an agent with the keyboard."></div>
+          <div id="map-overlay" class="map-overlay" aria-hidden="true"></div>
+        </div>
+        <div id="map-legend" class="map-legend" aria-label="Residents — click to select"></div>
+      </section>
+
+      <aside class="rail" aria-label="Details, analysis, and tuning">
+        <div class="tabs" role="tablist" aria-label="Detail panels">
+          <button class="tab" id="tab-agent" role="tab" aria-selected="true" aria-controls="panel-agent">Agent</button>
+          <button class="tab" id="tab-memory" role="tab" aria-selected="false" aria-controls="panel-memory" tabindex="-1">Memory</button>
+          <button class="tab" id="tab-feed" role="tab" aria-selected="false" aria-controls="panel-feed" tabindex="-1">Timeline</button>
+          <button class="tab" id="tab-analysis" role="tab" aria-selected="false" aria-controls="panel-analysis" tabindex="-1">Analysis</button>
+          <button class="tab" id="tab-tune" role="tab" aria-selected="false" aria-controls="panel-tune" tabindex="-1">Tune</button>
+        </div>
+
+        <div class="rail__panels">
+          <!-- Agent -->
+          <section class="tabpanel" id="panel-agent" role="tabpanel" aria-labelledby="tab-agent" tabindex="0">
+            <div class="panel">
+              <h2 id="agent-name">Agent</h2>
+              <div id="agent-details" class="agent-details"></div>
+            </div>
+            <div class="panel">
+              <h2>Plan</h2>
+              <ol id="plan-list" class="plan-list"></ol>
+            </div>
+            <div class="panel">
+              <h2>Relationships</h2>
+              <ul id="relationship-list" class="rel-list"></ul>
+            </div>
+            <div class="panel">
+              <h2>Memory Retrieval Probe</h2>
+              <div id="retrieval-mount"></div>
+            </div>
+          </section>
+
+          <!-- Memory -->
+          <section class="tabpanel" id="panel-memory" role="tabpanel" aria-labelledby="tab-memory" tabindex="0" hidden>
+            <div class="panel panel--scroll">
+              <h2>Memory Stream</h2>
+              <ul id="memory-list" class="mem-list"></ul>
+            </div>
+          </section>
+
+          <!-- Timeline -->
+          <section class="tabpanel" id="panel-feed" role="tabpanel" aria-labelledby="tab-feed" tabindex="0" hidden>
+            <div class="panel panel--scroll">
+              <h2>Event Timeline</h2>
+              <ul id="timeline-list" class="timeline-list"></ul>
+            </div>
+          </section>
+
+          <!-- Analysis -->
+          <section class="tabpanel" id="panel-analysis" role="tabpanel" aria-labelledby="tab-analysis" tabindex="0" hidden>
+            <div class="panel">
+              <h2>Live Metrics</h2>
+              <div id="metrics-mount"></div>
+            </div>
+            <div class="panel">
+              <h2>Relationship Network</h2>
+              <div id="network-mount"></div>
+            </div>
+          </section>
+
+          <!-- Tune -->
+          <section class="tabpanel" id="panel-tune" role="tabpanel" aria-labelledby="tab-tune" tabindex="0" hidden>
+            <div class="panel">
+              <h2>Parameters (live ablation)</h2>
+              <div id="params-mount"></div>
+            </div>
+            <div class="panel">
+              <h2>Reproducibility</h2>
+              <div class="io-row">
+                <button id="btn-save" type="button" class="btn">💾 Save</button>
+                <button id="btn-load" type="button" class="btn" disabled>📂 Load</button>
+                <button id="btn-clear" type="button" class="btn" disabled>🗑 Clear</button>
+              </div>
+              <div class="io-row" style="margin-top:8px">
+                <button id="btn-export" type="button" class="btn">⬇ Export JSON</button>
+                <button id="btn-import" type="button" class="btn">⬆ Import JSON</button>
+                <button id="btn-share" type="button" class="btn">🔗 Share seed</button>
+                <input id="import-file" type="file" accept="application/json,.json" hidden aria-hidden="true" />
+              </div>
+              <p id="io-status" class="muted" style="margin-top:8px;font-size:0.82rem"></p>
+            </div>
+            <section class="panel panel--debug" id="debug-panel" hidden>
+              <h2>Debug</h2>
+              <div id="debug-content" class="debug-content"></div>
+            </section>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="app-footer">
+      <p>HTML/CSS/JS · PixiJS (vendored, WebGL) + canvas fallback · no build, no backend, no API keys · <code>window.runSmokeTest()</code></p>
+    </footer>
   </div>
 
-  <!-- Main body: the map is the hero; a compact tabbed rail holds the details -->
-  <main id="main" class="stage">
-    <section class="map-hero" aria-label="Willow Creek town map">
-      <div class="map-frame">
-        <div id="map-host" class="map-host"
-             role="img"
-             aria-label="Top-down map of Willow Creek showing agents walking between buildings. Use the agent list below the map to select an agent with the keyboard."></div>
-        <div id="map-overlay" class="map-overlay" aria-hidden="true"></div>
-      </div>
-      <div id="map-legend" class="map-legend" aria-label="Residents — click to select"></div>
-    </section>
-
-    <aside class="rail" aria-label="Selected agent and world details">
-      <div class="tabs" role="tablist" aria-label="Detail panels">
-        <button class="tab" id="tab-agent" role="tab" aria-selected="true" aria-controls="panel-agent">Agent</button>
-        <button class="tab" id="tab-memory" role="tab" aria-selected="false" aria-controls="panel-memory" tabindex="-1">Memory</button>
-        <button class="tab" id="tab-feed" role="tab" aria-selected="false" aria-controls="panel-feed" tabindex="-1">Timeline</button>
-      </div>
-
-      <div class="rail__panels">
-        <section class="tabpanel" id="panel-agent" role="tabpanel" aria-labelledby="tab-agent" tabindex="0">
-          <div class="panel">
-            <h2 id="agent-name">Agent</h2>
-            <div id="agent-details" class="agent-details"></div>
-          </div>
-          <div class="panel">
-            <h2>Plan</h2>
-            <ol id="plan-list" class="plan-list"></ol>
-          </div>
-          <div class="panel">
-            <h2>Relationships</h2>
-            <ul id="relationship-list" class="rel-list"></ul>
-          </div>
-        </section>
-
-        <section class="tabpanel" id="panel-memory" role="tabpanel" aria-labelledby="tab-memory" tabindex="0" hidden>
-          <div class="panel panel--scroll">
-            <h2>Memory Stream</h2>
-            <ul id="memory-list" class="mem-list"></ul>
-          </div>
-        </section>
-
-        <section class="tabpanel" id="panel-feed" role="tabpanel" aria-labelledby="tab-feed" tabindex="0" hidden>
-          <div class="panel panel--scroll">
-            <h2>Event Timeline</h2>
-            <ul id="timeline-list" class="timeline-list"></ul>
-          </div>
-        </section>
-
-        <section class="panel panel--debug" id="debug-panel" hidden>
-          <h2>Debug</h2>
-          <div id="debug-content" class="debug-content"></div>
-        </section>
-      </div>
-    </aside>
-  </main>
-
-  <footer class="app-footer">
-    <p>
-      HTML/CSS/JS · PixiJS (vendored, WebGL) with a canvas fallback · no build step, no backend, no API keys.
-      Open <code>window.runSmokeTest()</code> in the console to self-check.
-    </p>
-  </footer>
-
-  <!-- Relative module path so it resolves under /REPO_NAME/ on GitHub Pages -->
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

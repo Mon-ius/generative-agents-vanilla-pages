@@ -39,10 +39,13 @@ everything (including `localStorage` persistence) works with no backend.
 ## What you can do
 
 - **Start / Pause / Step** the simulation, choose a **Speed**, and **Reset** with a chosen **seed**.
-- **Save / Load / Clear** the full simulation state in `localStorage`.
-- Click any **agent marker** on the map (or a legend chip) to inspect that agent.
-- Watch the **memory stream**, **plan**, **relationships**, and **event timeline** update live.
+- Click any agent on the **viewport-filling map** (or a legend chip) to inspect it. A **day/night tint** tracks the simulated clock.
+- Inspect the selected agent's **details, plan, relationships**, and run an interactive **memory-retrieval probe**.
+- Read the live **memory stream** and **event timeline**.
+- Open the **Analysis** tab for live **metrics** and a **relationship-network sociogram**.
+- Open the **Tune** tab to live-**ablate** retrieval weights and the reflection threshold, and to **Save / Load / Clear**, **Export / Import** state as JSON, or copy a **seed permalink**.
 - Toggle a **debug panel** (seed, tick, counts, RNG state).
+- The loop **pauses automatically when the tab is hidden** (and resumes on return).
 
 ## File structure
 
@@ -80,7 +83,12 @@ everything (including `localStorage` persistence) works with no backend.
       AgentPanel.js       # agent details, plan, relationships
       MemoryPanel.js      # memory stream
       TimelinePanel.js    # event feed
-      Controls.js         # wires the control bar
+      Controls.js         # wires the control toolbar
+      Tabs.js             # accessible (ARIA) tab controller for the rail
+      Metrics.js          # live quantitative metrics dashboard
+      RetrievalProbe.js   # interactive top-k memory retrieval with score breakdown
+      NetworkView.js      # relationship sociogram (canvas)
+      ParamControls.js    # live parameter ablation sliders (mutate CONFIG)
     /vendor/
       pixi.min.mjs        # PixiJS v8 (MIT), vendored — no build step, no runtime CDN
     /data/
@@ -258,6 +266,38 @@ it to the `Simulation` constructor in `main.js`.
 > the key would be public. Route requests through a **backend proxy** that holds
 > the key server-side. The stub deliberately throws to prevent accidental
 > key-in-frontend usage.
+
+## Research & inspection tools
+
+The right-hand rail is organised into tabs designed for inspecting and evaluating
+the simulation — useful for a demo or write-up:
+
+- **Analysis → Live Metrics** — quantitative read-outs that update every tick:
+  day/time, tick, residents, total conversations, acquainted (unordered) pairs,
+  total memories, reflections, mean affinity, and the busiest location. These give
+  a simple, reproducible basis for measuring emergent social activity.
+- **Analysis → Relationship Network** — a canvas sociogram: residents are nodes,
+  edges link pairs who have met, and edge thickness scales with familiarity. It
+  visualises the social structure that emerges from conversations. Click a node to
+  select that agent.
+- **Agent → Memory Retrieval Probe** — type a query and see the selected agent's
+  top-scoring memories with the **recency / importance / relevance** breakdown and
+  the combined score. This exposes the retrieval mechanism that drives behaviour.
+- **Tune → Parameters (live ablation)** — sliders that mutate the live `CONFIG`:
+  the three retrieval weights, the reflection-importance threshold, and minutes per
+  tick. Because the engine reads these values live, you can watch behaviour change
+  without reloading — an interactive ablation.
+
+### Reproducibility
+
+- **Seed** — the run is fully determined by its seed (shown in the toolbar). The
+  same seed reproduces the same world and trajectory.
+- **Seed permalink** — `Share seed` writes `#seed=<seed>` to the URL and copies it;
+  loading that URL starts from the same seed. (e.g. `…/#seed=smallville-2024`.)
+- **Export / Import** — `Export JSON` downloads the complete state (seed, exact RNG
+  cursor, time, agents, memories, relationships, environment, timeline); `Import
+  JSON` restores it. Combined with the persisted RNG state, an imported run
+  continues *identically*.
 
 ## Smoke test
 

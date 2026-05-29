@@ -45,8 +45,10 @@ export class PixiMapView {
     });
     this.app = app;
     const cv = app.canvas;
-    cv.style.width = "100%";
-    cv.style.height = "100%";
+    cv.style.maxWidth = "100%";
+    cv.style.maxHeight = "100%";
+    cv.style.width = "auto";
+    cv.style.height = "auto";
     cv.style.display = "block";
     this.host.appendChild(cv);
 

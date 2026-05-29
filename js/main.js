@@ -12,6 +12,10 @@ import { Renderer } from "./ui/Renderer.js";
 import { Controls } from "./ui/Controls.js";
 import { MapView } from "./ui/MapView.js";
 import { initTabs } from "./ui/Tabs.js";
+import { mountMetrics } from "./ui/Metrics.js";
+import { mountRetrievalProbe } from "./ui/RetrievalProbe.js";
+import { mountNetwork } from "./ui/NetworkView.js";
+import { mountParams } from "./ui/ParamControls.js";
 import { SEED_AGENTS } from "./data/seedAgents.js";
 import { SEED_LOCATIONS } from "./data/seedLocations.js";
 import { SEED_EVENTS } from "./data/seedEvents.js";
@@ -24,6 +28,18 @@ const settings = Object.assign(
 function persistSettings() {
   storage.save(CONFIG.settingsKey, settings);
 }
+
+// Seed permalink: "#seed=..." in the URL overrides the saved seed on load,
+// so a specific (reproducible) run can be shared by link.
+const hashParams = (() => {
+  try {
+    return new URLSearchParams((location.hash || "").replace(/^#/, ""));
+  } catch (_) {
+    return new URLSearchParams();
+  }
+})();
+const sharedSeed = hashParams.get("seed");
+if (sharedSeed) settings.seed = sharedSeed;
 
 // ---- build the world ---------------------------------------------------------
 const sim = new Simulation({
@@ -107,6 +123,98 @@ const app = {
 
 const controls = new Controls(app);
 initTabs();
+
+// ---- mount research panels (guarded so headless Node import stays safe) -------
+const $ = (id) => document.getElementById(id);
+const metricsEl = $("metrics-mount");
+if (metricsEl) mountMetrics(metricsEl, sim);
+const probeEl = $("retrieval-mount");
+if (probeEl) mountRetrievalProbe(probeEl, sim);
+const networkEl = $("network-mount");
+if (networkEl) mountNetwork(networkEl, sim);
+const paramsEl = $("params-mount");
+if (paramsEl) mountParams(paramsEl, sim);
+
+// ---- reproducibility: export / import / share permalink ----------------------
+function ioStatus(msg) {
+  const n = $("io-status");
+  if (n) n.textContent = msg;
+}
+const btnExport = $("btn-export");
+if (btnExport) {
+  btnExport.addEventListener("click", () => {
+    try {
+      const blob = new Blob([JSON.stringify(sim.getState(), null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `willow-creek-${sim.seed}-step${sim.tickCount}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      ioStatus(`Exported state at step ${sim.tickCount}.`);
+    } catch (e) {
+      ioStatus("Export failed: " + e.message);
+    }
+  });
+}
+const btnImport = $("btn-import");
+const importFile = $("import-file");
+if (btnImport && importFile) {
+  btnImport.addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", () => {
+    const file = importFile.files && importFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const state = JSON.parse(String(reader.result));
+        if (sim.loadState(state)) {
+          app.pause();
+          ioStatus("Imported simulation state.");
+        } else {
+          ioStatus("Import failed: unrecognised state file.");
+        }
+      } catch (e) {
+        ioStatus("Import failed: " + e.message);
+      }
+      importFile.value = "";
+    };
+    reader.readAsText(file);
+  });
+}
+const btnShare = $("btn-share");
+if (btnShare) {
+  btnShare.addEventListener("click", async () => {
+    try {
+      location.hash = "seed=" + encodeURIComponent(sim.seed);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(location.href);
+        ioStatus("Permalink copied to clipboard.");
+      } else {
+        ioStatus("Permalink set in the address bar.");
+      }
+    } catch (e) {
+      ioStatus("Share: seed set in URL (" + (e.message || "copy manually") + ").");
+    }
+  });
+}
+
+// ---- pause the loop when the tab is hidden (saves CPU; resumes on return) -----
+if (typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (app.running) {
+        app._wasRunning = true;
+        app.pause();
+      }
+    } else if (app._wasRunning) {
+      app._wasRunning = false;
+      app.start();
+    }
+  });
+}
 
 // ---- apply persisted settings to the UI --------------------------------------
 controls.setSpeedIndex(app.speedIndex);
