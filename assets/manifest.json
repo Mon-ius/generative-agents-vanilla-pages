@@ -1,0 +1,149 @@
+{
+  "tile": 16,
+  "sprites": {
+    "grass": {
+      "file": "grass.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "grass2": {
+      "file": "grass2.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "path": {
+      "file": "path.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "flower": {
+      "file": "flower.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "tree": {
+      "file": "tree.png",
+      "w": 32,
+      "h": 40,
+      "anchor": "topleft"
+    },
+    "bush": {
+      "file": "bush.png",
+      "w": 20,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "floor_wood": {
+      "file": "floor_wood.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "floor_tile": {
+      "file": "floor_tile.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "floor_pink": {
+      "file": "floor_pink.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "wall": {
+      "file": "wall.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "rug": {
+      "file": "rug.png",
+      "w": 30,
+      "h": 20,
+      "anchor": "topleft"
+    },
+    "bed": {
+      "file": "bed.png",
+      "w": 24,
+      "h": 28,
+      "anchor": "topleft"
+    },
+    "table": {
+      "file": "table.png",
+      "w": 28,
+      "h": 24,
+      "anchor": "topleft"
+    },
+    "chair": {
+      "file": "chair.png",
+      "w": 14,
+      "h": 14,
+      "anchor": "topleft"
+    },
+    "bookshelf": {
+      "file": "bookshelf.png",
+      "w": 18,
+      "h": 28,
+      "anchor": "topleft"
+    },
+    "fridge": {
+      "file": "fridge.png",
+      "w": 16,
+      "h": 26,
+      "anchor": "topleft"
+    },
+    "counter": {
+      "file": "counter.png",
+      "w": 32,
+      "h": 14,
+      "anchor": "topleft"
+    },
+    "stove": {
+      "file": "stove.png",
+      "w": 16,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "plant": {
+      "file": "plant.png",
+      "w": 14,
+      "h": 18,
+      "anchor": "topleft"
+    },
+    "piano": {
+      "file": "piano.png",
+      "w": 30,
+      "h": 20,
+      "anchor": "topleft"
+    },
+    "toilet": {
+      "file": "toilet.png",
+      "w": 14,
+      "h": 16,
+      "anchor": "topleft"
+    },
+    "sink": {
+      "file": "sink.png",
+      "w": 14,
+      "h": 12,
+      "anchor": "topleft"
+    },
+    "desk": {
+      "file": "desk.png",
+      "w": 18,
+      "h": 14,
+      "anchor": "topleft"
+    },
+    "board": {
+      "file": "board.png",
+      "w": 30,
+      "h": 10,
+      "anchor": "topleft"
+    }
+  }
+}

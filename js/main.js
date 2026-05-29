@@ -16,6 +16,7 @@ import { mountMetrics } from "./ui/Metrics.js";
 import { mountRetrievalProbe } from "./ui/RetrievalProbe.js";
 import { mountNetwork } from "./ui/NetworkView.js";
 import { mountParams } from "./ui/ParamControls.js";
+import { loadSprites } from "./assets.js";
 import { SEED_AGENTS } from "./data/seedAgents.js";
 import { SEED_LOCATIONS } from "./data/seedLocations.js";
 import { SEED_EVENTS } from "./data/seedEvents.js";
@@ -295,12 +296,15 @@ async function setupMap() {
   const host = document.getElementById("map-host");
   const overlay = document.getElementById("map-overlay");
   if (!host) return null;
+  // Load the pixel-art sprite assets first (falls back to {} if unavailable,
+  // in which case the renderers draw the procedural town instead).
+  const sprites = await loadSprites().catch(() => ({}));
   // Only attempt Pixi in a real browser with WebGL (the requestAnimationFrame
   // gate also keeps Node out of the Pixi import path entirely).
   if (typeof requestAnimationFrame === "function" && hasWebGL()) {
     try {
       const { PixiMapView } = await import("./ui/PixiMapView.js");
-      const view = new PixiMapView(host, sim, { onSelect });
+      const view = new PixiMapView(host, sim, { onSelect, sprites });
       await view.init();
       host.dataset.renderer = "pixi";
       console.log("Map renderer: PixiJS (WebGL)");
@@ -310,7 +314,7 @@ async function setupMap() {
       host.innerHTML = "";
     }
   }
-  const view = new MapView(host, overlay, sim, { onSelect });
+  const view = new MapView(host, overlay, sim, { onSelect, sprites });
   view.start();
   host.dataset.renderer = "canvas";
   console.log("Map renderer: canvas 2D (fallback)");

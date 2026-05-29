@@ -13,11 +13,12 @@ const WALK_SPEED = 2.2;
 const SAY_MS = 4200;
 
 export class MapView {
-  constructor(host, overlay, sim, { onSelect } = {}) {
+  constructor(host, overlay, sim, { onSelect, sprites } = {}) {
     this.host = host;
     this.overlay = overlay;
     this.sim = sim;
     this.onSelect = onSelect || (() => {});
+    this.sprites = sprites || null;
 
     this.canvas = typeof document !== "undefined" && document.createElement ? document.createElement("canvas") : null;
     if (this.canvas) {
@@ -47,7 +48,7 @@ export class MapView {
 
   _buildStatic() {
     if (typeof document === "undefined" || !document.createElement) return;
-    this.static = makeTownCanvas(this.layout);
+    this.static = makeTownCanvas(this.layout, this.sprites);
   }
 
   _syncTargets(snap) {

@@ -16,10 +16,11 @@ const WALK_SPEED = 2.4;
 const SAY_MS = 4200;
 
 export class PixiMapView {
-  constructor(host, sim, { onSelect } = {}) {
+  constructor(host, sim, { onSelect, sprites } = {}) {
     this.host = host;
     this.sim = sim;
     this.onSelect = onSelect || (() => {});
+    this.sprites = sprites || null;
     this.PIXI = null;
     this.app = null;
     this.entries = new Map(); // agentId -> { c, ring, bubble, bubbleBg, pos }
@@ -66,7 +67,7 @@ export class PixiMapView {
     this.layout = computeLayout(this.sim);
 
     // static world baked to a 2× texture, displayed at logical size (crisp)
-    const off = makeTownCanvas(this.layout);
+    const off = makeTownCanvas(this.layout, this.sprites);
     const bg = new PIXI.Sprite(PIXI.Texture.from(off));
     bg.width = this.layout.W;
     bg.height = this.layout.H;

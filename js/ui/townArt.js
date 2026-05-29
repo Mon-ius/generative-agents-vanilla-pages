@@ -68,20 +68,26 @@ export function spotFor(layout, locId, index, count) {
 }
 
 // Create the baked static-world canvas at TEXTURE_SCALE (caller draws agents on top).
-export function makeTownCanvas(layout, scale = TEXTURE_SCALE) {
+export function makeTownCanvas(layout, sprites, scale = TEXTURE_SCALE) {
   const cv = document.createElement("canvas");
   cv.width = Math.round(layout.W * scale);
   cv.height = Math.round(layout.H * scale);
   const g = cv.getContext && cv.getContext("2d");
   if (g) {
     g.scale(scale, scale);
-    drawTown(g, layout);
+    drawTown(g, layout, sprites);
   }
   return cv;
 }
 
 // ---- world ------------------------------------------------------------------
-export function drawTown(g, layout) {
+export function drawTown(g, layout, sprites) {
+  // Sprite (tilemap) mode when the generated PNG assets are loaded; otherwise the
+  // procedural fallback below (also used headlessly in Node tests).
+  if (sprites && Object.keys(sprites).length >= 6) {
+    drawTownSprites(g, layout, sprites);
+    return;
+  }
   const { W, H, cols, rows, rects } = layout;
   const rnd = seededRandom("willow-creek-art-v2");
 
@@ -410,6 +416,166 @@ function flowerBed(g, x, y, w, h, rnd) {
     g.beginPath(); g.arc(fx, fy, 1.8, 0, Math.PI * 2); g.fill();
     g.fillStyle = "#f4e08a"; g.fillRect(fx - 0.5, fy - 0.5, 1, 1);
   }
+}
+
+// ---- sprite (tilemap) compositing -------------------------------------------
+function drawTownSprites(g, layout, S) {
+  const { W, H, cols, rows, rects } = layout;
+  if (g.imageSmoothingEnabled !== undefined) g.imageSmoothingEnabled = false;
+
+  // grass carpet (with occasional lighter tile + flower)
+  const gr = seededRandom("spr-grass");
+  for (let y = 0; y < H; y += 16) {
+    for (let x = 0; x < W; x += 16) {
+      g.drawImage(gr() < 0.14 && S.grass2 ? S.grass2 : S.grass, x, y, 16, 16);
+      if (gr() < 0.05 && S.flower) g.drawImage(S.flower, x, y, 16, 16);
+    }
+  }
+  // dirt paths along the row/column streets
+  const road = 32;
+  for (let c = 0; c < cols; c++) clipTile(g, S.path, c * CELL + CELL / 2 - road / 2, 0, road, H);
+  for (let r = 0; r < rows; r++) clipTile(g, S.path, 0, r * CELL + CELL / 2 - road / 2, W, road);
+
+  // trees, bushes, flower beds
+  for (const rc of rects.values()) {
+    const tr = seededRandom("t-" + rc.loc.id);
+    if (tr() < 0.6 && S.tree) g.drawImage(S.tree, rc.bx - 24, rc.by - 30, 32, 40);
+    if (tr() < 0.4 && S.bush) g.drawImage(S.bush, rc.bx + rc.bw + 6, rc.by + rc.bh - 4, 20, 16);
+  }
+  flowerPatch(g, S, W - 150, 60, 9, 3, seededRandom("fp1"));
+  flowerPatch(g, S, 52, H - 96, 6, 3, seededRandom("fp2"));
+
+  // buildings / park / plaza, back-to-front
+  for (const rc of [...rects.values()].sort((a, b) => a.cy - b.cy)) {
+    if (rc.loc.type === "park") spritePark(g, S, rc);
+    else if (rc.loc.type === "square") spritePlaza(g, S, rc);
+    else spriteBuilding(g, S, rc);
+  }
+}
+
+function clipTile(g, img, x, y, w, h) {
+  if (!img) return;
+  g.save();
+  g.beginPath();
+  g.rect(x, y, w, h);
+  g.clip();
+  const x0 = Math.floor(x / 16) * 16;
+  const y0 = Math.floor(y / 16) * 16;
+  for (let yy = y0; yy < y + h; yy += 16) for (let xx = x0; xx < x + w; xx += 16) g.drawImage(img, xx, yy, 16, 16);
+  g.restore();
+}
+
+function flowerPatch(g, S, x, y, cw, ch, rnd) {
+  if (!S.flower) return;
+  for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) if (rnd() < 0.8) g.drawImage(S.flower, x + i * 14, y + j * 14, 16, 16);
+}
+
+function put(g, img, x, y) { if (img) g.drawImage(img, x, y, img.width, img.height); }
+
+function spriteBuilding(g, S, rc) {
+  const { bx, by, bw, bh, cx } = rc;
+  const floor = rc.loc.type === "health" ? S.floor_tile : S.floor_wood;
+  clipTile(g, floor || S.floor_wood, bx, by, bw, bh);
+
+  // walls (clipped to the building footprint), with a door gap in the bottom wall
+  g.save();
+  g.beginPath();
+  g.rect(bx, by, bw, bh);
+  g.clip();
+  if (S.wall) {
+    for (let x = bx; x < bx + bw; x += 16) g.drawImage(S.wall, x, by, 16, 16);
+    for (let y = by; y < by + bh; y += 16) { g.drawImage(S.wall, bx, y, 16, 16); g.drawImage(S.wall, bx + bw - 16, y, 16, 16); }
+    const doorL = cx - 12, doorR = cx + 12;
+    for (let x = bx; x < bx + bw; x += 16) if (x + 16 <= doorL || x >= doorR) g.drawImage(S.wall, x, by + bh - 16, 16, 16);
+  }
+  // furniture, clipped so nothing spills outside the building
+  spriteInterior(g, S, rc.loc.type, bx + 17, by + 17, bw - 34, bh - 32);
+  g.restore();
+
+  g.strokeStyle = "#2f2a22";
+  g.lineWidth = 1;
+  g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
+  g.font = "600 8px ui-monospace, Menlo, monospace";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillStyle = "rgba(0,0,0,0.6)";
+  g.fillText(label, cx, by + 8, bw - 8);
+  g.textAlign = "left";
+}
+
+function spriteInterior(g, S, type, x, y, w, h) {
+  const cx = x + w / 2, cy = y + h / 2;
+  switch (type) {
+    case "home":
+      put(g, S.bed, x, y);
+      put(g, S.table, x + w - 28, y + h - 24);
+      put(g, S.plant, x, y + h - 18);
+      break;
+    case "cafe":
+      put(g, S.counter, x, y);
+      put(g, S.table, x, y + h - 24);
+      put(g, S.table, x + w - 28, y + h - 24);
+      put(g, S.plant, x + w - 14, y);
+      break;
+    case "shop":
+      put(g, S.counter, x, y);
+      put(g, S.fridge, x + w - 16, y + h - 26);
+      put(g, S.table, x, y + h - 24);
+      break;
+    case "library":
+      put(g, S.bookshelf, x, y);
+      put(g, S.bookshelf, x + 20, y);
+      put(g, S.table, x + w - 28, cy - 8);
+      break;
+    case "school":
+      put(g, S.board, x, y);
+      put(g, S.desk, x, y + 14); put(g, S.desk, x + 22, y + 14);
+      put(g, S.desk, x, y + 30); put(g, S.desk, x + 22, y + 30);
+      break;
+    case "health":
+      put(g, S.bed, x, y);
+      put(g, S.fridge, x + w - 16, y);
+      put(g, S.sink, x + w - 16, y + h - 12);
+      break;
+    case "civic":
+      put(g, S.table, cx - 14, cy - 12);
+      put(g, S.bookshelf, x, y);
+      put(g, S.bookshelf, x + w - 18, y);
+      break;
+    case "studio":
+      put(g, S.table, x, y);
+      put(g, S.bookshelf, x + w - 18, y);
+      put(g, S.plant, x, y + h - 18);
+      break;
+    default:
+      put(g, S.table, cx - 14, cy - 12);
+      put(g, S.plant, x, y);
+  }
+}
+
+function spritePark(g, S, rc) {
+  const { bx, by, bw, bh, cx, cy } = rc;
+  clipTile(g, S.grass2 || S.grass, bx, by, bw, bh);
+  g.fillStyle = "#9c7a4c";
+  for (let x = bx; x <= bx + bw; x += 12) { g.fillRect(x, by, 3, 6); g.fillRect(x, by + bh - 6, 3, 6); }
+  for (let y = by; y <= by + bh; y += 12) { g.fillRect(bx, y, 3, 6); g.fillRect(bx + bw - 3, y, 3, 6); }
+  if (S.flower) for (let i = 0; i < 5; i++) g.drawImage(S.flower, bx + 8 + i * 14, by + bh - 22, 16, 16);
+  if (S.tree) g.drawImage(S.tree, cx - 16, cy - 16, 32, 40);
+  g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+}
+
+function spritePlaza(g, S, rc) {
+  const { bx, by, bw, bh, cx, cy } = rc;
+  g.fillStyle = "#cfc6b2"; g.fillRect(bx, by, bw, bh);
+  g.strokeStyle = "#b6ac95"; g.lineWidth = 1;
+  for (let x = bx + 10; x < bx + bw; x += 10) { g.beginPath(); g.moveTo(x, by); g.lineTo(x, by + bh); g.stroke(); }
+  for (let y = by + 10; y < by + bh; y += 10) { g.beginPath(); g.moveTo(bx, y); g.lineTo(bx + bw, y); g.stroke(); }
+  g.fillStyle = "#9aa0ad"; g.beginPath(); g.arc(cx, cy, 13, 0, Math.PI * 2); g.fill();
+  g.fillStyle = "#7fb6d8"; g.beginPath(); g.arc(cx, cy, 9, 0, Math.PI * 2); g.fill();
+  put(g, S.plant, bx + 4, by + 4);
+  put(g, S.plant, bx + bw - 18, by + bh - 18);
+  g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
 }
 
 // ---- shared helpers ---------------------------------------------------------
