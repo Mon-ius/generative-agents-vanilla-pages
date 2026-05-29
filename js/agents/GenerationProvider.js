@@ -14,6 +14,14 @@
 //   generateReaction(agent, event, context)   -> string
 
 import { choice, weightedChoice } from "../utils/random.js";
+import { CONFIG } from "../config.js";
+
+// Group-conversation cap, read defensively from CONFIG (the scaffold adds
+// CONFIG.conversation.maxGroupSize; default to 4 if it is missing).
+function maxGroupSize() {
+  const n = CONFIG && CONFIG.conversation && CONFIG.conversation.maxGroupSize;
+  return typeof n === "number" && n >= 2 ? Math.floor(n) : 4;
+}
 
 export class GenerationProvider {
   generatePlan() {
@@ -31,13 +39,46 @@ export class GenerationProvider {
 }
 
 // ---- Role-flavoured work descriptions ----------------------------------------
+// Keyed by the `role` strings used in seedAgents.js (plus a handful of common
+// synonyms). Unknown roles fall back to a generic line in _workActivity(), so
+// adding a new resident never crashes planning.
 const ROLE_WORK = {
   "urban planner": "Review zoning maps and sketch ideas for public spaces",
   "café owner": "Brew coffee and look after the morning regulars",
+  "cafe owner": "Brew coffee and look after the morning regulars",
   librarian: "Shelve returns and help visitors find what they need",
   nurse: "Check on patients and update charts",
   maker: "Prototype and tinker in the studio",
   teacher: "Prepare lessons and work with students",
+  grocer: "Restock the shelves and tally the day's orders",
+  shopkeeper: "Restock the shelves and look after customers",
+  clerk: "Work through paperwork and help people at the counter",
+  baker: "Knead dough and pull fresh loaves from the oven",
+  barista: "Pull espresso shots and chat with the regulars",
+  musician: "Rehearse a set and tune up for the evening",
+  artist: "Work on a new piece in the studio",
+  "glass artist": "Shape molten glass at the furnace",
+  naturalist: "Survey the wetland and log the day's sightings",
+  gardener: "Tend the beds and prune back the borders",
+  botanist: "Tend the plant beds and catalogue new specimens",
+  engineer: "Run the numbers and inspect the machinery",
+  mechanic: "Diagnose a fault and get the machines running",
+  "retired teacher": "Help out at the centre and share a story or two",
+  "retired carpenter": "Potter in the workshop and lend a steady hand",
+  journalist: "Chase down a lead and draft the next story",
+  reporter: "Chase down a lead and draft the next story",
+  tailor: "Pin a hem and finish off an alteration",
+  "software developer": "Squash bugs and ship a small feature",
+  developer: "Squash bugs and ship a small feature",
+  student: "Work through lessons and puzzle over a project",
+  "high-school student": "Get through classes and meet up with friends after",
+  doctor: "See patients and review the morning's charts",
+  fisher: "Check the lines and bring in the day's catch",
+  fisherman: "Check the lines and bring in the day's catch",
+  "museum curator": "Arrange the exhibits and label the new acquisitions",
+  curator: "Arrange the exhibits and label the new acquisitions",
+  brewer: "Mind the mash and check on the fermenting tanks",
+  coach: "Run drills and plan the next session",
 };
 
 // A daily routine template, in minutes-into-day. The "work" blocks resolve to the
@@ -150,7 +191,96 @@ export class LocalGenerationProvider extends GenerationProvider {
 
     const where = loc ? ` at ${loc.name}` : "";
     const summary = `${firstName(agentA)} and ${firstName(agentB)} talked about ${topic.label}${where}.`;
-    return { lines, tone, topic: topic.label, topicKeywords: topic.keywords, summary };
+    return {
+      lines,
+      tone,
+      topic: topic.label,
+      topicKeywords: topic.keywords,
+      summary,
+      participantIds: [agentA.id, agentB.id],
+    };
+  }
+
+  // --- Group conversations --------------------------------------------------
+  // Round-robins turns among up to CONFIG.conversation.maxGroupSize speakers.
+  // For size 2 this delegates to generateConversation so the result (and the
+  // RNG draw count) is byte-identical to the historical pair path. The first
+  // agent (sorted upstream) anchors the topic and tone; everyone else chimes in.
+  generateGroupConversation(agents, context) {
+    const speakers = agents.slice(0, Math.max(2, maxGroupSize()));
+    if (speakers.length <= 2) {
+      // Defensive: if only two made the cut, reuse the exact pair path.
+      return this.generateConversation(speakers[0], speakers[1], context);
+    }
+
+    const rng = context.rng;
+    const loc = context.location || (context.env && context.env.getLocation(speakers[0].currentLocationId));
+    const anchor = speakers[0];
+
+    // Tone is the anchor's average affinity toward the others (warm/tense/neutral).
+    let affinitySum = 0;
+    for (let i = 1; i < speakers.length; i++) {
+      affinitySum += anchor.relationships.get(speakers[i].id).affinity || 0;
+    }
+    const avgAffinity = affinitySum / (speakers.length - 1);
+    const tone = avgAffinity >= 20 ? "warm" : avgAffinity <= -20 ? "tense" : "neutral";
+
+    // Anchor picks the topic (reuses the same _pickTopic templates as pairs).
+    const topic = this._pickTopic(anchor, speakers[1], loc, rng);
+
+    const names = speakers.map((a) => firstName(a));
+    const greet = names.slice(1).join(", ");
+    const opener = weightedChoice(
+      [
+        { item: `Good to see you all — ${greet}.`, weight: tone === "warm" ? 3 : 1 },
+        { item: `Hey ${greet}, glad you're here.`, weight: 2 },
+        { item: `Oh — hello ${greet}.`, weight: tone === "tense" ? 3 : 1 },
+      ],
+      rng
+    );
+
+    const lines = [];
+    lines.push({ speakerId: anchor.id, speaker: anchor.name, text: `${opener} ${topic.aSays}` });
+    // Second speaker answers with the topic's reply.
+    lines.push({ speakerId: speakers[1].id, speaker: speakers[1].name, text: topic.bSays });
+
+    // Remaining speakers chime in, round-robin, each with a short flavoured line.
+    for (let i = 2; i < speakers.length; i++) {
+      const s = speakers[i];
+      lines.push({
+        speakerId: s.id,
+        speaker: s.name,
+        text: weightedChoice(
+          [
+            { item: `As a ${s.role}, I've been thinking about that too.`, weight: 2 },
+            { item: `That tracks with what I'm seeing around town.`, weight: 2 },
+            { item: `I'd lend a hand with that, honestly.`, weight: tone === "warm" ? 3 : 1 },
+            { item: `Hm. I'm not so sure about that.`, weight: tone === "tense" ? 3 : 1 },
+          ],
+          rng
+        ),
+      });
+    }
+
+    // Optional closing beat from the anchor (mirrors the pair path's 0.6 gate).
+    if (rng() < 0.6) {
+      lines.push({
+        speakerId: anchor.id,
+        speaker: anchor.name,
+        text: tone === "warm" ? "Let's all do this again soon." : "Good talking. I'll catch you around.",
+      });
+    }
+
+    const where = loc ? ` at ${loc.name}` : "";
+    const summary = `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} talked about ${topic.label}${where}.`;
+    return {
+      lines,
+      tone,
+      topic: topic.label,
+      topicKeywords: topic.keywords,
+      summary,
+      participantIds: speakers.map((a) => a.id),
+    };
   }
 
   _pickTopic(agentA, agentB, loc, rng) {

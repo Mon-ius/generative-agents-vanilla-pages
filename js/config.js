@@ -31,6 +31,51 @@ export const CONFIG = {
     cooldownMinutes: 90, // the same pair will not start a new conversation within this window
     baseChance: 0.45, // RNG gate when two agents share a location
     maxPerLocationPerTick: 1, // limit conversations per location per tick to keep things legible
+    maxGroupSize: 4, // cap on the number of participants in a single conversation
+  },
+
+  // ----- World grid (town layout) -----
+  world: {
+    gridWidth: 24,
+    gridHeight: 24,
+    cellPixels: 176,
+  },
+
+  // ----- Rendering / tiling -----
+  rendering: {
+    resolutionScale: typeof devicePixelRatio !== "undefined" ? Math.min(2, devicePixelRatio) : 1,
+    autoDensity: true,
+    chunkCells: 4,
+    maxBakePx: 4096,
+    chunkCacheMax: 64,
+  },
+
+  // ----- Camera (zoom/pan) -----
+  camera: {
+    minZoom: null, // computed as fit-to-viewport when null
+    maxZoom: 4,
+    zoomStep: 1.12,
+    easing: 0.18,
+  },
+
+  // ----- Movement / pathfinding -----
+  movement: {
+    pathfindingEnabled: true,
+    subdivisions: 2,
+    walkSpeedPixelsPerFrame: 2.4,
+    maxAStarNodes: 4000,
+  },
+
+  // ----- Character sprites -----
+  characters: {
+    useSpritesheets: true,
+    fps: 6,
+    frameScale: 1.4, // on-screen display scale of the 16×24 avatar art (both renderers)
+  },
+
+  // ----- Debug toggles -----
+  debug: {
+    showPaths: false,
   },
 
   // ----- Relative importance assigned to new memories by type -----
@@ -61,5 +106,6 @@ export const CONFIG = {
   ui: {
     timelineVisible: 60, // most recent N timeline entries shown
     memoryVisible: 50, // most recent N memories shown in the memory panel
+    timelineMax: 500, // hard cap on retained timeline entries
   },
 };

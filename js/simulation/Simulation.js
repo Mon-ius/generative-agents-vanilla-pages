@@ -19,6 +19,7 @@ import { CONFIG } from "../config.js";
 import { seededRandom } from "../utils/random.js";
 import { tokenize } from "../utils/scoring.js";
 import { storage } from "../utils/storage.js";
+import * as pathfinding from "../utils/pathfinding.js";
 import { EventBus } from "./EventBus.js";
 import { TimeManager } from "./TimeManager.js";
 import { Environment } from "./Environment.js";
@@ -53,6 +54,7 @@ export class Simulation {
     this.timeline = [];
     this.tickCount = 0;
     this._timelineCounter = 0;
+    this._grid = null; // lazily (re)built collision grid for movement/pathing
     this.selectedAgentId = this.agents.length ? this.agents[0].id : null;
     for (const agent of this.agents) this._planAgentDay(agent);
     this.bus.emit("init", { sim: this });
@@ -79,6 +81,34 @@ export class Simulation {
     agent.planDay = this.time.day;
   }
 
+  // ---- movement / pathing (rendering only) ---------------------------------
+  // Lazily build (and cache) the collision grid from the current environment.
+  // Cleared on init()/reset()/loadState so a new world rebuilds it. The grid is
+  // derived purely from location x/y + CELL, so it stays DOM-free.
+  _getGrid() {
+    if (!this._grid) {
+      this._grid = pathfinding.buildGridFromEnvironment(this.environment, {
+        movement: CONFIG.movement,
+        cell: CONFIG.world ? CONFIG.world.cellPixels : undefined,
+      });
+    }
+    return this._grid;
+  }
+
+  // Compute the world-space "door spot" for a location, inline, using the SAME
+  // footprint geometry pathfinding/townArt use. Simulation must stay DOM-free,
+  // so we do NOT import townArt — we recompute from loc.x/loc.y here.
+  _doorWorld(loc) {
+    if (!loc || typeof loc.x !== "number" || typeof loc.y !== "number") return null;
+    const CELL = (CONFIG.world && CONFIG.world.cellPixels) || 176;
+    const cx = loc.x * CELL + CELL / 2;
+    const cy = loc.y * CELL + CELL / 2;
+    const bw = Math.round(CELL * 0.86);
+    const bh = Math.round(CELL * 0.74);
+    const by = Math.round(cy - bh / 2 - 8);
+    return { x: cx, y: by + bh + 12 };
+  }
+
   // ---- the main loop -------------------------------------------------------
   step() {
     const roll = this.time.tick();
@@ -103,20 +133,44 @@ export class Simulation {
     }
 
     // 2. plan -> move -> activity
+    const pathfindingOn = !!(CONFIG.movement && CONFIG.movement.pathfindingEnabled);
     for (const agent of this.agents) {
       const active = this.planner.updateStatuses(agent.currentPlan, ctx.minutesIntoDay);
       if (active) {
         if (agent.currentLocationId !== active.locationId) {
-          agent.moveTo(active.locationId);
-          const loc = this.environment.getLocation(active.locationId);
-          const where = loc ? loc.name : active.locationId;
-          this._log({ type: "movement", title: `${agent.name} moved`, description: `${agent.name} walked to ${where}.`, locationId: active.locationId, agentIds: [agent.id] });
-          agent.addMemory({ timestamp: ctx.currentTime, type: "action", description: `Walked to ${where}.`, importance: CONFIG.importance.movement, locationId: active.locationId, keywords: loc ? [loc.type, ...(loc.tags || [])] : [] });
+          const target = active.locationId;
+          const fromLoc = this.environment.getLocation(agent.currentLocationId);
+          const toLoc = this.environment.getLocation(target);
+
+          // Plan a walking route for the renderer (best-effort, deterministic).
+          // This sets agent.path/destLocationId/arrived but does NOT move the
+          // agent — currentLocationId is updated separately below so co-location
+          // timing stays bit-identical to a run with pathfinding off.
+          if (pathfindingOn) {
+            const fromWorld = this._doorWorld(fromLoc);
+            const toWorld = this._doorWorld(toLoc);
+            if (toWorld) {
+              agent.setDestination(target, fromWorld || toWorld, toWorld, this._getGrid());
+            }
+          }
+
+          // Cognition/co-location: move immediately (deterministic, unchanged).
+          agent.moveTo(target);
+          const where = toLoc ? toLoc.name : target;
+          this._log({ type: "movement", title: `${agent.name} moved`, description: `${agent.name} walked to ${where}.`, locationId: target, agentIds: [agent.id] });
+          agent.addMemory({ timestamp: ctx.currentTime, type: "action", description: `Walked to ${where}.`, importance: CONFIG.importance.movement, locationId: target, keywords: toLoc ? [toLoc.type, ...(toLoc.tags || [])] : [] });
         }
         agent.currentActivity = active.activity;
       } else {
         agent.currentActivity = "Resting";
       }
+    }
+
+    // Rebuild the environment's location->agents reverse index after movement so
+    // agentsAt/coLocated reflect this tick's positions. Defensive: indexAgents is
+    // part of the Environment contract but guard in case of an older build.
+    if (typeof this.environment.indexAgents === "function") {
+      this.environment.indexAgents(this.agents);
     }
 
     // 3. observe
@@ -130,27 +184,37 @@ export class Simulation {
       }
     }
 
-    // 4. conversations (grouped by location, capped per location)
+    // 4. conversations — at most one group per location per tick.
+    // For each location with >= 2 co-located agents (sorted by id), form ONE
+    // group of up to CONFIG.conversation.maxGroupSize. If the group gate passes,
+    // run a single group conversation and apply its effects to every participant
+    // and every ordered pair. A group of size 2 behaves exactly like before.
+    const maxGroup = (CONFIG.conversation && CONFIG.conversation.maxGroupSize) || 2;
+    const maxPerLoc = (CONFIG.conversation && CONFIG.conversation.maxPerLocationPerTick) || 1;
     const byLoc = new Map();
     for (const a of this.agents) {
       if (!byLoc.has(a.currentLocationId)) byLoc.set(a.currentLocationId, []);
       byLoc.get(a.currentLocationId).push(a);
     }
-    for (const [locId, group] of byLoc) {
-      if (group.length < 2) continue;
+    // Iterate locations in a deterministic order (by location id).
+    const locIds = Array.from(byLoc.keys()).sort((x, y) => (String(x) < String(y) ? -1 : 1));
+    for (const locId of locIds) {
+      const present = byLoc.get(locId);
+      if (present.length < 2) continue;
       const loc = this.environment.getLocation(locId);
-      const sorted = group.slice().sort((x, y) => (x.id < y.id ? -1 : 1));
+      const sorted = present.slice().sort((x, y) => (x.id < y.id ? -1 : 1));
+      // One group per location per tick (maxPerLocationPerTick groups, default 1).
       let convos = 0;
-      for (let i = 0; i < sorted.length && convos < CONFIG.conversation.maxPerLocationPerTick; i++) {
-        for (let j = i + 1; j < sorted.length && convos < CONFIG.conversation.maxPerLocationPerTick; j++) {
-          const A = sorted[i];
-          const B = sorted[j];
-          if (this.conversation.canConverse(A, B, ctx.currentTime, this.rng)) {
-            const convo = this.conversation.converse(A, B, { ...ctx, location: loc });
-            this._applyConversation(A, B, convo, loc, ctx);
-            convos++;
-          }
+      let offset = 0;
+      while (convos < maxPerLoc && offset < sorted.length - 1) {
+        const group = sorted.slice(offset, offset + Math.max(2, maxGroup));
+        if (group.length < 2) break;
+        if (this.conversation.checkGroupConverse(group, ctx.currentTime, this.rng)) {
+          const convo = this.conversation.converseGroup(group, { ...ctx, location: loc });
+          this._applyGroupConversation(group, convo, loc, ctx);
+          convos++;
         }
+        offset += group.length;
       }
     }
 
@@ -169,22 +233,62 @@ export class Simulation {
     return this;
   }
 
-  _applyConversation(A, B, convo, loc, ctx) {
+  // Apply one (group) conversation to all participants. Generalizes the former
+  // pairwise _applyConversation to N participants: each participant records a
+  // conversation memory (relatedAgentIds = the OTHER participants), every ordered
+  // pair gets the same tone-derived relationship deltas as before, and ONE
+  // timeline entry carries every participant id + the location id. A group of
+  // size 2 produces exactly the same effects as the historical pair path.
+  _applyGroupConversation(group, convo, loc, ctx) {
+    if (!convo) return;
     const transcript = convo.lines.map((l) => `${l.speaker}: ${l.text}`).join("  ");
-    const summary = convo.summary || `${firstName(A)} and ${firstName(B)} talked${loc ? ` at ${loc.name}` : ""}.`;
+    const names = group.map((a) => firstName(a));
+    const fallbackSummary =
+      group.length === 2
+        ? `${names[0]} and ${names[1]} talked${loc ? ` at ${loc.name}` : ""}.`
+        : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} talked${loc ? ` at ${loc.name}` : ""}.`;
+    const summary = convo.summary || fallbackSummary;
     const kw = convo.topicKeywords || [];
-
-    A.addMemory({ timestamp: ctx.currentTime, type: "conversation", description: summary, importance: CONFIG.importance.conversation, locationId: loc ? loc.id : A.currentLocationId, relatedAgentIds: [B.id], keywords: [firstName(B), ...kw] });
-    B.addMemory({ timestamp: ctx.currentTime, type: "conversation", description: summary, importance: CONFIG.importance.conversation, locationId: loc ? loc.id : B.currentLocationId, relatedAgentIds: [A.id], keywords: [firstName(A), ...kw] });
+    const locId = loc ? loc.id : null;
 
     const tone = convo.tone || "neutral";
     const affinity = tone === "warm" ? 3 : tone === "tense" ? -3 : 1;
     const trust = tone === "warm" ? 2 : tone === "tense" ? -1 : 1;
     const note = loc ? `Talked at ${loc.name}` : "Talked";
-    A.relationships.update(B.id, { affinity, trust, familiarity: 4, note });
-    B.relationships.update(A.id, { affinity, trust, familiarity: 4, note });
 
-    this._log({ type: "conversation", title: `${firstName(A)} ↔ ${firstName(B)}`, description: transcript, locationId: loc ? loc.id : null, agentIds: [A.id, B.id] });
+    // Per-participant conversation memory referencing the other participants.
+    for (const a of group) {
+      const others = group.filter((o) => o.id !== a.id);
+      a.addMemory({
+        timestamp: ctx.currentTime,
+        type: "conversation",
+        description: summary,
+        importance: CONFIG.importance.conversation,
+        locationId: locId || a.currentLocationId,
+        relatedAgentIds: others.map((o) => o.id),
+        keywords: [...others.map((o) => firstName(o)), ...kw],
+      });
+    }
+
+    // Relationship deltas for every ordered pair (matches the old pair path).
+    for (const a of group) {
+      for (const b of group) {
+        if (a.id === b.id) continue;
+        a.relationships.update(b.id, { affinity, trust, familiarity: 4, note });
+      }
+    }
+
+    // ONE timeline entry for the whole group, carrying every participant id.
+    const title = group.length === 2 ? `${names[0]} ↔ ${names[1]}` : `${names.join(", ")} chatted`;
+    const participantIds = (convo.participantIds && convo.participantIds.length ? convo.participantIds : group.map((a) => a.id)).slice();
+    this._log({
+      type: "conversation",
+      title,
+      description: transcript,
+      locationId: locId,
+      agentIds: participantIds,
+      participantIds,
+    });
   }
 
   // ---- timeline ------------------------------------------------------------
@@ -202,8 +306,11 @@ export class Simulation {
       agentIds: entry.agentIds || [],
       importance: entry.importance ?? null,
     };
+    // 'conversation' entries carry the full participant list (Timeline contract).
+    if (entry.participantIds) e.participantIds = entry.participantIds;
     this.timeline.push(e);
-    if (this.timeline.length > 500) this.timeline.shift();
+    const cap = (CONFIG.ui && CONFIG.ui.timelineMax) || 500;
+    while (this.timeline.length > cap) this.timeline.shift();
     this.bus.emit("timeline", e);
     return e;
   }
@@ -253,6 +360,7 @@ export class Simulation {
     if (typeof state.rngState === "number") this.rng.setState(state.rngState);
     this.time = TimeManager.fromJSON(state.time);
     this.environment = Environment.fromJSON(state.environment);
+    this._grid = null; // rebuild lazily for the loaded world
     this.agents = (state.agents || []).map((a) => Agent.fromJSON(a));
     this.timeline = state.timeline || [];
     this.tickCount = state.tickCount || 0;

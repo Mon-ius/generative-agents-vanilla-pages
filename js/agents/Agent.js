@@ -8,6 +8,7 @@
 
 import { MemoryStream } from "./MemoryStream.js";
 import { RelationshipGraph } from "./RelationshipGraph.js";
+import { pathWorldPoints } from "../utils/pathfinding.js";
 
 export class Agent {
   constructor(data) {
@@ -40,6 +41,24 @@ export class Agent {
     this.conversationLog = data.conversationLog || {}; // otherAgentId -> last conversation totalMinutes
     this.reflection = data.reflection || { accumulatedImportance: 0, lastReflectionTime: 0 };
     this.planDay = data.planDay ?? -1; // which day the current plan was built for
+
+    // --- Movement / pathing (for rendering only; cognition uses currentLocationId) ---
+    // path: world-space waypoints [{x,y}] | null. pathIndex: index of next waypoint.
+    // destLocationId: where the path leads. arrived: true once the walk is done
+    // (or when there is nothing to walk to).
+    this.path = data.path || null;
+    this.pathIndex = data.pathIndex ?? 0;
+    this.destLocationId = data.destLocationId ?? null;
+    this.arrived = data.arrived ?? true;
+
+    // --- Optional appearance / behaviour passthrough (default gracefully) -----
+    // Consumed by the renderer/character factory and (optionally) cognition.
+    // These never feed the sim RNG; they are stable per-agent inputs only.
+    this.spriteVariant = data.spriteVariant ?? null;
+    this.palette = data.palette ?? null;
+    this.archetype = data.archetype ?? null;
+    this.activityPrefs = data.activityPrefs ?? {};
+    this.relationshipPrefs = data.relationshipPrefs ?? {};
   }
 
   addMemory(memory) {
@@ -58,6 +77,20 @@ export class Agent {
 
   moveTo(locationId) {
     this.currentLocationId = locationId;
+  }
+
+  // Plan a walking route for the renderer. Deterministic: pathWorldPoints runs
+  // grid A* with fixed tie-breaks, so identical inputs yield identical paths.
+  // grid may be null (e.g. pathfinding disabled) — then we fall back to a single
+  // straight hop to the destination. This sets state only; it does NOT change
+  // currentLocationId (the Simulation does that separately so co-location timing
+  // stays bit-identical regardless of rendering).
+  setDestination(locationId, fromWorld, toWorld, grid) {
+    const route = grid ? pathWorldPoints(grid, fromWorld, toWorld) : null;
+    this.path = route && route.length ? route : (toWorld ? [toWorld] : null);
+    this.pathIndex = 0;
+    this.destLocationId = locationId;
+    this.arrived = false;
   }
 
   get currentGoal() {
@@ -99,6 +132,15 @@ export class Agent {
       conversationLog: this.conversationLog,
       reflection: this.reflection,
       planDay: this.planDay,
+      path: this.path,
+      pathIndex: this.pathIndex,
+      destLocationId: this.destLocationId,
+      arrived: this.arrived,
+      spriteVariant: this.spriteVariant,
+      palette: this.palette,
+      archetype: this.archetype,
+      activityPrefs: this.activityPrefs,
+      relationshipPrefs: this.relationshipPrefs,
     };
   }
 

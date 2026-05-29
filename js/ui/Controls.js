@@ -21,6 +21,9 @@ export class Controls {
       speed: qs("#speed-select"),
       seed: qs("#seed-input"),
       debug: qs("#btn-debug"),
+      zoomIn: qs("#btn-zoom-in"),
+      zoomOut: qs("#btn-zoom-out"),
+      zoomFit: qs("#btn-zoom-fit"),
     };
     this._populateSpeeds();
     this._wire();
@@ -49,6 +52,9 @@ export class Controls {
     if (els.clear) on(els.clear, "click", () => h.clear());
     if (els.speed) on(els.speed, "change", () => h.setSpeed(Number(els.speed.value)));
     if (els.debug) on(els.debug, "click", () => h.toggleDebug());
+    if (els.zoomIn) on(els.zoomIn, "click", () => h.zoomIn && h.zoomIn());
+    if (els.zoomOut) on(els.zoomOut, "click", () => h.zoomOut && h.zoomOut());
+    if (els.zoomFit) on(els.zoomFit, "click", () => h.zoomFit && h.zoomFit());
   }
 
   setRunning(running) {

@@ -17,15 +17,17 @@ import { mountRetrievalProbe } from "./ui/RetrievalProbe.js";
 import { mountNetwork } from "./ui/NetworkView.js";
 import { mountParams } from "./ui/ParamControls.js";
 import { loadSprites } from "./assets.js";
+import { loadCharacterManifest, loadCharacterSheets, createCharacterFactory } from "./ui/characters.js";
 import { SEED_AGENTS } from "./data/seedAgents.js";
 import { SEED_LOCATIONS } from "./data/seedLocations.js";
 import { SEED_EVENTS } from "./data/seedEvents.js";
 
-// ---- settings (speed / debug / seed) persisted separately from sim state -----
+// ---- settings (speed / debug / seed / camera) persisted separately from state
 const settings = Object.assign(
-  { speedIndex: CONFIG.defaultSpeedIndex, debugVisible: false, seed: CONFIG.defaultSeed },
+  { speedIndex: CONFIG.defaultSpeedIndex, debugVisible: false, seed: CONFIG.defaultSeed, camera: {} },
   storage.load(CONFIG.settingsKey, {})
 );
+if (!settings.camera || typeof settings.camera !== "object") settings.camera = {};
 function persistSettings() {
   storage.save(CONFIG.settingsKey, settings);
 }
@@ -114,6 +116,19 @@ const app = {
     persistSettings();
     renderer.setDebugVisible(settings.debugVisible);
     controls.setDebug(settings.debugVisible);
+  },
+  // ---- camera zoom controls (forwarded to the active map view's camera) ------
+  zoomIn() {
+    const cam = window.__app && window.__app.map && window.__app.map.camera;
+    if (cam && typeof cam.zoomIn === "function") cam.zoomIn();
+  },
+  zoomOut() {
+    const cam = window.__app && window.__app.map && window.__app.map.camera;
+    if (cam && typeof cam.zoomOut === "function") cam.zoomOut();
+  },
+  zoomFit() {
+    const cam = window.__app && window.__app.map && window.__app.map.camera;
+    if (cam && typeof cam.zoomFit === "function") cam.zoomFit();
   },
   _schedule() {
     if (this.timer) clearInterval(this.timer);
@@ -249,8 +264,8 @@ function runSmokeTest() {
   console.log("%cGenerative Agents — runSmokeTest()", "font-weight:bold");
 
   log("app booted", Boolean(window.__app && sim && renderer));
-  log("locations exist (>=8)", sim.environment.allLocations().length >= 8, `${sim.environment.allLocations().length}`);
-  log("agents exist (>=5)", sim.agents.length >= 5, `${sim.agents.length}`);
+  log("locations exist (>=60)", sim.environment.allLocations().length >= 60, `${sim.environment.allLocations().length}`);
+  log("agents exist (>=20)", sim.agents.length >= 20, `${sim.agents.length}`);
 
   const t0 = sim.time.totalMinutes;
   sim.step();
@@ -292,33 +307,91 @@ function hasWebGL() {
   }
 }
 
+// Debounced camera persistence: stash the view's camera transform in
+// settings.camera so the zoom/pan survives reloads. Re-applied after setupMap.
+let _cameraSaveTimer = null;
+function persistCameraFrom(view) {
+  if (!view || !view.camera || typeof view.camera.toJSON !== "function") return;
+  if (_cameraSaveTimer) clearTimeout(_cameraSaveTimer);
+  _cameraSaveTimer = setTimeout(() => {
+    try {
+      settings.camera = view.camera.toJSON();
+      persistSettings();
+    } catch (_) {
+      /* non-fatal */
+    }
+  }, 300);
+}
+
+// Wrap the camera's existing onChange so the renderer's own handler still fires,
+// and append our debounced settings persistence on top of it.
+function wireCameraPersistence(view) {
+  const cam = view && view.camera;
+  if (!cam) return;
+  const prev = typeof cam.onChange === "function" ? cam.onChange : null;
+  cam.onChange = () => {
+    if (prev) prev();
+    persistCameraFrom(view);
+  };
+}
+
+// Restore a previously persisted camera transform once the view is ready. Only
+// override the renderer's default game view when there is a REAL saved transform
+// (a numeric scale); a fresh visitor keeps the centered, zoomed-in opening view.
+function restoreCamera(view) {
+  const cam = view && view.camera;
+  const saved = settings.camera;
+  if (cam && typeof cam.applyState === "function" && saved && typeof saved.scale === "number") {
+    try {
+      cam.applyState(saved);
+    } catch (_) {
+      /* ignore a stale/incompatible saved camera */
+    }
+  }
+}
+
 async function setupMap() {
   const host = document.getElementById("map-host");
   const overlay = document.getElementById("map-overlay");
   if (!host) return null;
+  // Brief loading state while sprites + character assets stream in.
+  host.setAttribute("aria-busy", "true");
+  if (!host.dataset.renderer) host.textContent = "Loading map…";
   // Load the pixel-art sprite assets first (falls back to {} if unavailable,
   // in which case the renderers draw the procedural town instead).
   const sprites = await loadSprites().catch(() => ({}));
+  // Load the shared character factory (manifest + sheets). Both resolve safely:
+  // a missing manifest / no sheets means the factory yields procedural avatars.
+  const manifest = await loadCharacterManifest().catch(() => null);
+  const sheets = await loadCharacterSheets(manifest).catch(() => ({}));
+  const characters = createCharacterFactory({ manifest, sheets });
+
+  const finish = (view, label) => {
+    host.removeAttribute("aria-busy");
+    wireCameraPersistence(view);
+    restoreCamera(view);
+    console.log("Map renderer: " + label);
+    return view;
+  };
+
   // Only attempt Pixi in a real browser with WebGL (the requestAnimationFrame
   // gate also keeps Node out of the Pixi import path entirely).
   if (typeof requestAnimationFrame === "function" && hasWebGL()) {
     try {
       const { PixiMapView } = await import("./ui/PixiMapView.js");
-      const view = new PixiMapView(host, sim, { onSelect, sprites });
+      const view = new PixiMapView(host, sim, { onSelect, sprites, characters });
       await view.init();
       host.dataset.renderer = "pixi";
-      console.log("Map renderer: PixiJS (WebGL)");
-      return view;
+      return finish(view, "PixiJS (WebGL)");
     } catch (e) {
       console.warn("PixiJS unavailable — using the canvas renderer instead.", e);
       host.innerHTML = "";
     }
   }
-  const view = new MapView(host, overlay, sim, { onSelect, sprites });
+  const view = new MapView(host, overlay, sim, { onSelect, sprites, characters });
   view.start();
   host.dataset.renderer = "canvas";
-  console.log("Map renderer: canvas 2D (fallback)");
-  return view;
+  return finish(view, "canvas 2D (fallback)");
 }
 
 // ---- expose for inspection / testing -----------------------------------------

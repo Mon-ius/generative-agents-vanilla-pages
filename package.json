@@ -1,0 +1,11 @@
+{
+  "name": "generative-agents-vanilla",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only marker (NOT deployed): lets Node import the ES-module core for headless checks. The deployed site needs no package.json.",
+  "scripts": {
+    "smoke": "node test/smoke.node.mjs",
+    "check": "node tools/check-all.mjs"
+  }
+}

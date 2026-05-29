@@ -52,6 +52,12 @@
         <input id="import-file" type="file" accept="application/json,.json" hidden aria-hidden="true" />
         <span id="io-status" class="io-status muted" role="status" aria-live="polite"></span>
       </div>
+      <div class="toolbar__divider" aria-hidden="true"></div>
+      <div class="toolbar__group" role="group" aria-label="Map zoom">
+        <button id="btn-zoom-out" type="button" class="btn btn--zoom" aria-label="Zoom out">−</button>
+        <button id="btn-zoom-in" type="button" class="btn btn--zoom" aria-label="Zoom in">+</button>
+        <button id="btn-zoom-fit" type="button" class="btn" aria-label="Fit map to view">Fit</button>
+      </div>
       <div class="toolbar__group toolbar__group--end">
         <button id="btn-debug" type="button" class="btn btn--ghost" aria-pressed="false">Show debug</button>
       </div>

@@ -9,8 +9,13 @@
 // canvas-2D fallback, so they share identical geometry and art.
 
 import { seededRandom } from "../utils/random.js";
+import { CONFIG } from "../config.js";
+import { buildGrid } from "../utils/pathfinding.js";
 
-export const CELL = 176;        // logical px per grid cell (larger → room for multi-room detail)
+// Logical px per grid cell, sourced from CONFIG so the world size is tunable in
+// one place. A defensive fallback keeps headless/standalone use working even if
+// the CONFIG.world block has not been merged yet.
+export const CELL = (CONFIG.world && CONFIG.world.cellPixels) || 176;
 export const TEXTURE_SCALE = 2; // bake the static world at 2× for crisp detail
 
 export const ROOF = {
@@ -54,17 +59,78 @@ export function computeLayout(sim) {
     const by = Math.round(cy - bh / 2 - 8);
     rects.set(l.id, { loc: l, cx, cy, bx, by, bw, bh, door: { x: cx, y: by + bh + 12 } });
   }
-  return { cols, rows, W, H, CELL, rects };
+
+  // Chunk dimensions, computed INLINE (do NOT import townChunks here — that would
+  // create an import cycle, since townChunks imports this module). townChunks
+  // re-derives the same values via chunkDims(layout) from these fields.
+  const chunkCells = (CONFIG.rendering && CONFIG.rendering.chunkCells) || 4;
+  const chunkPx = chunkCells * CELL;
+  const chunkCols = Math.max(1, Math.ceil(cols / chunkCells));
+  const chunkRows = Math.max(1, Math.ceil(rows / chunkCells));
+
+  const layout = {
+    cols, rows, W, H, CELL, rects,
+    chunkCells, chunkPx, chunkCols, chunkRows,
+  };
+
+  // Collision grid for pathfinding — built AFTER rects so it matches the drawn
+  // footprints exactly. buildGrid is DOM-free, so this stays headless-safe.
+  layout.collisionGrid = buildGrid(layout);
+
+  return layout;
 }
 
+// Place agent `index` of `count` standing around a location's door. For small
+// crowds we fan out along a single arc; for larger crowds (up to ~capacity) we
+// stack concentric rings below/around the door so 20+ agents never pile onto the
+// same pixel. Deterministic: depends only on (index, count) — no RNG.
 export function spotFor(layout, locId, index, count) {
   const r = layout.rects.get(locId);
   if (!r) return { x: layout.W / 2, y: layout.H / 2 };
   if (count <= 1) return { x: r.door.x, y: r.door.y };
-  const spread = Math.min(CELL * 0.5, 22 * (count - 1));
-  const start = r.door.x - spread / 2;
-  const step = count > 1 ? spread / (count - 1) : 0;
-  return { x: start + step * index, y: r.door.y + (index % 2) * 10 };
+
+  const cx = r.door.x;
+  const cy = r.door.y;
+  // Keep the crowd within the cell footprint around the door (avoid spilling
+  // onto neighbours): clamp the outermost ring to a fraction of the cell.
+  const maxRadius = CELL * 0.42;
+  const ringGap = 15;            // radial spacing between rings
+  const minSpacing = 14;         // target arc spacing between neighbours (~sprite width)
+  const baseRadius = 14;         // first ring sits just outside the door
+  // Fan agents across a downward arc (toward the open road below the door) so the
+  // building is never occluded; the arc widens on outer rings up to a near-full
+  // semicircle, but always faces down.
+  const down = Math.PI / 2;      // straight down in screen space (+y)
+  const fanHalfFor = (ringIdx) => Math.min(Math.PI * 0.85, 0.9 + ringIdx * 0.35);
+
+  // Per-ring capacity sized from the arc length at that radius so neighbour
+  // spacing stays ~minSpacing regardless of ring. Walk rings until `index` lands.
+  const ringCapacity = (ringIdx) => {
+    const radius = baseRadius + ringIdx * ringGap;
+    const arcLen = 2 * fanHalfFor(ringIdx) * radius;
+    return Math.max(ringIdx === 0 ? 3 : 5, Math.round(arcLen / minSpacing) + 1);
+  };
+
+  let i = index;
+  let ring = 0;
+  let cap = ringCapacity(0);
+  while (i >= cap) {
+    i -= cap;
+    ring += 1;
+    cap = ringCapacity(ring);
+  }
+
+  const radius = Math.min(maxRadius, baseRadius + ring * ringGap);
+  const slots = cap;
+  const fanHalf = fanHalfFor(ring);
+  // Even placement across the fan; a lone occupant on a ring sits centred (down).
+  const t = slots <= 1 ? 0.5 : i / (slots - 1);
+  const angle = down - fanHalf + t * (2 * fanHalf);
+
+  return {
+    x: cx + Math.cos(angle) * radius,
+    y: cy + Math.sin(angle) * radius * 0.7, // slight vertical squash for top-down feel
+  };
 }
 
 // Create the baked static-world canvas at TEXTURE_SCALE (caller draws agents on top).
@@ -75,59 +141,107 @@ export function makeTownCanvas(layout, sprites, scale = TEXTURE_SCALE) {
   const g = cv.getContext && cv.getContext("2d");
   if (g) {
     g.scale(scale, scale);
-    drawTown(g, layout, sprites);
+    drawTownInto(g, layout, sprites, { x: 0, y: 0, w: layout.W, h: layout.H });
   }
   return cv;
 }
 
 // ---- world ------------------------------------------------------------------
+// Thin wrapper kept for existing callers / headless tests: draw the whole world.
 export function drawTown(g, layout, sprites) {
+  drawTownInto(g, layout, sprites, { x: 0, y: 0, w: layout.W, h: layout.H });
+}
+
+// Draw the static world (grass/paths/buildings/park/plaza) restricted to the
+// logical-px sub-rectangle `worldRect = {x,y,w,h}`. Tile loops iterate only over
+// the worldRect span and footprints are filtered to those whose (eave-expanded)
+// bounds intersect worldRect, so a single chunk can be baked cheaply. Objects
+// straddling a chunk seam are drawn in both adjacent chunks (the caller clips).
+//
+// opts.lightsOn (default false) gates the warm window-light pass on eaves.
+export function drawTownInto(g, layout, sprites, worldRect, opts = {}) {
+  const wr = worldRect || { x: 0, y: 0, w: layout.W, h: layout.H };
+  const lightsOn = !!opts.lightsOn;
+
   // Sprite (tilemap) mode when the generated PNG assets are loaded; otherwise the
-  // procedural fallback below (also used headlessly in Node tests).
+  // procedural fallback (also used headlessly in Node tests).
   if (sprites && Object.keys(sprites).length >= 6) {
-    drawTownSprites(g, layout, sprites);
+    drawTownSprites(g, layout, sprites, wr, lightsOn);
     return;
   }
-  const { W, H, cols, rows, rects } = layout;
+  const { W, H, rects } = layout;
   const rnd = seededRandom("willow-creek-art-v2");
 
-  drawGrass(g, W, H, rnd);
-  drawPaths(g, layout, rnd);
+  drawGrass(g, W, H, rnd, wr);
+  drawPaths(g, layout, rnd, wr);
 
-  // standalone flower beds (echo the flower field) at a couple of deterministic spots
-  flowerBed(g, W - 150, 70, 110, 46, seededRandom("bed-a"));
-  flowerBed(g, 70, H - 80, 90, 40, seededRandom("bed-b"));
+  // standalone flower beds (echo the flower field) at a couple of deterministic
+  // spots — drawn only if they fall within this rect.
+  if (rectsIntersect(wr, W - 150, 70, 110, 46)) flowerBed(g, W - 150, 70, 110, 46, seededRandom("bed-a"));
+  if (rectsIntersect(wr, 70, H - 80, 90, 40)) flowerBed(g, 70, H - 80, 90, 40, seededRandom("bed-b"));
 
-  // scattered trees around building edges / corners
+  // scattered trees around building edges / corners (only near this rect)
+  const MARGIN = 40; // eaves / tree canopy overhang
   for (const r of rects.values()) {
+    if (!footprintNearRect(wr, r, MARGIN)) continue;
     const tr = seededRandom("tree-" + r.loc.id);
     if (tr() < 0.6) tree(g, r.bx - 16 + tr() * 6, r.by - 6, 0.9 + tr() * 0.3, tr);
     if (tr() < 0.5) tree(g, r.bx + r.bw + 14, r.by + r.bh + 6, 0.85 + tr() * 0.3, tr);
   }
 
-  // buildings / park / plaza, back-to-front for correct overlap
-  for (const r of [...rects.values()].sort((a, b) => a.cy - b.cy)) {
+  // buildings / park / plaza, back-to-front for correct overlap (only those whose
+  // eave-expanded footprint intersects this rect).
+  const visible = [...rects.values()]
+    .filter((r) => footprintNearRect(wr, r, MARGIN))
+    .sort((a, b) => a.cy - b.cy);
+  for (const r of visible) {
     const rng = seededRandom("bld-" + r.loc.id);
     if (r.loc.type === "park") drawPark(g, r, rng);
     else if (r.loc.type === "square") drawPlaza(g, r, rng);
-    else drawBuilding(g, r, rng);
+    else drawBuilding(g, r, rng, lightsOn);
   }
 }
 
-function drawGrass(g, W, H, rnd) {
-  g.fillStyle = C.grass;
-  g.fillRect(0, 0, W, H);
+// ---- worldRect helpers ------------------------------------------------------
+function rectsIntersect(wr, x, y, w, h) {
+  return x < wr.x + wr.w && x + w > wr.x && y < wr.y + wr.h && y + h > wr.y;
+}
+// Does a building footprint (expanded by `margin` for eaves/trees) intersect wr?
+function footprintNearRect(wr, r, margin) {
+  return rectsIntersect(wr, r.bx - margin, r.by - margin, r.bw + margin * 2, r.bh + margin * 2);
+}
+// Tile-loop bounds clamped to a worldRect, snapped to the tile grid `t` and to
+// [0, W/H]. Returns inclusive-exclusive [x0,x1) / [y0,y1) aligned to multiples of t.
+function tileRange(start, span, max, t, wr, axis) {
+  const lo = axis === "x" ? wr.x : wr.y;
+  const hi = axis === "x" ? wr.x + wr.w : wr.y + wr.h;
+  const a = Math.max(0, Math.floor(Math.max(0, lo) / t) * t);
+  const b = Math.min(max, Math.ceil(Math.min(max, hi) / t) * t);
+  return { a, b };
+}
+
+function drawGrass(g, W, H, rnd, wr) {
   const t = 24;
-  for (let y = 0; y < H; y += t) {
-    for (let x = 0; x < W; x += t) {
+  // Base fill only over the visible rect.
+  const fx = Math.max(0, wr.x), fy = Math.max(0, wr.y);
+  const fw = Math.min(W, wr.x + wr.w) - fx, fh = Math.min(H, wr.y + wr.h) - fy;
+  if (fw <= 0 || fh <= 0) return;
+  g.fillStyle = C.grass;
+  g.fillRect(fx, fy, fw, fh);
+  const xr = tileRange(0, W, W, t, wr, "x");
+  const yr = tileRange(0, H, H, t, wr, "y");
+  for (let y = yr.a; y < yr.b; y += t) {
+    for (let x = xr.a; x < xr.b; x += t) {
       if ((x / t + y / t) % 2 === 0) { g.fillStyle = C.grassCheck; g.fillRect(x, y, t, t); }
     }
   }
-  // grass tufts + tiny flowers/pebbles
+  // grass tufts + tiny flowers/pebbles — deterministic over the whole world,
+  // drawn only where they land inside wr (keeps placement chunk-independent).
   for (let i = 0; i < W * H * 0.0016; i++) {
     const x = Math.floor(rnd() * W);
     const y = Math.floor(rnd() * H);
     const k = rnd();
+    if (x < wr.x - 4 || x > wr.x + wr.w + 4 || y < wr.y - 4 || y > wr.y + wr.h + 4) continue;
     if (k < 0.7) {
       g.strokeStyle = C.tuft; g.lineWidth = 1;
       g.beginPath();
@@ -143,10 +257,12 @@ function drawGrass(g, W, H, rnd) {
   }
 }
 
-function drawPaths(g, layout, rnd) {
+function drawPaths(g, layout, rnd, wr) {
   const { W, H, cols, rows } = layout;
   const road = 30;
+  // Draw a path band clipped to wr so we only touch this chunk's pixels.
   const draw = (x, y, w, h) => {
+    if (!rectsIntersect(wr, x - 2, y - 2, w + 4, h + 4)) return;
     g.fillStyle = C.pathEdge; g.fillRect(x - 2, y - 2, w + 4, h + 4);
     g.fillStyle = C.path; g.fillRect(x, y, w, h);
   };
@@ -154,14 +270,25 @@ function drawPaths(g, layout, rnd) {
   for (let r = 0; r < rows; r++) draw(0, r * CELL + CELL / 2 - road / 2, W, road);
   // lighter centre + speckle
   g.fillStyle = C.pathMid;
-  for (let c = 0; c < cols; c++) g.fillRect(c * CELL + CELL / 2 - 4, 0, 8, H);
-  for (let r = 0; r < rows; r++) g.fillRect(0, r * CELL + CELL / 2 - 4, W, 8);
+  for (let c = 0; c < cols; c++) {
+    const x = c * CELL + CELL / 2 - 4;
+    if (rectsIntersect(wr, x, 0, 8, H)) g.fillRect(x, 0, 8, H);
+  }
+  for (let r = 0; r < rows; r++) {
+    const y = r * CELL + CELL / 2 - 4;
+    if (rectsIntersect(wr, 0, y, W, 8)) g.fillRect(0, y, W, 8);
+  }
   g.fillStyle = C.pathSpeck;
-  for (let i = 0; i < (W * rows) * 0.02; i++) g.fillRect(Math.floor(rnd() * W), Math.floor(rnd() * H), 2, 2);
+  for (let i = 0; i < (W * rows) * 0.02; i++) {
+    const sx = Math.floor(rnd() * W);
+    const sy = Math.floor(rnd() * H);
+    if (sx < wr.x - 2 || sx > wr.x + wr.w + 2 || sy < wr.y - 2 || sy > wr.y + wr.h + 2) continue;
+    g.fillRect(sx, sy, 2, 2);
+  }
 }
 
 // ---- buildings (cut-away interiors) -----------------------------------------
-function drawBuilding(g, r, rnd) {
+function drawBuilding(g, r, rnd, lightsOn) {
   const roof = ROOF[r.loc.type] || "#9aa0ad";
   const wt = 5; // wall thickness
   const ix = r.bx + wt, iy = r.by + wt + 4, iw = r.bw - wt * 2, ih = r.bh - wt * 2 - 4;
@@ -193,6 +320,12 @@ function drawBuilding(g, r, rnd) {
   g.fillStyle = shade(roof, -0.16); g.fillRect(r.bx - 4, r.by + 5, r.bw + 8, 2);
 
   composeInterior(g, r.loc.type, ix, iy, iw, ih, roof, rnd);
+
+  // optional cheap, deterministic material polish: a soft AO gradient hugging
+  // the south/east interior walls grounds the furniture without a per-pixel cost.
+  interiorAO(g, ix, iy, iw, ih);
+  // warm window-light wash on the eave, only when lightsOn (e.g. night bakes).
+  if (lightsOn) eaveLight(g, r);
 
   // small unobtrusive label on the eave (aids the demo; original relies on the map)
   const label = r.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || r.loc.name;
@@ -268,6 +401,49 @@ function composeInterior(g, type, x, y, w, h, roof, rnd) {
     default: {
       table(g, cx, cy, 1);
       plant(g, x + 4, y + 4);
+    }
+  }
+}
+
+// ---- material polish (cheap, deterministic, subtle) -------------------------
+// Soft ambient-occlusion gradient hugging the south and east interior walls so
+// the cut-away room reads as a recessed box. Falls back to flat strokes if the
+// canvas implementation lacks createLinearGradient (headless safety).
+function interiorAO(g, x, y, w, h) {
+  const depth = 7;
+  if (typeof g.createLinearGradient === "function") {
+    // south (bottom) wall
+    let grS = g.createLinearGradient(0, y + h, 0, y + h - depth);
+    grS.addColorStop(0, "rgba(20,16,10,0.20)");
+    grS.addColorStop(1, "rgba(20,16,10,0)");
+    g.fillStyle = grS; g.fillRect(x, y + h - depth, w, depth);
+    // east (right) wall
+    let grE = g.createLinearGradient(x + w, 0, x + w - depth, 0);
+    grE.addColorStop(0, "rgba(20,16,10,0.16)");
+    grE.addColorStop(1, "rgba(20,16,10,0)");
+    g.fillStyle = grE; g.fillRect(x + w - depth, y, depth, h);
+  } else {
+    g.fillStyle = "rgba(20,16,10,0.10)";
+    g.fillRect(x, y + h - 2, w, 2);
+    g.fillRect(x + w - 2, y, 2, h);
+  }
+}
+
+// Warm window-light wash on the building eave (only when lightsOn), evoking lit
+// windows at dusk/night. Two small glows flanking the door line, kept subtle.
+function eaveLight(g, r) {
+  const glow = "rgba(255,214,140,0.35)";
+  const xs = [r.bx + r.bw * 0.28, r.bx + r.bw * 0.72];
+  for (const cx of xs) {
+    if (typeof g.createRadialGradient === "function") {
+      const gr = g.createRadialGradient(cx, r.by + 5, 0, cx, r.by + 5, 9);
+      gr.addColorStop(0, glow);
+      gr.addColorStop(1, "rgba(255,214,140,0)");
+      g.fillStyle = gr;
+      g.fillRect(cx - 9, r.by - 2, 18, 12);
+    } else {
+      g.fillStyle = glow;
+      g.fillRect(cx - 2, r.by + 2, 4, 3);
     }
   }
 }
@@ -419,49 +595,77 @@ function flowerBed(g, x, y, w, h, rnd) {
 }
 
 // ---- sprite (tilemap) compositing -------------------------------------------
-function drawTownSprites(g, layout, S) {
+function drawTownSprites(g, layout, S, worldRect, lightsOn) {
   const { W, H, cols, rows, rects } = layout;
+  const wr = worldRect || { x: 0, y: 0, w: W, h: H };
   if (g.imageSmoothingEnabled !== undefined) g.imageSmoothingEnabled = false;
 
-  // grass carpet (with occasional lighter tile + flower)
+  // grass carpet (with occasional lighter tile + flower), only over wr.
   const gr = seededRandom("spr-grass");
+  const xr = tileRange(0, W, W, 16, wr, "x");
+  const yr = tileRange(0, H, H, 16, wr, "y");
   for (let y = 0; y < H; y += 16) {
     for (let x = 0; x < W; x += 16) {
-      g.drawImage(gr() < 0.14 && S.grass2 ? S.grass2 : S.grass, x, y, 16, 16);
-      if (gr() < 0.05 && S.flower) g.drawImage(S.flower, x, y, 16, 16);
+      // advance the RNG for EVERY world tile so placement stays chunk-independent,
+      // but only paint tiles inside wr.
+      const a = gr();
+      const b = gr();
+      if (x < xr.a || x >= xr.b || y < yr.a || y >= yr.b) continue;
+      g.drawImage(a < 0.14 && S.grass2 ? S.grass2 : S.grass, x, y, 16, 16);
+      if (b < 0.05 && S.flower) g.drawImage(S.flower, x, y, 16, 16);
     }
   }
-  // dirt paths along the row/column streets
+  // dirt paths along the row/column streets (clipped to wr inside clipTile).
   const road = 32;
-  for (let c = 0; c < cols; c++) clipTile(g, S.path, c * CELL + CELL / 2 - road / 2, 0, road, H);
-  for (let r = 0; r < rows; r++) clipTile(g, S.path, 0, r * CELL + CELL / 2 - road / 2, W, road);
+  for (let c = 0; c < cols; c++) {
+    const x = c * CELL + CELL / 2 - road / 2;
+    if (rectsIntersect(wr, x, 0, road, H)) clipTile(g, S.path, x, 0, road, H, wr);
+  }
+  for (let r = 0; r < rows; r++) {
+    const y = r * CELL + CELL / 2 - road / 2;
+    if (rectsIntersect(wr, 0, y, W, road)) clipTile(g, S.path, 0, y, W, road, wr);
+  }
 
-  // trees, bushes, flower beds
+  // trees, bushes, flower beds (only near wr)
+  const MARGIN = 40;
   for (const rc of rects.values()) {
+    if (!footprintNearRect(wr, rc, MARGIN)) continue;
     const tr = seededRandom("t-" + rc.loc.id);
     if (tr() < 0.6 && S.tree) g.drawImage(S.tree, rc.bx - 24, rc.by - 30, 32, 40);
     if (tr() < 0.4 && S.bush) g.drawImage(S.bush, rc.bx + rc.bw + 6, rc.by + rc.bh - 4, 20, 16);
   }
-  flowerPatch(g, S, W - 150, 60, 9, 3, seededRandom("fp1"));
-  flowerPatch(g, S, 52, H - 96, 6, 3, seededRandom("fp2"));
+  if (rectsIntersect(wr, W - 150, 60, 9 * 14, 3 * 14)) flowerPatch(g, S, W - 150, 60, 9, 3, seededRandom("fp1"));
+  if (rectsIntersect(wr, 52, H - 96, 6 * 14, 3 * 14)) flowerPatch(g, S, 52, H - 96, 6, 3, seededRandom("fp2"));
 
-  // buildings / park / plaza, back-to-front
-  for (const rc of [...rects.values()].sort((a, b) => a.cy - b.cy)) {
+  // buildings / park / plaza, back-to-front (only those near wr)
+  const visible = [...rects.values()]
+    .filter((rc) => footprintNearRect(wr, rc, MARGIN))
+    .sort((a, b) => a.cy - b.cy);
+  for (const rc of visible) {
     if (rc.loc.type === "park") spritePark(g, S, rc);
     else if (rc.loc.type === "square") spritePlaza(g, S, rc);
-    else spriteBuilding(g, S, rc);
+    else spriteBuilding(g, S, rc, lightsOn);
   }
 }
 
-function clipTile(g, img, x, y, w, h) {
+function clipTile(g, img, x, y, w, h, wr) {
   if (!img) return;
   g.save();
   g.beginPath();
-  g.rect(x, y, w, h);
+  // When a chunk worldRect is given, intersect the clip with it so a path band
+  // spanning the whole world only paints this chunk's slice.
+  let cx = x, cy = y, cw = w, ch = h;
+  if (wr) {
+    const rx = Math.max(x, wr.x), ry = Math.max(y, wr.y);
+    const rr = Math.min(x + w, wr.x + wr.w), rb = Math.min(y + h, wr.y + wr.h);
+    cx = rx; cy = ry; cw = rr - rx; ch = rb - ry;
+    if (cw <= 0 || ch <= 0) { g.restore(); return; }
+  }
+  g.rect(cx, cy, cw, ch);
   g.clip();
-  const x0 = Math.floor(x / 16) * 16;
-  const y0 = Math.floor(y / 16) * 16;
-  for (let yy = y0; yy < y + h; yy += 16) for (let xx = x0; xx < x + w; xx += 16) g.drawImage(img, xx, yy, 16, 16);
+  const x0 = Math.floor(cx / 16) * 16;
+  const y0 = Math.floor(cy / 16) * 16;
+  for (let yy = y0; yy < cy + ch; yy += 16) for (let xx = x0; xx < cx + cw; xx += 16) g.drawImage(img, xx, yy, 16, 16);
   g.restore();
 }
 
@@ -482,7 +686,7 @@ function put(g, img, x, y) {
 
 function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)] : null; }
 
-function spriteBuilding(g, S, rc) {
+function spriteBuilding(g, S, rc, lightsOn) {
   const { bx, by, bw, bh, cx } = rc;
   const rng = seededRandom("furn-" + rc.loc.id);
 
@@ -501,11 +705,15 @@ function spriteBuilding(g, S, rc) {
   }
   // multi-room interior, furnished per-building for variety
   spriteRooms(g, S, rc.loc.type, bx + 16, by + 16, bw - 32, bh - 30, rng);
+  // soft AO hugging the south/east interior walls (cheap, deterministic)
+  interiorAO(g, bx + 16, by + 16, bw - 32, bh - 30);
   g.restore();
 
   g.strokeStyle = "#2f2a22";
   g.lineWidth = 1;
   g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  // warm window-light wash on the eave when lit (e.g. night bakes)
+  if (lightsOn) eaveLight(g, rc);
   const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
   g.font = "600 9px ui-monospace, Menlo, monospace";
   g.textAlign = "center";

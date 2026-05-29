@@ -13,6 +13,9 @@ export class Location {
     this.y = data.y;
     this.description = data.description || "";
     this.tags = data.tags || [];
+    this.district = data.district || null;
+    this.capacity = data.capacity || 8;
+    this.spriteKey = data.spriteKey || null;
   }
 
   distanceTo(other) {
@@ -32,6 +35,9 @@ export class Location {
       y: this.y,
       description: this.description,
       tags: this.tags,
+      district: this.district,
+      capacity: this.capacity,
+      spriteKey: this.spriteKey,
     };
   }
 }
