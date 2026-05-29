@@ -76,6 +76,8 @@ export class Camera {
 
     // user-supplied callbacks fired by the pointer wiring (attach()).
     this.onTap = null; // (screenX, screenY) => void  (a click that wasn't a drag)
+    this.onCursor = null; // (cursor:string) => void  — renderer applies it; default sets el.style.cursor
+    this._cursorState = null;
 
     this.fit();
     // fit() centers the target; snap current to it so the first frame is stable.
@@ -213,6 +215,7 @@ export class Camera {
    * Returns true while still animating (renderers may use this to flag dirty).
    */
   tick(reduceMotion) {
+    this._applyCursor(); // keep the grab/grabbing affordance in sync with zoom + drag state
     // inertia nudges the target offset, then friction decays it.
     if (this.config.inertia && !reduceMotion && (this.vx || this.vy) && !this._dragging) {
       this.tx += this.vx;
@@ -283,6 +286,30 @@ export class Camera {
     return wx >= r.x - pad && wx <= r.x + r.w + pad && wy >= r.y - pad && wy <= r.y + r.h + pad;
   }
 
+  // ---- cursor affordance ---------------------------------------------------
+
+  /** True when the scaled world overflows the viewport — i.e. there is room to pan. */
+  canPan() {
+    const { w, h } = this._vp();
+    return this.worldW * this.scale > w + 0.5 || this.worldH * this.scale > h + 0.5;
+  }
+
+  /**
+   * Reflect pannability in the input element's cursor: 'grab' when the map can be
+   * dragged, 'grabbing' while dragging, and 'default' when the whole map already
+   * fits (nothing to pan). Only writes on change. Renderers that drive their own
+   * cursor system (e.g. Pixi's event cursorStyles) supply onCursor via attach();
+   * otherwise the element's inline style.cursor is set directly (canvas-2D).
+   */
+  _applyCursor() {
+    const pan = this.canPan();
+    const cur = pan ? (this._dragging ? "grabbing" : "grab") : "default";
+    if (cur === this._cursorState) return;
+    this._cursorState = cur;
+    if (this.onCursor) this.onCursor(cur);
+    else if (this._el && this._el.style) this._el.style.cursor = cur;
+  }
+
   // ---- persistence ---------------------------------------------------------
 
   /** Serialize the target transform for settings.camera persistence. */
@@ -317,11 +344,12 @@ export class Camera {
    * notified of clean clicks (no drag) for hit-testing. Renderers that prefer
    * to own their own handlers can skip this and call zoomAt/panBy directly.
    */
-  attach(el, { onTap } = {}) {
+  attach(el, { onTap, onCursor } = {}) {
     if (!el || typeof el.addEventListener !== "function") return this;
     this.detach();
     this._el = el;
     if (onTap) this.onTap = onTap;
+    if (onCursor) this.onCursor = onCursor;
 
     const localXY = (clientX, clientY) => {
       const r = el.getBoundingClientRect();
@@ -351,6 +379,7 @@ export class Camera {
         this._lastY = e.clientY;
         this._moved = 0;
         this.vx = this.vy = 0;
+        this._applyCursor(); // instant grab -> grabbing
       }
       if (typeof el.setPointerCapture === "function") {
         try { el.setPointerCapture(e.pointerId); } catch (_) {}
@@ -393,6 +422,7 @@ export class Camera {
       if (this._pointers.size < 2) this._pinchDist = 0;
       if (this._pointers.size === 0) {
         this._dragging = false;
+        this._applyCursor(); // grabbing -> grab on release
         // a small total movement counts as a tap (click hit-test / double-tap).
         if (wasDragging && this._moved < 6) {
           this.vx = this.vy = 0;
@@ -419,6 +449,8 @@ export class Camera {
     add("pointerup", endPointer);
     add("pointercancel", onPointerLeave);
     add("pointerleave", onPointerLeave);
+    this._cursorState = null;
+    this._applyCursor(); // set the initial grab/default cursor
     return this;
   }
 

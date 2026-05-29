@@ -84,7 +84,17 @@ export class PixiMapView {
         easing: CONFIG.camera.easing,
       },
     });
-    this.camera.attach(cv, { onTap: (sx, sy) => this._pickAt(sx, sy) });
+    this.camera.attach(cv, {
+      onTap: (sx, sy) => this._pickAt(sx, sy),
+      // Route the camera's grab/grabbing/default through Pixi's own cursor system
+      // (cursorStyles.default) so it isn't reset on pointer-move, while agents keep
+      // their 'pointer' cursor on hover. Also set it inline for an immediate change.
+      onCursor: (cur) => {
+        if (cv && cv.style) cv.style.cursor = cur;
+        const ev = this.app && this.app.renderer && this.app.renderer.events;
+        if (ev && ev.cursorStyles) ev.cursorStyles.default = cur;
+      },
+    });
 
     this._buildScene();
     this._wire();
