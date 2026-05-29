@@ -53,15 +53,21 @@ export class PixiMapView {
     cv.style.display = "block";
     this.host.appendChild(cv);
 
+    // Everything lives in a "world" container so the camera can zoom/pan it.
+    this.world = new PIXI.Container();
+    app.stage.addChild(this.world);
+    this._camScale = 1;
+
     this._buildScene();
     this._wire();
+    this._setupCamera();
     app.ticker.add(() => this._frame());
     return this;
   }
 
   _buildScene() {
     const PIXI = this.PIXI;
-    const stage = this.app.stage;
+    const stage = this.world;
     stage.removeChildren();
     this.entries.clear();
     this.layout = computeLayout(this.sim);
@@ -87,7 +93,46 @@ export class PixiMapView {
     this.overlay.eventMode = "none";
     stage.addChild(this.overlay);
 
+    if (this.world) { this.world.scale.set(1); this.world.position.set(0, 0); this._camScale = 1; }
     this._built = true;
+  }
+
+  // Camera: scroll-wheel zoom toward the cursor + drag to pan (clamped to bounds).
+  _setupCamera() {
+    const cv = this.app.canvas;
+    const W = this.layout.W, H = this.layout.H, MIN = 1, MAX = 3.5;
+    const clamp = () => {
+      const s = this.world.scale.x;
+      this.world.x = Math.min(0, Math.max(W * (1 - s), this.world.x));
+      this.world.y = Math.min(0, Math.max(H * (1 - s), this.world.y));
+    };
+    cv.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const r = cv.getBoundingClientRect();
+      const mx = (e.clientX - r.left) * (W / r.width);
+      const my = (e.clientY - r.top) * (H / r.height);
+      const old = this.world.scale.x;
+      const s = Math.min(MAX, Math.max(MIN, old * (e.deltaY < 0 ? 1.12 : 0.89)));
+      this.world.x = mx - ((mx - this.world.x) / old) * s;
+      this.world.y = my - ((my - this.world.y) / old) * s;
+      this.world.scale.set(s);
+      this._camScale = s;
+      clamp();
+    }, { passive: false });
+    let dragging = false, lx = 0, ly = 0;
+    cv.addEventListener("pointerdown", (e) => { dragging = true; lx = e.clientX; ly = e.clientY; });
+    const move = (e) => {
+      if (!dragging) return;
+      const r = cv.getBoundingClientRect();
+      this.world.x += (e.clientX - lx) * (W / r.width);
+      this.world.y += (e.clientY - ly) * (H / r.height);
+      lx = e.clientX; ly = e.clientY;
+      clamp();
+    };
+    const up = () => { dragging = false; };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    this._camCleanup = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
   }
 
   _makeAgent(a) {
@@ -208,6 +253,7 @@ export class PixiMapView {
 
       const sel = a.id === selId;
       e.ring.visible = sel;
+      if (sel) e.ring.alpha = 0.6 + 0.4 * Math.sin(this._t * 0.15);
 
       const emoji = this._isTalking(a.id) ? "💬" : activityEmoji(a.currentActivity, a.emoji);
       const label = `${a.initials}: ${emoji}`;
@@ -231,6 +277,7 @@ export class PixiMapView {
   }
 
   destroy() {
+    if (this._camCleanup) this._camCleanup();
     if (this.app) {
       this.app.destroy(true, { children: true });
       this.app = null;

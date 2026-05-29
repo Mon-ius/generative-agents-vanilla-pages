@@ -470,7 +470,15 @@ function flowerPatch(g, S, x, y, cw, ch, rnd) {
   for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) if (rnd() < 0.8) g.drawImage(S.flower, x + i * 14, y + j * 14, 16, 16);
 }
 
-function put(g, img, x, y) { if (img) g.drawImage(img, x, y, img.width, img.height); }
+function put(g, img, x, y) {
+  if (!img) return;
+  // soft contact shadow grounds the object on the floor
+  g.fillStyle = "rgba(22,28,18,0.20)";
+  g.beginPath();
+  g.ellipse(x + img.width / 2, y + img.height - 1.5, img.width * 0.42, 2.8, 0, 0, Math.PI * 2);
+  g.fill();
+  g.drawImage(img, x, y, img.width, img.height);
+}
 
 function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)] : null; }
 
