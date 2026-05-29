@@ -21,7 +21,7 @@ toolchain (not served, harmless on Pages):
 - `package.json` — `{"type":"module"}` so Node can import the ES-module core; provides `npm run smoke` / `npm run check`.
 - `test/smoke.node.mjs` — headless harness for the DOM-free core (world integrity, **determinism**, save/load, pathfinding, group-conversation invariants). 21 checks.
 - `tools/check-all.mjs` — runs `node --check` over every `js/**/*.js` except `js/vendor`.
-- Still **no** ESLint/Prettier/CI. Town-tile PNGs in `assets/sprites/` are pre-baked (Kenney CC0); character art is the SVG→PNG atlas in `assets/characters/` (see Rendering). Asset tools live in `tools/` (`assemble_atlas.mjs`, `svg2png.mjs`).
+- Still **no** ESLint/Prettier/CI. **All art is original, self-generated SVG → PNG atlases** (no third-party/Kenney assets): town tiles in `assets/sprites/atlas.png`, characters in `assets/characters/atlas.png`. Asset tools live in `tools/` (`gen_chars_svg.mjs`, `assemble_atlas.mjs`, `pack_tiles.mjs`, `svg2png.mjs`).
 
 The README is inherited from the upstream source repo (`Mon-ius/generative-agents-vanilla-pages`)
 and is **stale** re: world size, art, and the renderer — trust this file over it.
@@ -164,15 +164,24 @@ modules, so they stay in lockstep:
   atlas once** (deduped by file) — one HTTP request for all residents. `frameW/frameH` and
   `anchorX/Y` come from the manifest; on-screen size = `frameW × CONFIG.characters.frameScale`
   (0.7 ≈ 22px, a crisp downscale of the 32px art).
-  Asset pipeline (dev-only, **no runtime SVG**): each resident is **hand-authored as SVG** in
-  `tools/char_svg/<key>.svg` → `tools/assemble_atlas.mjs` tiles them into one atlas SVG +
-  writes the region manifest → `tools/svg2png.mjs` rasterizes SVG→PNG via **self-launched
-  headless Chrome** (transparent, pixel-exact; zero npm deps). Add/redraw a resident by
-  editing/adding its `.svg` and re-running those two tools.
+  Asset pipeline (dev-only, **no runtime SVG**): `tools/gen_chars_svg.mjs` emits the 12
+  resident SVGs in `tools/char_svg/<key>.svg` with **exact, consistent geometry** (centered on
+  x=16, feet on y=46, contiguous, fits the 32×48 cell — authored deterministically because
+  hand-drawn-per-cell art couldn't self-align). Then `tools/assemble_atlas.mjs` tiles them into
+  one atlas SVG + writes the region manifest, and `tools/svg2png.mjs` rasterizes SVG→PNG via
+  **self-launched headless Chrome** (transparent, pixel-exact, zero npm deps). Redraw via those
+  three tools.
+- **Town tiles** (`assets.js`, `js/ui/townArt.js`) — the 37 terrain/furniture sprites are **also
+  one CC0 SVG→PNG atlas** `assets/sprites/atlas.png`, addressed by `{x,y,w,h}` regions in
+  `assets/manifest.json`. `loadSprites()` fetches that atlas **once** and slices each region into
+  a per-name canvas, so `townArt` draws `S.<name>` exactly as before (no townArt change). Tiles
+  are hand-authored SVG in `tools/tile_svg/<name>.svg`, packed by `tools/pack_tiles.mjs` →
+  `svg2png.mjs`. If the atlas/manifest is missing (or headless), `loadSprites` → `{}` and townArt
+  falls back to its **procedural** drawing.
 
 High-DPI: Pixi `resolution = CONFIG.rendering.resolutionScale` (devicePixelRatio, capped 2) +
-`autoDensity`; canvas backs the store at `cssPx*dpr`. Town terrain/furniture still come from the
-Kenney CC0 tiles in `assets/manifest.json` (`assets.js` → `{}` headless, procedural fallback).
+`autoDensity`; canvas backs the store at `cssPx*dpr`. **All art is original SVG** (no third-party
+packs); the two atlases are the only image assets.
 
 ## Configuration & extending
 

@@ -1,4 +1,14 @@
-Tile art: Kenney 'Roguelike Indoor' + 'Roguelike Modern City' + 'Roguelike/RPG pack' (https://kenney.nl) — License: CC0 (public domain). Credit appreciated, not required.
+All art in this project is ORIGINAL and self-generated as SVG, then rasterized to PNG sprite
+atlases. It is NOT derived from any third-party pack. License: CC0 (public domain).
 
-Character sprites (assets/characters/atlas.png): ORIGINAL art — each resident is hand-authored as SVG (tools/char_svg/*.svg), tiled into ONE sprite atlas and rasterized to a single transparent PNG (the "CSS sprites" technique: one image fetched once, every variant/direction/frame addressed by a pixel offset). License: CC0 (public domain); not derived from any third-party pack.
-Regenerate: node tools/assemble_atlas.mjs /tmp/atlas.svg --manifest && node tools/svg2png.mjs /tmp/atlas.svg assets/characters/atlas.png  (svg2png self-launches headless Chrome to rasterize).
+Town tiles (assets/sprites/atlas.png): 37 terrain/furniture sprites hand-authored as SVG in
+tools/tile_svg/*.svg, shelf-packed into ONE atlas (the "CSS sprites" technique: a single image
+fetched once, every tile addressed by an {x,y,w,h} region).
+  Regenerate: node tools/pack_tiles.mjs /tmp/tiles.svg --manifest && node tools/svg2png.mjs /tmp/tiles.svg assets/sprites/atlas.png
+
+Character sprites (assets/characters/atlas.png): 12 residents, each a 3-frame walk x 4 directions
+block (32x48). Geometry is generated with exact, consistent alignment by tools/gen_chars_svg.mjs,
+composited into ONE atlas (every variant addressed by a pixel offset).
+  Regenerate: node tools/gen_chars_svg.mjs && node tools/assemble_atlas.mjs /tmp/chars.svg --manifest && node tools/svg2png.mjs /tmp/chars.svg assets/characters/atlas.png
+
+(svg2png.mjs self-launches headless Chrome to rasterize SVG -> transparent PNG; zero npm deps.)

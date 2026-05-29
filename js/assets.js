@@ -1,10 +1,18 @@
-// assets.js — loads the generated pixel-art sprite PNGs into Image objects.
+// assets.js — loads the pixel-art sprites from a single shared sprite ATLAS.
 //
-// The PNGs live in /assets/sprites/ (produced by tools/gen_assets.mjs). Loading is
-// cached and resolves to a { name: HTMLImageElement } map. It is node-safe: with no
-// Image constructor (headless tests) it resolves to {} so the renderer falls back
-// to procedural drawing. Individual load failures are skipped, not fatal.
+// Instead of fetching 37 separate PNGs, this uses a CSS-sprites approach: ONE PNG
+// (the atlas) is fetched once, and every tile is sliced out of it from an
+// { x, y, w, h } region described in manifest.json. Each region is drawn onto its
+// own small HTMLCanvasElement, so the result is a { name: HTMLCanvasElement } map.
+// townArt consumes these canvases exactly like the old Images — drawImage(S.name, ...)
+// and put() reading .width/.height both work on a canvas.
+//
+// Loading is cached and node-safe: with no Image constructor (headless tests) it
+// resolves to {} so the renderer falls back to procedural drawing. Any fetch/parse
+// or atlas load failure also resolves to {} (procedural fallback).
 
+// Informational list of expected sprite names (the actual set is driven by the
+// manifest's `sprites` map; this export is kept for reference/back-compat).
 export const SPRITE_NAMES = [
   "grass", "grass2", "path", "flower", "tree", "bush",
   "floor_wood", "floor_tile", "floor_pink", "wall", "rug",
@@ -17,26 +25,36 @@ export const SPRITE_NAMES = [
 
 let _cache = null;
 
-export function loadSprites(base = "assets/sprites/") {
+export function loadSprites(base = "assets/") {
   if (_cache) return _cache;
   if (typeof Image === "undefined") {
     _cache = Promise.resolve({});
     return _cache;
   }
-  _cache = Promise.all(
-    SPRITE_NAMES.map(
-      (name) =>
+  _cache = fetch(base + "manifest.json")
+    .then((res) => res.json())
+    .then(
+      (manifest) =>
         new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => resolve([name, img]);
-          img.onerror = () => resolve(null);
-          img.src = base + name + ".png";
+          const sprites = (manifest && manifest.sprites) || {};
+          const atlasImg = new Image();
+          atlasImg.onload = () => {
+            const map = {};
+            for (const [name, r] of Object.entries(sprites)) {
+              const canvas = document.createElement("canvas");
+              canvas.width = r.w;
+              canvas.height = r.h;
+              const ctx = canvas.getContext("2d");
+              ctx.imageSmoothingEnabled = false;
+              ctx.drawImage(atlasImg, r.x, r.y, r.w, r.h, 0, 0, r.w, r.h);
+              map[name] = canvas;
+            }
+            resolve(map);
+          };
+          atlasImg.onerror = () => resolve({});
+          atlasImg.src = base + manifest.atlas;
         })
     )
-  ).then((pairs) => {
-    const map = {};
-    for (const p of pairs) if (p) map[p[0]] = p[1];
-    return map;
-  });
+    .catch(() => ({}));
   return _cache;
 }
