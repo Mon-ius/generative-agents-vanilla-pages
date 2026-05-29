@@ -10,7 +10,7 @@
 // module graph the Node tests load, and (b) any load/WebGL failure rejects
 // init() cleanly, letting main.js fall back to the canvas MapView.
 
-import { computeLayout, spotFor, drawTown, activityEmoji, shade, ambient } from "./townArt.js";
+import { computeLayout, spotFor, makeTownCanvas, activityEmoji, shade, ambient } from "./townArt.js";
 
 const WALK_SPEED = 2.4;
 const SAY_MS = 4200;
@@ -65,12 +65,11 @@ export class PixiMapView {
     this.entries.clear();
     this.layout = computeLayout(this.sim);
 
-    // static world baked to a texture
-    const off = document.createElement("canvas");
-    off.width = this.layout.W;
-    off.height = this.layout.H;
-    drawTown(off.getContext("2d"), this.layout);
+    // static world baked to a 2× texture, displayed at logical size (crisp)
+    const off = makeTownCanvas(this.layout);
     const bg = new PIXI.Sprite(PIXI.Texture.from(off));
+    bg.width = this.layout.W;
+    bg.height = this.layout.H;
     stage.addChild(bg);
 
     // agents layer (depth-sorted by y)

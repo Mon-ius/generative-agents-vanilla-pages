@@ -7,7 +7,7 @@
 // are DOM elements in the overlay. Node-safe: with no 2D context / RAF it
 // constructs without drawing.
 
-import { computeLayout, spotFor, drawTown, activityEmoji, shade, roundRect, ambient } from "./townArt.js";
+import { computeLayout, spotFor, makeTownCanvas, activityEmoji, shade, roundRect, ambient } from "./townArt.js";
 
 const WALK_SPEED = 2.2;
 const SAY_MS = 4200;
@@ -47,12 +47,7 @@ export class MapView {
 
   _buildStatic() {
     if (typeof document === "undefined" || !document.createElement) return;
-    const off = document.createElement("canvas");
-    off.width = this.layout.W;
-    off.height = this.layout.H;
-    const g = off.getContext ? off.getContext("2d") : null;
-    this.static = off;
-    if (g) drawTown(g, this.layout);
+    this.static = makeTownCanvas(this.layout);
   }
 
   _syncTargets(snap) {
@@ -133,7 +128,7 @@ export class MapView {
     this._frameN++;
     const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    if (this.static) ctx.drawImage(this.static, 0, 0);
+    if (this.static) ctx.drawImage(this.static, 0, 0, this.layout.W, this.layout.H);
     else { ctx.fillStyle = "#84b95a"; ctx.fillRect(0, 0, this.layout.W, this.layout.H); }
 
     const selected = this.sim.selectedAgentId;
