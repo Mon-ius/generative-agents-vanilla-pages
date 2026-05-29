@@ -1,5 +1,5 @@
-/* components.css — map, markers, controls, and the agent / memory / timeline /
-   relationship widgets. */
+/* components.css — map, tabs, and the agent / memory / timeline / relationship
+   widgets. Controls live in the toolbar (see layout.css). */
 
 /* ---- Status pill ---- */
 .status-pill {
@@ -19,65 +19,50 @@
   background: var(--panel-2);
   color: var(--muted);
 }
-.status-pill[data-state="running"]::before {
-  content: "● ";
-}
-.status-pill[data-state="paused"]::before {
-  content: "⏸ ";
-}
+.status-pill[data-state="running"]::before { content: "● "; }
+.status-pill[data-state="paused"]::before { content: "⏸ "; }
 .time-indicator {
   font-family: var(--mono);
   font-weight: 650;
   font-size: 1rem;
 }
 
-/* ---- Map (canvas town with a wooden frame) ---- */
-.map-stage {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
+/* ---- Map: the hero. A dark "gallery mat" frames the luminous town. ---- */
 .map-frame {
   position: relative;
-  padding: 9px;
-  border-radius: var(--radius);
-  line-height: 0;
-  background: repeating-linear-gradient(45deg, #6b4a2b 0 7px, #5d4024 7px 14px);
-  box-shadow: inset 0 0 0 3px #3c2a17, inset 0 0 0 4px rgba(255, 255, 255, 0.06), var(--shadow);
-}
-.map-canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: 4px;
-  background: #84b95a;
-  cursor: pointer;
-  image-rendering: auto;
+  aspect-ratio: 1056 / 792;
+  width: min(100%, calc((100vh - 232px) * 1056 / 792));
+  margin: 0 auto;
+  padding: 10px;
+  border-radius: 16px;
+  background: linear-gradient(155deg, #2c3344, #1b212e);
+  box-shadow: 0 16px 40px rgba(18, 22, 34, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .map-host {
-  display: block;
-  line-height: 0;
-  border-radius: 4px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
   overflow: hidden;
+  line-height: 0;
   background: #84b95a;
-  min-height: 140px;
 }
 .map-host canvas,
 .map-canvas {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   cursor: pointer;
 }
 .map-overlay {
   position: absolute;
-  inset: 9px; /* aligns with .map-frame padding so it overlaps the canvas */
+  inset: 10px; /* matches .map-frame padding so it overlaps the canvas exactly */
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 7px;
   pointer-events: none;
 }
 
-/* Floating "INITIALS: emoji" bubbles above each character */
+/* Floating "INITIALS: emoji" bubbles above each character (canvas fallback) */
 .speech-bubble {
   position: absolute;
   transform: translate(-50%, -100%);
@@ -108,24 +93,25 @@
   z-index: 3;
 }
 
-/* ---- Legend ---- */
+/* ---- Legend (resident chips under the map) ---- */
 .map-legend {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-2);
-  margin-top: var(--space-3);
 }
 .legend-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 9px 3px 4px;
+  padding: 3px 11px 3px 4px;
   border-radius: 999px;
   border: 1px solid var(--line-strong);
   background: var(--panel);
   cursor: pointer;
   font-size: 0.8rem;
 }
+.legend-chip:hover { border-color: var(--accent); }
 .legend-chip--selected {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
@@ -142,22 +128,63 @@
   border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
-/* ---- Controls ---- */
-.controls {
+/* ---- Tabbed rail ---- */
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 4px;
+}
+.tab {
+  flex: 1;
+  appearance: none;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] {
+  background: var(--panel);
+  color: var(--accent);
+  box-shadow: 0 1px 2px rgba(20, 24, 38, 0.08);
+}
+.tabpanel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  outline: none;
 }
-.control-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
+.tabpanel[hidden] { display: none; }
+
+/* ---- Panels / cards ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-4);
 }
-.control-row > label {
-  min-width: 54px;
+.panel > h2 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted);
-  font-size: 0.85rem;
+  margin-bottom: var(--space-3);
+}
+.panel--scroll .mem-list,
+.panel--scroll .timeline-list {
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: var(--space-1);
 }
 
 /* ---- Agent details ---- */
@@ -168,7 +195,7 @@
 }
 .detail-row {
   display: grid;
-  grid-template-columns: 96px 1fr;
+  grid-template-columns: 92px 1fr;
   gap: var(--space-3);
   align-items: start;
 }
@@ -178,14 +205,8 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.detail-row dd {
-  margin: 0;
-}
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
+.detail-row dd { margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .chip {
   background: var(--panel-2);
   border: 1px solid var(--line-strong);
@@ -214,28 +235,12 @@
   border-radius: var(--radius-sm);
   background: var(--panel-2);
 }
-.plan-time {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-.plan-activity {
-  font-size: 0.88rem;
-}
-.plan-status {
-  font-size: 0.72rem;
-  font-weight: 650;
-  white-space: nowrap;
-}
-.plan-item--active {
-  border-left-color: var(--accent);
-  background: #eef3fe;
-}
+.plan-time { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.plan-activity { font-size: 0.88rem; }
+.plan-status { font-size: 0.72rem; font-weight: 650; white-space: nowrap; }
+.plan-item--active { border-left-color: var(--accent); background: #eef3fe; }
 .plan-item--active .plan-status { color: var(--accent); }
-.plan-item--completed {
-  opacity: 0.62;
-  border-left-color: var(--ok);
-}
+.plan-item--completed { opacity: 0.62; border-left-color: var(--ok); }
 .plan-item--completed .plan-status { color: var(--ok); }
 
 /* ---- Relationships ---- */
@@ -253,22 +258,15 @@
   padding: var(--space-2) var(--space-3);
   background: var(--panel-2);
 }
-.rel-name {
-  font-weight: 650;
-}
-.rel-bar {
-  margin-top: 6px;
-}
+.rel-name { font-weight: 650; }
+.rel-bar { margin-top: 6px; }
 .rel-bar-label {
   display: flex;
   justify-content: space-between;
   font-size: 0.76rem;
   color: var(--muted);
 }
-.rel-bar-value {
-  font-family: var(--mono);
-  color: var(--ink);
-}
+.rel-bar-value { font-family: var(--mono); color: var(--ink); }
 .rel-bar-track {
   height: 7px;
   border-radius: 999px;
@@ -276,16 +274,10 @@
   overflow: hidden;
   margin-top: 2px;
 }
-.rel-bar-fill {
-  height: 100%;
-  background: var(--accent);
-}
-.rel-notes {
-  margin: 6px 0 0;
-  font-size: 0.8rem;
-}
+.rel-bar-fill { height: 100%; background: var(--accent); }
+.rel-notes { margin: 6px 0 0; font-size: 0.8rem; }
 
-/* ---- Memory + timeline lists share an item style ---- */
+/* ---- Memory + timeline lists ---- */
 .mem-list,
 .timeline-list {
   list-style: none;
@@ -322,31 +314,13 @@
   color: #fff;
 }
 .mem-time,
-.tl-time {
-  font-family: var(--mono);
-  font-size: 0.74rem;
-  margin-left: auto;
-}
-.mem-importance {
-  font-size: 0.74rem;
-  color: var(--c-action);
-  font-weight: 650;
-}
+.tl-time { font-family: var(--mono); font-size: 0.74rem; margin-left: auto; }
+.mem-importance { font-size: 0.74rem; color: var(--c-action); font-weight: 650; }
 .mem-desc,
-.tl-desc {
-  margin: 0;
-  font-size: 0.86rem;
-}
-.tl-title {
-  font-size: 0.86rem;
-  font-weight: 600;
-}
-.tl-loc {
-  font-size: 0.76rem;
-  margin-top: 2px;
-}
+.tl-desc { margin: 0; font-size: 0.86rem; }
+.tl-title { font-size: 0.86rem; font-weight: 600; }
+.tl-loc { font-size: 0.76rem; margin-top: 2px; }
 
-/* Type colours (left border + badge). Type label text keeps it non-colour-only. */
 .mem-item--observation, .tl-item--observation { border-left-color: var(--c-observation); }
 .mem-item--action      { border-left-color: var(--c-action); }
 .mem-item--conversation, .tl-item--conversation { border-left-color: var(--c-conversation); }
@@ -364,11 +338,5 @@
 .tl-type--movement { background: var(--c-movement); }
 
 /* ---- Debug ---- */
-.panel--debug .debug-content .detail-row {
-  grid-template-columns: 110px 1fr;
-}
-.debug-content dd {
-  font-family: var(--mono);
-  font-size: 0.82rem;
-  word-break: break-word;
-}
+.panel--debug .debug-content .detail-row { grid-template-columns: 110px 1fr; }
+.debug-content dd { font-family: var(--mono); font-size: 0.82rem; word-break: break-word; }

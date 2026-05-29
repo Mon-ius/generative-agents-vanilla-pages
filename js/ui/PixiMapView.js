@@ -46,9 +46,8 @@ export class PixiMapView {
     this.app = app;
     const cv = app.canvas;
     cv.style.width = "100%";
-    cv.style.height = "auto";
+    cv.style.height = "100%";
     cv.style.display = "block";
-    cv.style.borderRadius = "4px";
     this.host.appendChild(cv);
 
     this._buildScene();

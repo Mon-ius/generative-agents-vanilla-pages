@@ -1,106 +1,147 @@
-/* layout.css — page shell and responsive column layout.
-   Desktop: three columns. Tablet: two columns. Mobile: single stacked column. */
+/* layout.css — app shell.
+   A sticky identity bar + a persistent control toolbar sit above the main body,
+   which puts the Willow Creek map front-and-centre as the hero with a compact
+   tabbed rail beside it. Collapses to a single column on narrow screens. */
 
-.app-header {
+html,
+body {
+  height: 100%;
+}
+
+/* ---- Top app bar (identity + live status) ---- */
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 10px var(--space-5);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(20, 24, 38, 0.05);
+}
+.app-bar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.brand-mark {
+  font-size: 1.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
+}
+.brand-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.brand-sub {
+  margin: 1px 0 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.app-bar__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+/* ---- Persistent control toolbar ---- */
+.toolbar {
+  position: sticky;
+  top: 57px;
+  z-index: 29;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  background: var(--panel);
+  padding: 8px var(--space-5);
+  background: var(--panel-2);
   border-bottom: 1px solid var(--line);
 }
-.brand h1 {
-  font-size: 1.25rem;
-}
-.brand-sub {
-  color: var(--muted);
-  font-weight: 500;
-}
-.tagline {
-  margin: var(--space-1) 0 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-  max-width: 60ch;
-}
-.header-status {
+.toolbar__group {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.toolbar__group > label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-left: var(--space-2);
+}
+.toolbar__group--end {
+  margin-left: auto;
+}
+.toolbar__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 2px 0;
 }
 
-.app-main {
+/* ---- Main body: hero map + tabbed rail ---- */
+.stage {
   display: grid;
-  grid-template-columns: minmax(380px, 1.6fr) minmax(260px, 1fr) minmax(280px, 1fr);
-  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-5);
+  padding: var(--space-5);
   align-items: start;
-  padding: var(--space-4) var(--space-5);
-  max-width: 1500px;
+  max-width: 1640px;
   margin: 0 auto;
 }
-
-.col {
+.map-hero {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.rail {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.rail__panels {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  min-width: 0;
-}
-
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: var(--space-4);
-}
-.panel > h2 {
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin-bottom: var(--space-3);
-}
-
-/* Scrollable panels for long lists keep the page height manageable */
-.panel--scroll .mem-list,
-.panel--scroll .timeline-list {
-  max-height: 420px;
-  overflow-y: auto;
-  padding-right: var(--space-1);
 }
 
 .app-footer {
   padding: var(--space-4) var(--space-5);
   color: var(--muted);
-  font-size: 0.85rem;
-  border-top: 1px solid var(--line);
+  font-size: 0.82rem;
   text-align: center;
+  border-top: 1px solid var(--line);
 }
 
-/* ---- Tablet: two columns (world spans the top, agent + info below) ---- */
-@media (max-width: 1180px) {
-  .app-main {
-    grid-template-columns: 1fr 1fr;
-  }
-  .col-world {
-    grid-column: 1 / -1;
-  }
-  .col-world .panel--map {
-    /* let the map breathe horizontally when it has the full width */
-  }
-}
-
-/* ---- Mobile: single column ---- */
-@media (max-width: 720px) {
-  .app-header {
-    padding: var(--space-3) var(--space-4);
-  }
-  .app-main {
+/* ---- Responsive: stack the rail beneath the map ---- */
+@media (max-width: 1040px) {
+  .stage {
     grid-template-columns: 1fr;
-    padding: var(--space-3) var(--space-4);
   }
-  .col-world {
-    grid-column: auto;
+  .toolbar {
+    top: 56px;
+  }
+}
+@media (max-width: 640px) {
+  .app-bar,
+  .toolbar,
+  .stage {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .brand-sub {
+    display: none;
+  }
+  .toolbar__group--end {
+    margin-left: 0;
   }
 }

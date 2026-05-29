@@ -11,6 +11,7 @@ import { LocalGenerationProvider } from "./agents/GenerationProvider.js";
 import { Renderer } from "./ui/Renderer.js";
 import { Controls } from "./ui/Controls.js";
 import { MapView } from "./ui/MapView.js";
+import { initTabs } from "./ui/Tabs.js";
 import { SEED_AGENTS } from "./data/seedAgents.js";
 import { SEED_LOCATIONS } from "./data/seedLocations.js";
 import { SEED_EVENTS } from "./data/seedEvents.js";
@@ -105,6 +106,7 @@ const app = {
 };
 
 const controls = new Controls(app);
+initTabs();
 
 // ---- apply persisted settings to the UI --------------------------------------
 controls.setSpeedIndex(app.speedIndex);
