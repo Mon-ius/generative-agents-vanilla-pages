@@ -92,21 +92,26 @@ body { height: 100%; }
 
 .app-footer {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   padding: 6px var(--space-5);
   color: var(--muted);
   font-size: 0.78rem;
-  text-align: center;
   border-top: 1px solid var(--line);
   background: #0d1320;
 }
-.app-footer p { margin: 0; }
-.repo-link {
-  color: var(--accent);
-  text-decoration: none;
-  font-family: var(--mono);
-  letter-spacing: 0.02em;
+.footer-copy { letter-spacing: 0.02em; }
+.footer-gh {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  transition: color 0.15s ease;
 }
-.repo-link:hover { text-decoration: underline; }
+.footer-gh:hover,
+.footer-gh:focus-visible { color: var(--accent); }
+.footer-gh svg { display: block; }
 
 /* ---- Responsive: stack + allow page scroll ---- */
 @media (max-width: 1040px) {
