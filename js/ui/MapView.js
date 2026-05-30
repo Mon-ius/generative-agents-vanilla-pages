@@ -60,6 +60,12 @@ export class MapView {
 
   // Center the camera on the selected agent at a comfortable game zoom
   // (~cellsAcross cells across the viewport width), snapping for the first paint.
+  // Smoothly center the camera on the currently selected resident.
+  _focusSelected() {
+    const p = this.pos.get(this.sim.selectedAgentId);
+    if (p && this.camera) this.camera.centerOn(p.x, p.y);
+  }
+
   defaultView(cellsAcross = 12) {
     const cam = this.camera;
     if (!cam) return;
@@ -192,6 +198,8 @@ export class MapView {
       bus.on("reset", () => this.rebuild());
       bus.on("load", () => this.rebuild());
       bus.on("timeline", (e) => this._onTimeline(e));
+      // Clicking a resident (on the map or in the legend) pans to locate them.
+      bus.on("select", () => this._focusSelected());
     }
     if (typeof window !== "undefined") {
       this._onResize = () => this._resizeCanvas();

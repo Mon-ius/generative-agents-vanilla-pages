@@ -405,6 +405,14 @@ export class PixiMapView {
     bus.on("reset", () => this._buildScene());
     bus.on("load", () => this._buildScene());
     bus.on("timeline", (e) => this._onTimeline(e));
+    // Clicking a resident (on the map or in the legend) pans to locate them.
+    bus.on("select", () => this._focusSelected());
+  }
+
+  // Smoothly center the camera on the currently selected resident.
+  _focusSelected() {
+    const e = this.entries.get(this.sim.selectedAgentId);
+    if (e && e.pos && this.camera) this.camera.centerOn(e.pos.x, e.pos.y);
   }
 
   _onTimeline(e) {
