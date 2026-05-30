@@ -18,11 +18,16 @@ import { buildGrid } from "../utils/pathfinding.js";
 export const CELL = (CONFIG.world && CONFIG.world.cellPixels) || 176;
 export const TEXTURE_SCALE = 2; // bake the static world at 2× for crisp detail
 
+// Warm, cozy Stardew-style shingle-roof colours per building type (a few extra
+// types covered; anything else falls back to a warm terracotta).
 export const ROOF = {
-  home: "#8a6fc4", cafe: "#e07a3c", park: "#4fa05a", library: "#3f78c0",
-  school: "#e6b53c", shop: "#cf5aa0", civic: "#2f9e9e", health: "#7d5ad0",
-  studio: "#d6486a", square: "#9aa0ad",
+  home: "#b5563f", cafe: "#c2703a", library: "#4f6f9c", school: "#b08a3a",
+  shop: "#b0596a", civic: "#3f7d7a", health: "#b04a4a", clinic: "#b04a4a",
+  studio: "#9c4f6a", gallery: "#8c5f9c", bakery: "#c98a4a", market: "#b0723a",
+  bar: "#8a5238", office: "#5a6f8c", gym: "#4f8c7a", workshop: "#9c6b3f",
+  garden: "#5a9a4a", dock: "#6a8ca0", park: "#4fa05a", square: "#9aa0ad",
 };
+export const ROOF_DEFAULT = "#b06a4a";
 
 // ---- palette ----------------------------------------------------------------
 const C = {
@@ -289,7 +294,7 @@ function drawPaths(g, layout, rnd, wr) {
 
 // ---- buildings (cut-away interiors) -----------------------------------------
 function drawBuilding(g, r, rnd, lightsOn) {
-  const roof = ROOF[r.loc.type] || "#9aa0ad";
+  const roof = ROOF[r.loc.type] || ROOF_DEFAULT;
   const wt = 5; // wall thickness
   const ix = r.bx + wt, iy = r.by + wt + 4, iw = r.bw - wt * 2, ih = r.bh - wt * 2 - 4;
 
@@ -313,11 +318,10 @@ function drawBuilding(g, r, rnd, lightsOn) {
   // doormat
   g.fillStyle = C.woodDark; g.fillRect(doorX, r.by + r.bh - 3, doorW, 3);
 
-  // dark outline + roof eave overhang on top
+  // dark outline + cozy shingled roof eave on top
   g.strokeStyle = C.wallLine; g.lineWidth = 1.5;
   g.strokeRect(r.bx + 0.5, r.by + 4.5, r.bw - 1, r.bh - 4);
-  g.fillStyle = roof; g.fillRect(r.bx - 4, r.by, r.bw + 8, 6);
-  g.fillStyle = shade(roof, -0.16); g.fillRect(r.bx - 4, r.by + 5, r.bw + 8, 2);
+  shingleRoof(g, r, roof);
 
   composeInterior(g, r.loc.type, ix, iy, iw, ih, roof, rnd);
 
@@ -446,6 +450,53 @@ function eaveLight(g, r) {
       g.fillRect(cx - 2, r.by + 2, 4, 3);
     }
   }
+}
+
+// A cozy shingled roof eave capping the top of a building (Stardew-style cottage).
+// Drawn as 3 offset rows of shingle tabs in the building's roof colour, with a
+// ridge highlight, per-row shadow lines and a dark outline. Sits mostly above the
+// footprint (a small overhang) so the cut-away interior stays visible below.
+export function shingleRoof(g, r, roof) {
+  const ov = 4, x0 = r.bx - ov, w = r.bw + ov * 2;
+  const band = 13, top = r.by - 12;     // roof body; overhangs above the footprint
+  const dark = shade(roof, -0.3), hi = shade(roof, 0.22);
+  const tw = 8, tabH = 4, base = top + band; // base = where the hanging tabs start
+
+  // roof body (3 offset shingle rows for a tiled look)
+  g.fillStyle = roof; g.fillRect(x0, top, w, band);
+  const rows = 3, sh = band / rows;
+  for (let i = 0; i < rows; i++) {
+    const ry = top + i * sh;
+    g.fillStyle = i % 2 ? shade(roof, -0.06) : shade(roof, 0.07);
+    g.fillRect(x0, ry, w, sh);
+    g.fillStyle = dark;
+    const off = (i % 2) * (tw / 2);
+    for (let sx = x0 + off; sx < x0 + w; sx += tw) g.fillRect(Math.round(sx), Math.round(ry + 1), 1, Math.max(1, sh - 1));
+    g.fillStyle = "rgba(0,0,0,0.13)"; g.fillRect(x0, ry + sh - 1, w, 1);
+  }
+
+  // scalloped hanging shingle tabs along the bottom edge — the unmistakable shingle silhouette
+  for (let sx = x0; sx < x0 + w; sx += tw) {
+    g.fillStyle = roof;
+    g.beginPath();
+    g.moveTo(sx, base - 1);
+    g.lineTo(sx + tw, base - 1);
+    g.lineTo(sx + tw, base);
+    g.arc(sx + tw / 2, base, tw / 2, 0, Math.PI);
+    g.closePath();
+    g.fill();
+    g.fillStyle = "rgba(0,0,0,0.10)"; // soft underside shadow on each tab
+    g.fillRect(sx + 1, base + tabH - 1.5, tw - 2, 1);
+    g.fillStyle = dark; g.fillRect(Math.round(sx), base - 1, 1, tabH + 1); // tab seam
+  }
+
+  g.fillStyle = hi; g.fillRect(x0, top, w, 1.6); // ridge highlight
+  // outline: top + sides of the body (the scalloped bottom is self-outlined by seams)
+  g.strokeStyle = "#2f2a22"; g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(x0 + 0.5, base); g.lineTo(x0 + 0.5, top + 0.5);
+  g.lineTo(x0 + w - 0.5, top + 0.5); g.lineTo(x0 + w - 0.5, base);
+  g.stroke();
 }
 
 // ---- furniture & fixtures ---------------------------------------------------
@@ -712,6 +763,8 @@ function spriteBuilding(g, S, rc, lightsOn) {
   g.strokeStyle = "#2f2a22";
   g.lineWidth = 1;
   g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  // cozy shingled roof eave capping the top
+  shingleRoof(g, rc, ROOF[rc.loc.type] || ROOF_DEFAULT);
   // warm window-light wash on the eave when lit (e.g. night bakes)
   if (lightsOn) eaveLight(g, rc);
   const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
