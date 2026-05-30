@@ -1,12 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="30" height="16" viewBox="0 0 30 16">
-  <rect x="1" y="2" width="28" height="12.5" rx="3.5" fill="#5e8bb6" stroke="#3a2c1e" stroke-width="1.2"/>
-  <rect x="1" y="2" width="28" height="4.2" rx="3" fill="#7aa6cf"/>
-  <rect x="1" y="2" width="5.5" height="12.5" rx="3" fill="#4f7aa3" stroke="#3a2c1e" stroke-width="1.1"/>
-  <rect x="23.5" y="2" width="5.5" height="12.5" rx="3" fill="#4f7aa3" stroke="#3a2c1e" stroke-width="1.1"/>
-  <rect x="6.2" y="6.4" width="8.7" height="7.2" rx="2.2" fill="#80aad2" stroke="#3a2c1e" stroke-width="0.9"/>
-  <rect x="15.1" y="6.4" width="8.7" height="7.2" rx="2.2" fill="#80aad2" stroke="#3a2c1e" stroke-width="0.9"/>
-  <rect x="6.8" y="6.9" width="7.5" height="1.8" rx="0.9" fill="#9cbfdf" opacity="0.85"/>
-  <rect x="15.7" y="6.9" width="7.5" height="1.8" rx="0.9" fill="#9cbfdf" opacity="0.85"/>
-  <rect x="2" y="12" width="6" height="1.6" rx="0.8" fill="#3f6385" opacity="0.6"/>
-  <rect x="22.5" y="12" width="6" height="1.6" rx="0.8" fill="#3f6385" opacity="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="64" viewBox="0 0 120 64">
+  <defs>
+    <linearGradient id="sofa_body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cabda0"/><stop offset="1" stop-color="#a9986f"/>
+    </linearGradient>
+    <linearGradient id="sofa_back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c7b896"/><stop offset="1" stop-color="#aa9870"/>
+    </linearGradient>
+    <linearGradient id="sofa_seat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfc2a6"/><stop offset="1" stop-color="#b3a37c"/>
+    </linearGradient>
+    <linearGradient id="sofa_arm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c4b491"/><stop offset="1" stop-color="#a3925f"/>
+    </linearGradient>
+    <filter id="sofa_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.16 0.3" numOctaves="3" seed="9" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="6" y="8" width="108" height="48" rx="10" fill="url(#sofa_body)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="14" y="10" width="92" height="20" rx="8" fill="url(#sofa_back)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="14" y="10" width="92" height="20" rx="8" fill="#8c7d57" filter="url(#sofa_grain)" opacity="0.4"/>
+  <path d="M60 12 V28" stroke="#90805a" stroke-width="1" opacity="0.6"/>
+  <path d="M16 14 q44 -3 88 0" fill="none" stroke="#ddd0b3" stroke-width="1.2" opacity="0.7"/>
+  <rect x="20" y="28" width="40" height="24" rx="7" fill="url(#sofa_seat)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="60" y="28" width="40" height="24" rx="7" fill="url(#sofa_seat)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="20" y="28" width="80" height="24" fill="#8c7d57" filter="url(#sofa_grain)" opacity="0.35"/>
+  <path d="M24 32 q16 -2 32 0" fill="none" stroke="#dfd2b6" stroke-width="1" opacity="0.6"/>
+  <path d="M64 32 q16 -2 32 0" fill="none" stroke="#dfd2b6" stroke-width="1" opacity="0.6"/>
+  <rect x="6" y="22" width="18" height="32" rx="8" fill="url(#sofa_arm)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <rect x="96" y="22" width="18" height="32" rx="8" fill="url(#sofa_arm)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <path d="M9 26 q6 -2 12 0" fill="none" stroke="#d3c5a4" stroke-width="1" opacity="0.6"/>
+  <path d="M99 26 q6 -2 12 0" fill="none" stroke="#d3c5a4" stroke-width="1" opacity="0.6"/>
 </svg>

@@ -1,17 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="16" viewBox="0 0 20 16">
-<ellipse cx="10" cy="10" rx="9" ry="5.2" fill="#3f7a33" stroke="#3a2c1e" stroke-width="0.9"/>
-<ellipse cx="5" cy="8" rx="4" ry="3.4" fill="#59964a"/>
-<ellipse cx="15" cy="8" rx="4" ry="3.4" fill="#59964a"/>
-<ellipse cx="10" cy="6.5" rx="4.5" ry="3.6" fill="#59964a"/>
-<ellipse cx="10" cy="9" rx="6" ry="3.4" fill="#4d8a3e"/>
-<circle cx="6" cy="6" r="2.2" fill="#74b85a"/>
-<circle cx="13" cy="6" r="2" fill="#74b85a"/>
-<circle cx="10" cy="5" r="2.1" fill="#84c86a"/>
-<ellipse cx="10" cy="13.5" rx="7" ry="1.8" fill="#34662a" opacity="0.5"/>
-<circle cx="7" cy="9" r="1" fill="#d24545" stroke="#7a1f1f" stroke-width="0.4"/>
-<circle cx="6.7" cy="8.7" r="0.35" fill="#ff8888"/>
-<circle cx="12.5" cy="8.5" r="1" fill="#d24545" stroke="#7a1f1f" stroke-width="0.4"/>
-<circle cx="12.2" cy="8.2" r="0.35" fill="#ff8888"/>
-<circle cx="10" cy="10.5" r="1" fill="#d24545" stroke="#7a1f1f" stroke-width="0.4"/>
-<circle cx="9.7" cy="10.2" r="0.35" fill="#ff8888"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="64" viewBox="0 0 80 64">
+  <defs>
+    <radialGradient id="bush_body" cx="0.4" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#74b85a"/><stop offset="0.6" stop-color="#59964a"/><stop offset="1" stop-color="#4f8a36"/>
+    </radialGradient>
+    <filter id="bush_leaf" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.18 0.2" numOctaves="4" seed="5" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.85 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.6" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="42" cy="56" rx="30" ry="6" fill="#2c4a1f" opacity="0.22"/>
+  <path d="M14 46 C10 30 24 20 34 22 C38 12 54 12 60 22 C72 20 76 34 70 46 C72 54 60 58 40 58 C20 58 12 54 14 46 Z" fill="url(#bush_body)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <path d="M14 46 C10 30 24 20 34 22 C38 12 54 12 60 22 C72 20 76 34 70 46 C72 54 60 58 40 58 C20 58 12 54 14 46 Z" fill="#4f8a36" filter="url(#bush_leaf)" opacity="0.4"/>
+  <ellipse cx="30" cy="28" rx="12" ry="9" fill="#74b85a"/>
+  <ellipse cx="26" cy="25" rx="6" ry="4" fill="#84c86a"/>
+  <ellipse cx="52" cy="30" rx="11" ry="8" fill="#74b85a"/>
+  <path d="M16 48 C28 56 56 56 68 48" fill="none" stroke="#34662a" stroke-width="3" opacity="0.4"/>
+  <circle cx="38" cy="40" r="3.5" fill="#d24f6f"/>
+  <circle cx="58" cy="42" r="3" fill="#f3d24e"/>
+  <circle cx="24" cy="44" r="3" fill="#d24f6f"/>
 </svg>

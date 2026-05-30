@@ -1,1 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="12" height="10" viewBox="0 0 12 10"><rect x="0.5" y="0.8" width="11" height="8.4" rx="0.8" fill="#7c5230"/><rect x="0.5" y="0.5" width="11" height="8.4" rx="0.8" fill="#a9794a" stroke="#3a2c1e" stroke-width="0.6"/><rect x="0.7" y="0.7" width="10.6" height="1" rx="0.5" fill="#c9a06a"/><rect x="1.8" y="1.7" width="8.4" height="6" rx="0.3" fill="#a9d6e6"/><rect x="1.8" y="1.7" width="8.4" height="6" rx="0.3" fill="#a9d6e6" stroke="#3a2c1e" stroke-width="0.5"/><rect x="1.8" y="1.7" width="8.4" height="2.6" fill="#bfe3ef"/><circle cx="8.6" cy="3" r="1" fill="#f6e08a"/><path d="M1.8 6 Q4 4.2 6 5.4 Q8 6.6 10.2 5 L10.2 7.7 L1.8 7.7 Z" fill="#4a7a33"/><path d="M1.8 6.6 Q4.5 5.4 6.5 6.4 Q8.5 7.4 10.2 6.4 L10.2 7.7 L1.8 7.7 Z" fill="#6fa84a"/><path d="M3 5.5 L3.6 4 L4.2 5.5 Z" fill="#3f6a2c"/><path d="M7.4 5.2 L8 3.6 L8.6 5.2 Z" fill="#3f6a2c"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="40" viewBox="0 0 48 40">
+  <defs>
+    <linearGradient id="painting_frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dcb558"/><stop offset="0.5" stop-color="#c79a3b"/><stop offset="1" stop-color="#9c6b3f"/>
+    </linearGradient>
+    <linearGradient id="painting_sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a6c2e6"/><stop offset="1" stop-color="#88a8d4"/>
+    </linearGradient>
+    <linearGradient id="painting_hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fbd6f"/><stop offset="1" stop-color="#5f9a55"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="3" width="40" height="34" rx="2" fill="url(#painting_frame)" stroke="#7c5430" stroke-width="1.5"/>
+  <rect x="6" y="5" width="36" height="30" rx="1" fill="none" stroke="#e8cd84" stroke-width="1" opacity="0.7"/>
+  <rect x="9" y="8" width="30" height="24" fill="url(#painting_sky)" stroke="#7c5430" stroke-width="1"/>
+  <circle cx="33" cy="14" r="3.5" fill="#f3d24e"/>
+  <path d="M9 32 L9 23 Q19 16 28 24 Q34 28 39 24 L39 32 Z" fill="url(#painting_hill)"/>
+  <path d="M9 27 Q18 20 26 26" fill="none" stroke="#6fae66" stroke-width="1" opacity="0.6"/>
+  <rect x="9" y="8" width="30" height="24" fill="#3a2c1e" opacity="0.12"/>
+  <rect x="9" y="8" width="30" height="24" fill="none" stroke="#3a2c1e" stroke-width="0.8" opacity="0.5"/>
+</svg>

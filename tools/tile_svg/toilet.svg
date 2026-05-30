@@ -1,10 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16">
-<rect x="3.5" y="1.5" width="7" height="6" rx="1.6" fill="#3a2c1e"/>
-<rect x="4.2" y="2.2" width="5.6" height="5" rx="1.2" fill="#eef1f3"/>
-<rect x="4.2" y="2.2" width="5.6" height="1.4" rx="0.7" fill="#ffffff" opacity="0.6"/>
-<ellipse cx="7" cy="10.8" rx="5" ry="4.4" fill="#3a2c1e"/>
-<ellipse cx="7" cy="10.6" rx="4.3" ry="3.8" fill="#f2f4f5"/>
-<ellipse cx="7" cy="10.6" rx="2.7" ry="2.4" fill="#cdd6da"/>
-<ellipse cx="7" cy="10.2" rx="2" ry="1.7" fill="#dde6ea"/>
-<ellipse cx="6.2" cy="9.3" rx="1" ry="0.8" fill="#ffffff" opacity="0.55"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="64" viewBox="0 0 56 64">
+  <defs>
+    <linearGradient id="toilet_body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5f7f8"/><stop offset="0.6" stop-color="#eef0f2"/><stop offset="1" stop-color="#dfe5e8"/>
+    </linearGradient>
+    <linearGradient id="toilet_tank" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3f5f6"/><stop offset="1" stop-color="#e2e7ea"/>
+    </linearGradient>
+    <radialGradient id="toilet_inner" cx="0.45" cy="0.4" r="0.6">
+      <stop offset="0" stop-color="#cdd6da"/><stop offset="0.7" stop-color="#dde4e7"/><stop offset="1" stop-color="#eef0f2"/>
+    </radialGradient>
+  </defs>
+  <rect x="13" y="6" width="30" height="16" rx="3" fill="url(#toilet_tank)" stroke="#b9c0c6" stroke-width="1.5"/>
+  <rect x="15" y="7.5" width="26" height="2" rx="1" fill="#ffffff" opacity="0.6"/>
+  <circle cx="36" cy="14" r="2.2" fill="#cdd6da" stroke="#b9c0c6" stroke-width="0.7"/>
+  <ellipse cx="28" cy="40" rx="19" ry="22" fill="url(#toilet_body)" stroke="#b9c0c6" stroke-width="1.5"/>
+  <ellipse cx="28" cy="38" rx="13" ry="15" fill="#e3e9ec" stroke="#cdd6da" stroke-width="1"/>
+  <ellipse cx="28" cy="38" rx="8.5" ry="10" fill="url(#toilet_inner)"/>
+  <ellipse cx="24" cy="33" rx="2.5" ry="3" fill="#ffffff" opacity="0.5"/>
 </svg>

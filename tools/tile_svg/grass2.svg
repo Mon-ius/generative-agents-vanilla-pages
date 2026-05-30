@@ -1,21 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-<rect x="0" y="0" width="16" height="16" fill="#5b8f3f"/>
-<path d="M0 0 H16 V6 H0 Z" fill="#6fa84a" opacity="0.4"/>
-<path d="M0 10 H16 V16 H0 Z" fill="#4a7a33" opacity="0.5"/>
-<path d="M2 6 q1 -3.2 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M4 7 q0.7 -2.6 1.5 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M8 4 q1 -2.8 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M9 5 q0.6 -2.2 1.4 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M13 3 q1 -2.8 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M3 11 q1 -2.8 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M7 12 q1 -2.6 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M11 11 q1 -2.8 2 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M1 14 q1 -2.4 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M12 15 q1 -2.4 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<circle cx="6" cy="3" r="0.9" fill="#e8657a"/>
-<circle cx="6" cy="3" r="0.4" fill="#ffd0d8"/>
-<circle cx="14" cy="9" r="0.9" fill="#c79be0"/>
-<circle cx="14" cy="9" r="0.4" fill="#f0e0fa"/>
-<circle cx="9" cy="14" r="0.8" fill="#f3d24e"/>
-<circle cx="9" cy="14" r="0.35" fill="#fff0b0"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grass2_base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fc964"/><stop offset="1" stop-color="#7fbf5c"/>
+    </linearGradient>
+    <filter id="grass2_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.22 0.28" numOctaves="4" seed="13" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.8 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.6" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="grass2_lite" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="2" seed="4" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="2" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect width="64" height="64" fill="url(#grass2_base)"/>
+  <rect width="64" height="64" fill="#6fae66" filter="url(#grass2_grain)" opacity="0.5"/>
+  <rect width="64" height="64" fill="#a9d97e" filter="url(#grass2_lite)" opacity="0.4"/>
+  <g stroke="#5aa05a" stroke-width="1.4" stroke-linecap="round" opacity="0.75">
+    <path d="M10 22 l-1 -5"/><path d="M12 22 l1 -4"/>
+    <path d="M44 16 l-1 -5"/><path d="M46 16 l1 -4"/>
+    <path d="M26 50 l-1 -5"/><path d="M28 50 l1 -4"/>
+    <path d="M54 44 l-1 -5"/><path d="M56 44 l1 -4"/>
+  </g>
+  <g stroke="#a9d97e" stroke-width="1.2" stroke-linecap="round" opacity="0.7">
+    <path d="M18 38 l-1 -4"/><path d="M20 38 l1 -3"/>
+    <path d="M38 56 l-1 -4"/><path d="M40 56 l1 -3"/>
+  </g>
 </svg>

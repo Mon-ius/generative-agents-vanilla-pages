@@ -1,15 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="18" height="14" viewBox="0 0 18 14">
-<rect x="1.5" y="2.5" width="15" height="10" rx="2" fill="#3a2c1e"/>
-<rect x="2.3" y="3.3" width="13.4" height="8.4" rx="1.5" fill="#a9794a"/>
-<rect x="2.3" y="3.3" width="13.4" height="2.4" rx="1.5" fill="#c9a06a" opacity="0.85"/>
-<rect x="2.3" y="10.2" width="13.4" height="1.5" rx="0.7" fill="#7c5230"/>
-<line x1="2.3" y1="6" x2="15.7" y2="6" stroke="#7c5230" stroke-width="0.6" opacity="0.5"/>
-<rect x="10.2" y="4.6" width="4.4" height="5.4" rx="0.6" fill="#7c5230"/>
-<rect x="10.6" y="5" width="3.6" height="4.6" rx="0.4" fill="#a9794a"/>
-<circle cx="12.4" cy="7.3" r="0.5" fill="#3a2c1e"/>
-<rect x="3.4" y="4.8" width="4.6" height="5.6" rx="0.4" fill="#f3ecd9"/>
-<rect x="3.4" y="4.8" width="4.6" height="5.6" rx="0.4" fill="none" stroke="#cbb894" stroke-width="0.4"/>
-<line x1="4.2" y1="6.2" x2="7.2" y2="6.2" stroke="#9aa6ac" stroke-width="0.4"/>
-<line x1="4.2" y1="7.4" x2="7.2" y2="7.4" stroke="#9aa6ac" stroke-width="0.4"/>
-<line x1="4.2" y1="8.6" x2="6.4" y2="8.6" stroke="#9aa6ac" stroke-width="0.4"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="56" viewBox="0 0 72 56">
+  <defs>
+    <linearGradient id="desk_top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b88d4f"/><stop offset="1" stop-color="#9c6b3f"/>
+    </linearGradient>
+    <filter id="desk_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018 0.1" numOctaves="3" seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.85 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="7" y="11" width="60" height="40" rx="4" fill="#3a2c1e" opacity="0.2"/>
+  <rect x="5" y="7" width="62" height="42" rx="4" fill="url(#desk_top)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="5" y="7" width="62" height="42" rx="4" fill="#5b3d22" filter="url(#desk_grain)" opacity="0.34"/>
+  <rect x="5" y="9" width="62" height="6" rx="3" fill="#fbf7ef" opacity="0.13"/>
+  <g transform="rotate(-6 24 29)">
+    <rect x="13" y="15" width="22" height="28" rx="1.5" fill="#fbf7ef" stroke="#3a2c1e" stroke-width="1"/>
+    <line x1="17" y1="22" x2="31" y2="22" stroke="#c2bdaf" stroke-width="1"/>
+    <line x1="17" y1="28" x2="31" y2="28" stroke="#c2bdaf" stroke-width="1"/>
+    <line x1="17" y1="34" x2="29" y2="34" stroke="#c2bdaf" stroke-width="1"/>
+  </g>
+  <g transform="rotate(5 50 29)">
+    <rect x="40" y="16" width="20" height="26" rx="2" fill="#4f7bb0" stroke="#3a2c1e" stroke-width="1.5"/>
+    <rect x="42" y="19" width="16" height="20" rx="1" fill="#6c8fc0"/>
+  </g>
+  <g transform="rotate(-18 60 40)">
+    <rect x="44" y="38" width="32" height="3.4" rx="1.7" fill="#c79a3b" stroke="#3a2c1e" stroke-width="0.8"/>
+    <rect x="73" y="38" width="3.6" height="3.4" fill="#3c3a40"/>
+  </g>
 </svg>

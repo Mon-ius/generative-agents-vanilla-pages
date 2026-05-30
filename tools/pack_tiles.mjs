@@ -31,12 +31,16 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const SVG_DIR = join(ROOT, "tools", "tile_svg");
 const outSvg = process.argv[2] || "/tmp/tile_atlas.svg";
 const doManifest = process.argv.includes("--manifest");
-const MAXW = 256, PAD = 1;
+// Supersample factor: every tile is authored SS× its logical size so the renderer's
+// upscale to a 176px cell stays crisp and can carry rich gradient/texture/material
+// detail. Keep in sync with ART_SS in js/ui/townArt.js. Region sizes = base × SS.
+const SS = 4;
+const MAXW = 256 * SS, PAD = 8;
 
 function innerOf(svg) { const m = /<svg[^>]*>([\s\S]*)<\/svg>/i.exec(svg); return m ? m[1] : svg; }
 
 // shelf pack (sorted by height desc, then name) — deterministic
-const order = SPRITES.map((s, i) => ({ ...s, i })).sort((a, b) => (b.h - a.h) || a.name.localeCompare(b.name));
+const order = SPRITES.map((s, i) => ({ ...s, w: s.w * SS, h: s.h * SS, i })).sort((a, b) => (b.h - a.h) || a.name.localeCompare(b.name));
 let x = PAD, y = PAD, rowH = 0, atlasW = 0;
 const placed = {};
 for (const s of order) {
@@ -53,16 +57,18 @@ for (const s of SPRITES) {
   let inner = "";
   try { inner = innerOf(readFileSync(join(SVG_DIR, s.name + ".svg"), "utf8")); }
   catch { missing.push(s.name); }
-  body += `<g transform="translate(${p.x} ${p.y})">${inner}</g>`;
+  // Nested <svg> per tile clips each region (overflow hidden) so soft shadows,
+  // anti-aliasing and filter bleed can't leak into neighbouring sprites.
+  body += `<svg x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.w} ${p.h}" overflow="hidden">${inner}</svg>`;
 }
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" shape-rendering="crispEdges">${body}</svg>`;
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${body}</svg>`;
 writeFileSync(outSvg, svg);
 console.log(`tile atlas SVG ${W}x${H}, ${SPRITES.length} tiles -> ${outSvg}${missing.length ? "  MISSING: " + missing.join(",") : ""}`);
 
 if (doManifest) {
   const sprites = {};
   for (const s of SPRITES) sprites[s.name] = placed[s.name];
-  const manifest = { tile: 16, atlas: "sprites/atlas.png", atlasW: W, atlasH: H, sprites };
+  const manifest = { tile: 16 * SS, atlas: "sprites/atlas.png", atlasW: W, atlasH: H, sprites };
   writeFileSync(join(ROOT, "assets", "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   console.log(`wrote assets/manifest.json — single-atlas, ${SPRITES.length} tile regions${missing.length ? " (with " + missing.length + " MISSING)" : ""}`);
 }

@@ -1,12 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="26" viewBox="0 0 16 26">
-<rect x="2" y="2" width="12" height="22" rx="2.5" fill="#3a2c1e"/>
-<rect x="2.8" y="2.8" width="10.4" height="20.4" rx="2" fill="#e7ddc8"/>
-<rect x="3.4" y="3.4" width="9.2" height="8.4" rx="1.4" fill="#f1ead9"/>
-<rect x="3.4" y="13" width="9.2" height="9.6" rx="1.4" fill="#eee4d0"/>
-<rect x="3.4" y="3.4" width="9.2" height="2" rx="1" fill="#ffffff" opacity="0.45"/>
-<line x1="3.4" y1="12.2" x2="12.6" y2="12.2" stroke="#cbb894" stroke-width="0.8"/>
-<rect x="10.6" y="5" width="1.4" height="5" rx="0.7" fill="#b7bcc2"/>
-<rect x="10.6" y="14.6" width="1.4" height="5" rx="0.7" fill="#b7bcc2"/>
-<rect x="10.7" y="5" width="0.5" height="5" rx="0.25" fill="#ffffff" opacity="0.6"/>
-<rect x="3.4" y="21" width="9.2" height="1.6" rx="0.8" fill="#d6cbb2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="104" viewBox="0 0 64 104">
+  <defs>
+    <linearGradient id="fridge_body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef0f2"/><stop offset="0.5" stop-color="#e7ebef"/><stop offset="1" stop-color="#dde2e6"/>
+    </linearGradient>
+    <linearGradient id="fridge_sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="0.35" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="6" width="48" height="92" rx="8" fill="url(#fridge_body)" stroke="#b9c0c6" stroke-width="1.5"/>
+  <rect x="8" y="38" width="48" height="2.5" fill="#c6ccd1"/>
+  <line x1="8" y1="38" x2="56" y2="38" stroke="#ffffff" stroke-width="0.8" opacity="0.7"/>
+  <rect x="13" y="11" width="38" height="24" rx="3" fill="none" stroke="#d3d9dd" stroke-width="1"/>
+  <rect x="13" y="44" width="38" height="49" rx="3" fill="none" stroke="#d3d9dd" stroke-width="1"/>
+  <rect x="46" y="14" width="3.5" height="20" rx="1.7" fill="#b9c0c6" stroke="#9aa2a8" stroke-width="0.6"/>
+  <rect x="46" y="47" width="3.5" height="42" rx="1.7" fill="#b9c0c6" stroke="#9aa2a8" stroke-width="0.6"/>
+  <rect x="9" y="7" width="20" height="90" rx="6" fill="url(#fridge_sheen)"/>
 </svg>

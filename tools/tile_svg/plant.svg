@@ -1,1 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="14" height="18" viewBox="0 0 14 18"><ellipse cx="7" cy="6.5" rx="6" ry="5.5" fill="#3f7a33"/><ellipse cx="7" cy="6.5" rx="6" ry="5.5" fill="none" stroke="#3a2c1e" stroke-width="0.6"/><path d="M7 1.5 Q4 4 4.5 7.5 Q6 6 7 6.5 Z" fill="#59964a"/><path d="M7 1.5 Q10 4 9.5 7.5 Q8 6 7 6.5 Z" fill="#4a8a3a"/><path d="M2 6 Q4 4.5 6.5 6 Q5 7.5 3 8 Z" fill="#59964a"/><path d="M12 6 Q10 4.5 7.5 6 Q9 7.5 11 8 Z" fill="#4a8a3a"/><path d="M3 9 Q5.5 8 7 9.5 Q5.5 10.5 3.5 10 Z" fill="#74b85a"/><path d="M11 9 Q8.5 8 7 9.5 Q8.5 10.5 10.5 10 Z" fill="#74b85a"/><ellipse cx="6" cy="5" rx="1.6" ry="1.1" fill="#74b85a"/><ellipse cx="8.4" cy="6.5" rx="1.4" ry="1" fill="#86c96a"/><path d="M3.2 11 L10.8 11 L9.6 17 Q7 17.8 4.4 17 Z" fill="#b9633a"/><path d="M3.2 11 L10.8 11 L9.6 17 Q7 17.8 4.4 17 Z" fill="none" stroke="#3a2c1e" stroke-width="0.6"/><path d="M3.2 11 L10.8 11 L10.4 13 L3.6 13 Z" fill="#d3804f"/><rect x="3.2" y="11" width="7.6" height="1" rx="0.5" fill="#e09766"/><path d="M5 13.5 L5.6 16.5" stroke="#9a4f2e" stroke-width="0.5" opacity="0.6"/><path d="M9 13.5 L8.4 16.5" stroke="#9a4f2e" stroke-width="0.5" opacity="0.6"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="72" viewBox="0 0 56 72">
+  <defs>
+    <linearGradient id="plant_pot" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c08355"/><stop offset="0.5" stop-color="#a4673a"/><stop offset="1" stop-color="#8a5230"/>
+    </linearGradient>
+    <radialGradient id="plant_leaf" cx="0.4" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#74b85a"/><stop offset="0.6" stop-color="#5aa05a"/><stop offset="1" stop-color="#4f9a4e"/>
+    </radialGradient>
+    <filter id="plant_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.2 0.22" numOctaves="3" seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.8 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.6" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="28" cy="68" rx="18" ry="4" fill="#2c4a1f" opacity="0.2"/>
+  <g stroke="#3a2c1e" stroke-width="1.5">
+    <path d="M26 40 C12 32 6 18 8 8 C18 14 24 26 27 40 Z" fill="url(#plant_leaf)"/>
+    <path d="M30 40 C44 32 50 18 48 8 C38 14 32 26 29 40 Z" fill="url(#plant_leaf)"/>
+    <path d="M28 42 C24 28 24 14 28 4 C32 14 32 28 28 42 Z" fill="#74b85a"/>
+  </g>
+  <path d="M27 40 C20 30 15 20 14 12" fill="none" stroke="#4f9a4e" stroke-width="1.2" opacity="0.6"/>
+  <path d="M29 40 C36 30 41 20 42 12" fill="none" stroke="#4f9a4e" stroke-width="1.2" opacity="0.6"/>
+  <path d="M16 46 L40 46 L36 66 Q28 70 20 66 Z" fill="url(#plant_pot)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <path d="M16 46 L40 46 L36 66 Q28 70 20 66 Z" fill="#8a5230" filter="url(#plant_grain)" opacity="0.3"/>
+  <rect x="13" y="42" width="30" height="7" rx="2.5" fill="#c08355" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="14" y="43" width="28" height="2.5" rx="1.2" fill="#d49a6f" opacity="0.8"/>
+</svg>

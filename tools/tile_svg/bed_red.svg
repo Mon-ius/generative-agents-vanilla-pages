@@ -1,14 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="28" viewBox="0 0 24 28">
-  <rect x="2" y="2" width="20" height="24" rx="3.5" fill="#a9794a" stroke="#3a2c1e" stroke-width="1.2"/>
-  <rect x="2.6" y="2.6" width="18.8" height="2.8" rx="2" fill="#c9a06a"/>
-  <rect x="3" y="23.4" width="18" height="2.4" rx="1.6" fill="#7c5230"/>
-  <rect x="4" y="6" width="16" height="18.4" rx="2.5" fill="#efe7d7" stroke="#3a2c1e" stroke-width="1"/>
-  <rect x="4.6" y="6.6" width="14.8" height="1.5" rx="0.7" fill="#fbf6ec"/>
-  <rect x="5" y="7.4" width="14" height="6.2" rx="2.4" fill="#fbf7ef" stroke="#3a2c1e" stroke-width="0.8"/>
-  <rect x="5.8" y="8.1" width="12.4" height="2" rx="1" fill="#ffffff" opacity="0.85"/>
-  <rect x="4.4" y="13.6" width="15.2" height="10.6" rx="2.4" fill="#c2554c" stroke="#3a2c1e" stroke-width="1"/>
-  <rect x="4.8" y="14" width="14.4" height="1.9" rx="0.9" fill="#d97a70"/>
-  <path d="M5 19.4 H19" stroke="#9b403a" stroke-width="0.8" opacity="0.7"/>
-  <path d="M12 14.4 V23.8" stroke="#9b403a" stroke-width="0.7" opacity="0.5"/>
-  <path d="M4.6 23 H19.4" stroke="#8e3a34" stroke-width="1.1" opacity="0.55"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="112" viewBox="0 0 96 112">
+  <defs>
+    <linearGradient id="bed_red_frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b88d4f"/><stop offset="1" stop-color="#9c6b3f"/>
+    </linearGradient>
+    <linearGradient id="bed_red_mattress" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f5efe2"/><stop offset="1" stop-color="#e3d8c3"/>
+    </linearGradient>
+    <linearGradient id="bed_red_pillow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f0e9da"/>
+    </linearGradient>
+    <linearGradient id="bed_red_blanket" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d98a82"/><stop offset="1" stop-color="#c2655e"/>
+    </linearGradient>
+    <filter id="bed_red_weave" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.18 0.32" numOctaves="3" seed="11" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="bed_red_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.5" numOctaves="3" seed="5" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 0" result="a"/>
+      <feComposite in="a" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="8" y="6" width="80" height="100" rx="9" fill="url(#bed_red_frame)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="8" y="6" width="80" height="100" rx="9" fill="#7c5430" filter="url(#bed_red_grain)" opacity="0.35"/>
+  <rect x="14" y="11" width="68" height="90" rx="5" fill="url(#bed_red_mattress)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="20" y="15" width="56" height="22" rx="6" fill="url(#bed_red_pillow)" stroke="#cfc6b2" stroke-width="1"/>
+  <path d="M20 26 q28 6 56 0" fill="none" stroke="#e7ddca" stroke-width="1" opacity="0.7"/>
+  <rect x="14" y="64" width="68" height="37" rx="5" fill="url(#bed_red_blanket)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="14" y="64" width="68" height="37" rx="5" fill="#b1564f" filter="url(#bed_red_weave)" opacity="0.4"/>
+  <path d="M16 70 q32 5 64 0" fill="none" stroke="#e6a39c" stroke-width="1.6" opacity="0.85"/>
+  <path d="M16 74 q32 5 64 0" fill="none" stroke="#a8514b" stroke-width="1" opacity="0.5"/>
 </svg>

@@ -1,19 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-<rect x="0" y="0" width="16" height="16" fill="#d8c19a"/>
-<rect x="0" y="0" width="16" height="2" fill="#e2cfa9"/>
-<rect x="0" y="5" width="16" height="1" fill="#6b4f30"/>
-<rect x="0" y="10" width="16" height="1" fill="#6b4f30"/>
-<rect x="0" y="15" width="16" height="1" fill="#6b4f30"/>
-<rect x="7" y="0" width="1" height="5" fill="#6b4f30"/>
-<rect x="3" y="6" width="1" height="4" fill="#6b4f30"/>
-<rect x="11" y="6" width="1" height="4" fill="#6b4f30"/>
-<rect x="7" y="11" width="1" height="4" fill="#6b4f30"/>
-<rect x="0" y="6" width="16" height="1" fill="#e2cfa9" opacity="0.8"/>
-<rect x="0" y="11" width="16" height="1" fill="#e2cfa9" opacity="0.8"/>
-<rect x="0" y="4" width="16" height="1" fill="#b89a6e"/>
-<rect x="0" y="9" width="16" height="1" fill="#b89a6e"/>
-<rect x="0" y="14" width="16" height="1" fill="#b89a6e"/>
-<rect x="2" y="2" width="4" height="1" fill="#cdb588" opacity="0.6"/>
-<rect x="9" y="7" width="4" height="1" fill="#cdb588" opacity="0.6"/>
-<rect x="1" y="12" width="4" height="1" fill="#cdb588" opacity="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="wall_base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e2d6bd"/><stop offset="0.18" stop-color="#d9ccb1"/><stop offset="0.82" stop-color="#d4c6a9"/><stop offset="1" stop-color="#c8b994"/>
+    </linearGradient>
+    <filter id="wall_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.4 0.45" numOctaves="3" seed="6" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.9" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect width="64" height="64" fill="url(#wall_base)"/>
+  <rect width="64" height="64" fill="#c8b994" filter="url(#wall_grain)" opacity="0.4"/>
+  <rect x="0" y="0" width="64" height="5" fill="#ece2cb" opacity="0.55"/>
+  <rect x="0" y="58" width="64" height="6" fill="#bca87f" opacity="0.5"/>
 </svg>

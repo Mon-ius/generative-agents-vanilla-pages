@@ -1,20 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-<rect x="0" y="0" width="16" height="16" fill="#5b8f3f"/>
-<path d="M0 0 H16 V5 H0 Z" fill="#6fa84a" opacity="0.45"/>
-<path d="M0 11 H16 V16 H0 Z" fill="#4a7a33" opacity="0.5"/>
-<path d="M2 4 q1 -3 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M3 5 q0.6 -2.4 1.4 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M7 3 q1 -2.6 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M12 5 q1 -3 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M13 6 q0.6 -2.2 1.4 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M5 9 q1 -2.8 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M9 10 q1 -2.6 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M1 12 q1 -2.6 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M14 13 q1 -2.4 2 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M6 14 q1 -2.6 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<path d="M10 14 q0.6 -2.2 1.4 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
-<circle cx="11" cy="3" r="0.9" fill="#f3d24e"/>
-<circle cx="11" cy="3" r="0.4" fill="#fff0b0"/>
-<circle cx="4" cy="11" r="0.8" fill="#e98fb0"/>
-<circle cx="4" cy="11" r="0.35" fill="#fff0f5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grass_base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#79b857"/>
+      <stop offset="1" stop-color="#67a546"/>
+    </linearGradient>
+    <!-- seamless fractal grain (stitchTiles) so the texture repeats without seams -->
+    <filter id="grass_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.22 0.28" numOctaves="4" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.8 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.6" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="grass_hi" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.30 0.34" numOctaves="3" seed="31" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 -0.15" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="2.2" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+
+  <rect width="64" height="64" fill="url(#grass_base)"/>
+  <rect width="64" height="64" fill="#4f8a36" filter="url(#grass_grain)" opacity="0.55"/>
+  <rect width="64" height="64" fill="#a9da7e" filter="url(#grass_hi)" opacity="0.5"/>
+
+  <!-- scattered blade tufts: dark base + bright tip, interior only so tiling stays clean -->
+  <g stroke-linecap="round" fill="none">
+    <g stroke="#4d8a36" stroke-width="1.5">
+      <path d="M15 40 q-2 -7 -4 -11"/><path d="M18 41 q1 -7 2 -12"/>
+      <path d="M36 33 q-1 -7 -3 -11"/><path d="M40 34 q1 -7 3 -12"/>
+      <path d="M24 53 q-2 -7 -4 -10"/><path d="M28 54 q1 -7 1 -11"/>
+      <path d="M48 49 q-1 -7 -3 -11"/><path d="M51 50 q1 -6 3 -10"/>
+    </g>
+    <g stroke="#aadd80" stroke-width="0.8">
+      <path d="M16 39 q-1 -6 -3 -9"/><path d="M19 40 q1 -6 2 -10"/>
+      <path d="M37 32 q-1 -6 -2 -9"/><path d="M41 33 q1 -6 2 -10"/>
+      <path d="M25 52 q-1 -6 -3 -9"/><path d="M29 53 q1 -5 1 -9"/>
+      <path d="M49 48 q-1 -6 -2 -9"/><path d="M52 49 q1 -5 2 -9"/>
+    </g>
+  </g>
 </svg>

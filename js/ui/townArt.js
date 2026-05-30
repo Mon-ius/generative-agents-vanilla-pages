@@ -18,6 +18,14 @@ import { buildGrid } from "../utils/pathfinding.js";
 export const CELL = (CONFIG.world && CONFIG.world.cellPixels) || 176;
 export const TEXTURE_SCALE = 2; // bake the static world at 2× for crisp detail
 
+// Atlas supersample factor. Tile/furniture sprites in the PNG atlas are authored
+// ART_SS× their on-screen reference size so they carry rich gradient/texture/material
+// detail and stay crisp when zoomed in. Ground/tree/wall tiles draw to a fixed box
+// (drawImage scales them down automatically), so only the object `put()` helper —
+// which draws furniture at the sprite's *native* size — divides by ART_SS to keep
+// on-screen footprints identical. Keep in sync with SS in tools/pack_tiles.mjs.
+const ART_SS = 4;
+
 // Warm, cozy Stardew-style shingle-roof colours per building type (a few extra
 // types covered; anything else falls back to a warm terracotta).
 export const ROOF = {
@@ -727,12 +735,15 @@ function flowerPatch(g, S, x, y, cw, ch, rnd) {
 
 function put(g, img, x, y) {
   if (!img) return;
+  // Furniture sprites are authored ART_SS× their on-screen size (crisp, material-rich
+  // when zoomed in); draw them back down so placement and footprints are unchanged.
+  const w = img.width / ART_SS, h = img.height / ART_SS;
   // soft contact shadow grounds the object on the floor
   g.fillStyle = "rgba(22,28,18,0.20)";
   g.beginPath();
-  g.ellipse(x + img.width / 2, y + img.height - 1.5, img.width * 0.42, 2.8, 0, 0, Math.PI * 2);
+  g.ellipse(x + w / 2, y + h - 1.5, w * 0.42, 2.8, 0, 0, Math.PI * 2);
   g.fill();
-  g.drawImage(img, x, y, img.width, img.height);
+  g.drawImage(img, x, y, w, h);
 }
 
 function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)] : null; }

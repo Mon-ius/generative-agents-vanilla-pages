@@ -1,9 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="28" height="24" viewBox="0 0 28 24">
-  <rect x="2" y="2.5" width="24" height="19" rx="4.5" fill="#7c5230" stroke="#3a2c1e" stroke-width="1.2"/>
-  <rect x="3.4" y="3.6" width="21.2" height="16.6" rx="3.5" fill="#a9794a"/>
-  <rect x="4" y="4.2" width="20" height="14.4" rx="3" fill="#b88a52"/>
-  <rect x="4.6" y="4.6" width="18.8" height="3.2" rx="1.8" fill="#c9a06a" opacity="0.85"/>
-  <path d="M5 11.5 H23" stroke="#9a7340" stroke-width="0.7" opacity="0.55"/>
-  <path d="M5 15 H23" stroke="#9a7340" stroke-width="0.7" opacity="0.55"/>
-  <rect x="4" y="17.4" width="20" height="1.6" rx="0.8" fill="#7c5230" opacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="96" viewBox="0 0 112 96">
+  <defs>
+    <radialGradient id="table_top" cx="0.42" cy="0.38" r="0.72">
+      <stop offset="0" stop-color="#b88d4f"/><stop offset="0.6" stop-color="#a9794a"/><stop offset="1" stop-color="#7c5430"/>
+    </radialGradient>
+    <radialGradient id="table_mat" cx="0.46" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#cba067"/><stop offset="1" stop-color="#b88d4f"/>
+    </radialGradient>
+    <filter id="table_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.09" numOctaves="3" seed="11" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.9 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="56" cy="50" rx="52" ry="44" fill="#3a2c1e" opacity="0.18"/>
+  <ellipse cx="56" cy="48" rx="52" ry="43" fill="#3a2c1e"/>
+  <ellipse cx="56" cy="47" rx="49.5" ry="40.5" fill="url(#table_top)"/>
+  <ellipse cx="56" cy="47" rx="49.5" ry="40.5" fill="#5b3d22" filter="url(#table_grain)" opacity="0.4"/>
+  <ellipse cx="52" cy="42" rx="44" ry="35" fill="none" stroke="#cba067" stroke-width="1.5" opacity="0.55"/>
+  <ellipse cx="56" cy="46" rx="22" ry="18" fill="url(#table_mat)"/>
+  <ellipse cx="56" cy="46" rx="22" ry="18" fill="none" stroke="#7c5430" stroke-width="1.2" opacity="0.6"/>
+  <ellipse cx="50" cy="38" rx="20" ry="13" fill="#fbf7ef" opacity="0.16"/>
 </svg>

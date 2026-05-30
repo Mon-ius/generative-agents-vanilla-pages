@@ -1,18 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="14" viewBox="0 0 32 14">
-<rect x="1" y="2" width="30" height="11" rx="2" fill="#3a2c1e"/>
-<rect x="2" y="3" width="28" height="9" rx="2" fill="#a9794a"/>
-<rect x="2" y="3" width="28" height="3" rx="2" fill="#c9a06a"/>
-<rect x="2" y="9" width="28" height="3" fill="#7c5230"/>
-<rect x="2" y="3" width="28" height="1" fill="#dcb986" opacity="0.7"/>
-<rect x="9" y="3" width="1" height="9" fill="#7c5230"/>
-<rect x="16" y="3" width="1" height="9" fill="#7c5230"/>
-<rect x="23" y="3" width="1" height="9" fill="#7c5230"/>
-<rect x="4" y="6" width="3" height="2" rx="1" fill="#cdbba0"/>
-<rect x="12" y="6" width="3" height="2" rx="1" fill="#cdbba0"/>
-<rect x="19" y="6" width="3" height="2" rx="1" fill="#cdbba0"/>
-<rect x="26" y="6" width="3" height="2" rx="1" fill="#cdbba0"/>
-<rect x="5" y="6" width="1" height="2" fill="#a9967a" opacity="0.6"/>
-<rect x="13" y="6" width="1" height="2" fill="#a9967a" opacity="0.6"/>
-<rect x="20" y="6" width="1" height="2" fill="#a9967a" opacity="0.6"/>
-<rect x="27" y="6" width="1" height="2" fill="#a9967a" opacity="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="56" viewBox="0 0 128 56">
+  <defs>
+    <linearGradient id="counter_base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9c6b3f"/><stop offset="1" stop-color="#7c5430"/>
+    </linearGradient>
+    <linearGradient id="counter_top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dad7cd"/><stop offset="1" stop-color="#cbb08a"/>
+    </linearGradient>
+    <radialGradient id="counter_jar" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#cee0ef"/><stop offset="1" stop-color="#6c8fc0"/>
+    </radialGradient>
+    <filter id="counter_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.014 0.1" numOctaves="3" seed="13" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.85 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="counter_stone" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.1 0.12" numOctaves="3" seed="4" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="2" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="8" y="20" width="114" height="32" rx="3" fill="#3a2c1e" opacity="0.2"/>
+  <rect x="6" y="18" width="116" height="32" rx="3" fill="url(#counter_base)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="6" y="18" width="116" height="32" rx="3" fill="#5b3d22" filter="url(#counter_grain)" opacity="0.3"/>
+  <rect x="3" y="6" width="122" height="16" rx="4" fill="url(#counter_top)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="3" y="6" width="122" height="16" rx="4" fill="#9d927c" filter="url(#counter_stone)" opacity="0.28"/>
+  <rect x="6" y="8" width="116" height="4" rx="2" fill="#fbf7ef" opacity="0.4"/>
+  <line x1="64" y1="7" x2="64" y2="21" stroke="#3a2c1e" stroke-width="0.8" opacity="0.4"/>
+  <ellipse cx="108" cy="13" rx="11" ry="6" fill="#6f553a" opacity="0.35"/>
+  <path d="M99 12 q0 -8 9 -8 q9 0 9 8 q0 4 -9 4 q-9 0 -9 -4 z" fill="url(#counter_jar)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <rect x="103" y="2" width="10" height="4" rx="1.5" fill="#c2655e" stroke="#3a2c1e" stroke-width="1"/>
+  <ellipse cx="104" cy="8" rx="3" ry="2" fill="#fbf7ef" opacity="0.45"/>
 </svg>

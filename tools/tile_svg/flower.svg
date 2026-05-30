@@ -1,15 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-<path d="M5 14 q-1 -4 1 -6" stroke="#3f7a33" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-<path d="M11 14 q1 -4 -1 -6" stroke="#3f7a33" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-<path d="M8 15 V8" stroke="#3f7a33" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-<ellipse cx="4" cy="10" rx="1.6" ry="0.9" fill="#59964a" stroke="#3a2c1e" stroke-width="0.4"/>
-<ellipse cx="12" cy="9" rx="1.6" ry="0.9" fill="#59964a" stroke="#3a2c1e" stroke-width="0.4"/>
-<circle cx="4" cy="5" r="2.4" fill="#e8657a" stroke="#3a2c1e" stroke-width="0.5"/>
-<circle cx="4" cy="5" r="1" fill="#f3d24e"/>
-<circle cx="11.5" cy="4.5" r="2.4" fill="#c79be0" stroke="#3a2c1e" stroke-width="0.5"/>
-<circle cx="11.5" cy="4.5" r="1" fill="#fff0b0"/>
-<circle cx="8" cy="8" r="2.6" fill="#f0a0c0" stroke="#3a2c1e" stroke-width="0.5"/>
-<circle cx="8" cy="8" r="1.1" fill="#f3d24e"/>
-<circle cx="3.2" cy="4.2" r="0.7" fill="#ff9aac" opacity="0.8"/>
-<circle cx="7.3" cy="7.2" r="0.7" fill="#ffc6dc" opacity="0.8"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="flower_p1" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#f08a5e"/><stop offset="1" stop-color="#e0673c"/>
+    </radialGradient>
+    <radialGradient id="flower_p2" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#f0d05c"/><stop offset="1" stop-color="#e7c13c"/>
+    </radialGradient>
+    <radialGradient id="flower_p3" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#e0708d"/><stop offset="1" stop-color="#d24f6f"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="32" cy="58" rx="16" ry="4" fill="#2c4a1f" opacity="0.2"/>
+  <path d="M22 58 C20 46 22 38 26 32" fill="none" stroke="#4f8a36" stroke-width="2.5"/>
+  <path d="M32 58 C32 46 32 38 32 30" fill="none" stroke="#4f8a36" stroke-width="2.5"/>
+  <path d="M42 58 C44 48 42 40 40 34" fill="none" stroke="#4f8a36" stroke-width="2.5"/>
+  <path d="M26 48 q-9 -3 -12 -10 q9 -1 12 6 z" fill="#59964a" stroke="#3a2c1e" stroke-width="1"/>
+  <path d="M38 50 q9 -2 12 -9 q-9 -2 -12 5 z" fill="#59964a" stroke="#3a2c1e" stroke-width="1"/>
+  <g stroke="#3a2c1e" stroke-width="1.2">
+    <g transform="translate(26,30)"><circle cx="0" cy="-7" r="5" fill="url(#flower_p1)"/><circle cx="7" cy="0" r="5" fill="url(#flower_p1)"/><circle cx="-7" cy="0" r="5" fill="url(#flower_p1)"/><circle cx="0" cy="7" r="5" fill="url(#flower_p1)"/><circle cx="0" cy="0" r="3.5" fill="#f3d24e" stroke="none"/></g>
+    <g transform="translate(42,36)"><circle cx="0" cy="-6" r="4.5" fill="url(#flower_p3)"/><circle cx="6" cy="0" r="4.5" fill="url(#flower_p3)"/><circle cx="-6" cy="0" r="4.5" fill="url(#flower_p3)"/><circle cx="0" cy="6" r="4.5" fill="url(#flower_p3)"/><circle cx="0" cy="0" r="3" fill="#f3d24e" stroke="none"/></g>
+    <g transform="translate(34,22)"><circle cx="0" cy="-6" r="4.5" fill="url(#flower_p2)"/><circle cx="6" cy="0" r="4.5" fill="url(#flower_p2)"/><circle cx="-6" cy="0" r="4.5" fill="url(#flower_p2)"/><circle cx="0" cy="6" r="4.5" fill="url(#flower_p2)"/><circle cx="0" cy="0" r="3" fill="#e0673c" stroke="none"/></g>
+  </g>
 </svg>

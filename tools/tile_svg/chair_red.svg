@@ -1,1 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><rect x="3" y="1.6" width="8" height="3.4" rx="1.5" fill="#7c5230"/><rect x="3" y="1.2" width="8" height="3.4" rx="1.5" fill="#a9794a" stroke="#3a2c1e" stroke-width="0.6"/><rect x="3.7" y="1.7" width="6.6" height="2.4" rx="1.1" fill="#c64b46"/><rect x="3.9" y="1.9" width="6.2" height="1" rx="0.5" fill="#e07b72"/><rect x="2.4" y="4.6" width="9.2" height="6.6" rx="1.6" fill="#7c5230"/><rect x="2.4" y="4.2" width="9.2" height="6.6" rx="1.6" fill="#a9794a" stroke="#3a2c1e" stroke-width="0.6"/><rect x="3.4" y="5" width="7.2" height="4.6" rx="1.4" fill="#c64b46"/><rect x="3.4" y="5" width="7.2" height="1.3" rx="1" fill="#e07b72"/><rect x="3" y="11" width="1.6" height="2" rx="0.5" fill="#7c5230" stroke="#3a2c1e" stroke-width="0.5"/><rect x="9.4" y="11" width="1.6" height="2" rx="0.5" fill="#7c5230" stroke="#3a2c1e" stroke-width="0.5"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
+  <defs>
+    <linearGradient id="chair_red_seat" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e07089"/><stop offset="1" stop-color="#d24f6f"/>
+    </linearGradient>
+    <linearGradient id="chair_red_back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d24f6f"/><stop offset="1" stop-color="#a83a55"/>
+    </linearGradient>
+    <filter id="chair_red_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04 0.14" numOctaves="3" seed="5" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.85 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="11" y="13" width="34" height="34" rx="5" fill="#3a2c1e" opacity="0.2"/>
+  <rect x="9" y="6" width="38" height="9" rx="3" fill="url(#chair_red_back)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="11" y="11" width="34" height="34" rx="5" fill="url(#chair_red_seat)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="11" y="11" width="34" height="34" rx="5" fill="#7c5430" filter="url(#chair_red_grain)" opacity="0.16"/>
+  <rect x="11" y="40" width="34" height="5" rx="2.5" fill="#9c6b3f" opacity="0.7"/>
+  <circle cx="15" cy="15" r="2.4" fill="#a83a55"/><circle cx="41" cy="15" r="2.4" fill="#a83a55"/>
+  <rect x="13" y="13" width="30" height="8" rx="3" fill="#fbf7ef" opacity="0.18"/>
+</svg>

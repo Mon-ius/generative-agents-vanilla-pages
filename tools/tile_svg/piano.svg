@@ -1,20 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="30" height="20" viewBox="0 0 30 20">
-  <rect x="2" y="2" width="26" height="16" rx="2.5" fill="#7c5230" stroke="#3a2c1e" stroke-width="1.2"/>
-  <rect x="2.6" y="2.6" width="24.8" height="2" rx="1" fill="#a9794a"/>
-  <rect x="3.5" y="3.4" width="23" height="6" rx="1.2" fill="#5e3c22"/>
-  <rect x="4" y="3.9" width="22" height="2" rx="1" fill="#8a5c32" opacity="0.8"/>
-  <rect x="3" y="10.6" width="24" height="6" rx="1.2" fill="#f5f1e6" stroke="#3a2c1e" stroke-width="1"/>
-  <path d="M6 10.6 V16.6" stroke="#3a2c1e" stroke-width="0.6"/>
-  <path d="M9 10.6 V16.6" stroke="#3a2c1e" stroke-width="0.6"/>
-  <path d="M12 10.6 V16.6" stroke="#3a2c1e" stroke-width="0.6"/>
-  <path d="M15 10.6 V16.6" stroke="#3a2c1e" stroke-width="0.6"/>
-  <path d="M18 10.6 V16.6" stroke="#3a2c1e" stroke-width="0.6"/>
-  <path d="M21 10.6 V16.6" stroke="#3a2c1e" stroke-width="0.6"/>
-  <path d="M24 10.6 V16.6" stroke="#3a2c1e" stroke-width="0.6"/>
-  <rect x="5" y="10.6" width="2" height="3.4" rx="0.4" fill="#2e2419"/>
-  <rect x="8" y="10.6" width="2" height="3.4" rx="0.4" fill="#2e2419"/>
-  <rect x="14" y="10.6" width="2" height="3.4" rx="0.4" fill="#2e2419"/>
-  <rect x="17" y="10.6" width="2" height="3.4" rx="0.4" fill="#2e2419"/>
-  <rect x="20" y="10.6" width="2" height="3.4" rx="0.4" fill="#2e2419"/>
-  <rect x="3" y="16.4" width="24" height="1.4" rx="0.7" fill="#5e3c22" opacity="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 120 80">
+  <defs>
+    <linearGradient id="piano_body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34343d"/><stop offset="0.5" stop-color="#23232a"/><stop offset="1" stop-color="#16161b"/>
+    </linearGradient>
+    <linearGradient id="piano_sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6a6a78" stop-opacity="0.7"/><stop offset="0.4" stop-color="#6a6a78" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="piano_keys" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e8e2d4"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="62" cy="68" rx="46" ry="6" fill="#3a2c1e" opacity="0.16"/>
+  <path d="M16 16 Q72 6 104 26 Q112 40 104 56 Q72 74 24 64 Q14 40 16 16 Z" fill="url(#piano_body)" stroke="#0e0e12" stroke-width="1.5"/>
+  <path d="M22 20 Q64 13 96 28 Q70 24 40 28 Q28 30 22 20 Z" fill="url(#piano_sheen)"/>
+  <path d="M62 40 Q90 38 100 52" fill="none" stroke="#54545e" stroke-width="1.5" opacity="0.6"/>
+  <rect x="20" y="56" width="60" height="14" rx="2" fill="url(#piano_keys)" stroke="#0e0e12" stroke-width="1.5"/>
+  <g fill="#1a1a20">
+    <rect x="25" y="56" width="2.6" height="9"/><rect x="31" y="56" width="2.6" height="9"/>
+    <rect x="40" y="56" width="2.6" height="9"/><rect x="46" y="56" width="2.6" height="9"/><rect x="52" y="56" width="2.6" height="9"/>
+    <rect x="61" y="56" width="2.6" height="9"/><rect x="67" y="56" width="2.6" height="9"/>
+  </g>
+  <g stroke="#cdb9a0" stroke-width="0.6" opacity="0.5">
+    <line x1="29" y1="65" x2="29" y2="70"/><line x1="36" y1="65" x2="36" y2="70"/><line x1="44" y1="65" x2="44" y2="70"/>
+    <line x1="51" y1="65" x2="51" y2="70"/><line x1="58" y1="65" x2="58" y2="70"/><line x1="65" y1="65" x2="65" y2="70"/>
+  </g>
+  <g fill="#c79a3b" stroke="#9c6b3f" stroke-width="0.8">
+    <rect x="30" y="70" width="4" height="6" rx="1"/><rect x="62" y="70" width="4" height="6" rx="1"/>
+    <rect x="96" y="56" width="4" height="6" rx="1"/>
+  </g>
 </svg>
