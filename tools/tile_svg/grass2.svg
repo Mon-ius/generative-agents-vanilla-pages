@@ -1,17 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-<rect x="0" y="0" width="16" height="16" fill="#77b552"/>
-<rect x="0" y="9" width="16" height="7" fill="#6fae4b" opacity="0.4"/>
-<rect x="0" y="0" width="16" height="5" fill="#77b552"/>
-<path d="M3 12 L3.6 9 L4.2 12 Z" fill="#62a043"/>
-<path d="M10 5 L10.6 2.5 L11.2 5 Z" fill="#62a043"/>
-<path d="M13 13 L13.5 10.5 L14 13 Z" fill="#62a043"/>
-<circle cx="5" cy="5" r="1.1" fill="#ffffff"/>
-<circle cx="5" cy="5" r="0.5" fill="#e7b73c"/>
-<circle cx="12" cy="9" r="1.1" fill="#f0d4dd"/>
-<circle cx="12" cy="9" r="0.5" fill="#e7b73c"/>
-<circle cx="7" cy="13" r="1" fill="#ffffff"/>
-<circle cx="7" cy="13" r="0.45" fill="#e7b73c"/>
-<rect x="2" y="6" width="1" height="1" fill="#6fae4b"/>
-<rect x="9" y="12" width="1" height="1" fill="#6fae4b"/>
-<rect x="14" y="3" width="1" height="1" fill="#6fae4b"/>
+<rect x="0" y="0" width="16" height="16" fill="#5b8f3f"/>
+<path d="M0 0 H16 V6 H0 Z" fill="#6fa84a" opacity="0.4"/>
+<path d="M0 10 H16 V16 H0 Z" fill="#4a7a33" opacity="0.5"/>
+<path d="M2 6 q1 -3.2 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M4 7 q0.7 -2.6 1.5 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M8 4 q1 -2.8 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M9 5 q0.6 -2.2 1.4 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M13 3 q1 -2.8 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M3 11 q1 -2.8 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M7 12 q1 -2.6 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M11 11 q1 -2.8 2 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M1 14 q1 -2.4 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M12 15 q1 -2.4 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<circle cx="6" cy="3" r="0.9" fill="#e8657a"/>
+<circle cx="6" cy="3" r="0.4" fill="#ffd0d8"/>
+<circle cx="14" cy="9" r="0.9" fill="#c79be0"/>
+<circle cx="14" cy="9" r="0.4" fill="#f0e0fa"/>
+<circle cx="9" cy="14" r="0.8" fill="#f3d24e"/>
+<circle cx="9" cy="14" r="0.35" fill="#fff0b0"/>
 </svg>

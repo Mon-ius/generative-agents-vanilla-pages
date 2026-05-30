@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-<path d="M5 14 Q4 10 6 8" fill="none" stroke="#4f8c39" stroke-width="1"/>
-<path d="M9 14 Q10 9 8 6" fill="none" stroke="#4f8c39" stroke-width="1"/>
-<path d="M11 14 Q12 11 11 9" fill="none" stroke="#4f8c39" stroke-width="1"/>
-<ellipse cx="4" cy="11" rx="1.6" ry="1" fill="#5fb863" stroke="#241f2e" stroke-width="0.6" transform="rotate(-30 4 11)"/>
-<ellipse cx="11" cy="11" rx="1.6" ry="1" fill="#4fa052" stroke="#241f2e" stroke-width="0.6" transform="rotate(30 11 11)"/>
-<circle cx="6" cy="7" r="2.6" fill="#b4534b" stroke="#241f2e" stroke-width="0.7"/>
-<circle cx="6" cy="7" r="0.9" fill="#e7b73c"/>
-<circle cx="10" cy="9" r="2.3" fill="#5aa05a" stroke="#241f2e" stroke-width="0.7"/>
-<circle cx="10" cy="9" r="0.8" fill="#ffffff"/>
-<circle cx="11" cy="5" r="2.2" fill="#8a5fb0" stroke="#241f2e" stroke-width="0.7"/>
-<circle cx="11" cy="5" r="0.8" fill="#e7b73c"/>
-<circle cx="8" cy="11" r="1.8" fill="#4f7bb0" stroke="#241f2e" stroke-width="0.7"/>
-<circle cx="8" cy="11" r="0.7" fill="#ffffff"/>
+<path d="M5 14 q-1 -4 1 -6" stroke="#3f7a33" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M11 14 q1 -4 -1 -6" stroke="#3f7a33" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<path d="M8 15 V8" stroke="#3f7a33" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+<ellipse cx="4" cy="10" rx="1.6" ry="0.9" fill="#59964a" stroke="#3a2c1e" stroke-width="0.4"/>
+<ellipse cx="12" cy="9" rx="1.6" ry="0.9" fill="#59964a" stroke="#3a2c1e" stroke-width="0.4"/>
+<circle cx="4" cy="5" r="2.4" fill="#e8657a" stroke="#3a2c1e" stroke-width="0.5"/>
+<circle cx="4" cy="5" r="1" fill="#f3d24e"/>
+<circle cx="11.5" cy="4.5" r="2.4" fill="#c79be0" stroke="#3a2c1e" stroke-width="0.5"/>
+<circle cx="11.5" cy="4.5" r="1" fill="#fff0b0"/>
+<circle cx="8" cy="8" r="2.6" fill="#f0a0c0" stroke="#3a2c1e" stroke-width="0.5"/>
+<circle cx="8" cy="8" r="1.1" fill="#f3d24e"/>
+<circle cx="3.2" cy="4.2" r="0.7" fill="#ff9aac" opacity="0.8"/>
+<circle cx="7.3" cy="7.2" r="0.7" fill="#ffc6dc" opacity="0.8"/>
 </svg>

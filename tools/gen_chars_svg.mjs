@@ -16,7 +16,7 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const OUT = join(ROOT, "tools", "char_svg");
 const FW = 32, FH = 48, COLS = 3, ROWS = 4;
 const DIRS = ["down", "left", "right", "up"];
-const OL = "#241f2e"; // outline
+const OL = "#2b2118"; // soft warm-dark outline (Stardew-ish, cozier than pure black)
 
 // ---- colour helpers ----
 function toRgb(h) { const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h); return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [200, 200, 200]; }
@@ -43,8 +43,8 @@ function frame(look, dir, fr) {
   const swing = fr === 1 ? 1 : fr === 2 ? -1 : 0; // stand / step-left / step-right
 
   // geometry (fits y≈5..46, centred x=16)
-  const headCy = 11, headR = 5.8;
-  const torsoTop = 17.5, torsoBot = look.dress ? 30 : 33, torsoH = torsoBot - torsoTop;
+  const headCy = 10, headR = 5.2; // smaller head / taller body (less chibi, more Stardew)
+  const torsoTop = 16, torsoBot = look.dress ? 30 : 33, torsoH = torsoBot - torsoTop;
   const tw = side ? 11 : 13, tx = cx - tw / 2;
   const legTop = look.dress ? 38 : torsoBot - 0.5, legBot = feet, legH = legBot - legTop;
   const legW = 4, gap = 1;
@@ -86,6 +86,9 @@ function frame(look, dir, fr) {
   s += rr(tx, torsoTop, tw, torsoH, 3, outfit, true);
   s += `<rect x="${tx + 1}" y="${torsoTop + 1}" width="${tw - 2}" height="2" rx="1" fill="${outHi}"/>`;
   s += `<rect x="${tx + 1}" y="${torsoBot - 3}" width="${tw - 2}" height="2.2" fill="${outLo}"/>`;
+  // soft side shading for a rounder, cozier Stardew look
+  s += `<rect x="${tx + tw - 3.2}" y="${torsoTop + 2}" width="3" height="${torsoH - 4}" fill="${OL}" opacity="0.10"/>`;
+  s += `<rect x="${tx + 1}" y="${torsoTop + 2}" width="1.6" height="${torsoH - 5}" fill="#ffffff" opacity="0.10"/>`;
   if (look.apron && !up) {
     s += rr(cx - 4, torsoTop + 2, 8, torsoH - 2, 1.2, look.apron, true);
     s += `<rect x="${cx - 4}" y="${torsoTop + 2}" width="8" height="1.4" fill="${shade(look.apron, 0.12)}"/>`;

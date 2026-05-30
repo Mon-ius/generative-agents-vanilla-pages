@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16">
-  <rect x="2.5" y="1" width="9" height="4.5" rx="1" fill="#eef0f2" stroke="#241f2e" stroke-width="1"/>
-  <ellipse cx="7" cy="10.5" rx="5" ry="5" fill="#eef0f2" stroke="#241f2e" stroke-width="1"/>
-  <ellipse cx="7" cy="10.5" rx="3.1" ry="3.3" fill="#dad7cd" stroke="#241f2e" stroke-width="0.7"/>
-  <ellipse cx="7" cy="10.5" rx="1.6" ry="1.8" fill="#c2bdaf"/>
-  <line x1="3.4" y1="2.1" x2="10.6" y2="2.1" stroke="#ffffff" stroke-width="0.7" opacity="0.6"/>
+<rect x="3.5" y="1.5" width="7" height="6" rx="1.6" fill="#3a2c1e"/>
+<rect x="4.2" y="2.2" width="5.6" height="5" rx="1.2" fill="#eef1f3"/>
+<rect x="4.2" y="2.2" width="5.6" height="1.4" rx="0.7" fill="#ffffff" opacity="0.6"/>
+<ellipse cx="7" cy="10.8" rx="5" ry="4.4" fill="#3a2c1e"/>
+<ellipse cx="7" cy="10.6" rx="4.3" ry="3.8" fill="#f2f4f5"/>
+<ellipse cx="7" cy="10.6" rx="2.7" ry="2.4" fill="#cdd6da"/>
+<ellipse cx="7" cy="10.2" rx="2" ry="1.7" fill="#dde6ea"/>
+<ellipse cx="6.2" cy="9.3" rx="1" ry="0.8" fill="#ffffff" opacity="0.55"/>
 </svg>

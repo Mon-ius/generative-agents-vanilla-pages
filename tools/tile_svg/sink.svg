@@ -1,7 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="12" viewBox="0 0 14 12">
-  <rect x="1" y="2" width="12" height="9" rx="2" fill="#eef0f2" stroke="#241f2e" stroke-width="1"/>
-  <ellipse cx="7" cy="7" rx="4.2" ry="3" fill="#dad7cd" stroke="#241f2e" stroke-width="0.7"/>
-  <circle cx="7" cy="7" r="0.8" fill="#9aa0ad" stroke="#241f2e" stroke-width="0.4"/>
-  <rect x="6.4" y="1.2" width="1.2" height="2.2" rx="0.5" fill="#9aa0ad" stroke="#241f2e" stroke-width="0.5"/>
-  <path d="M7 1.4 q1.6 0 1.6 1.4" fill="none" stroke="#9aa0ad" stroke-width="1" stroke-linecap="round"/>
+<rect x="1.5" y="2.5" width="11" height="8.5" rx="2.4" fill="#3a2c1e"/>
+<rect x="2.3" y="3.3" width="9.4" height="7" rx="2" fill="#eef1f3"/>
+<rect x="2.3" y="3.3" width="9.4" height="1.6" rx="0.8" fill="#ffffff" opacity="0.55"/>
+<ellipse cx="7" cy="7.4" rx="3.6" ry="2.7" fill="#cdd6da"/>
+<ellipse cx="7" cy="7.2" rx="2.9" ry="2.1" fill="#dde6ea"/>
+<circle cx="7" cy="7.6" r="0.7" fill="#9aa6ac"/>
+<rect x="6.4" y="0.8" width="1.2" height="3.2" rx="0.6" fill="#b7bcc2"/>
+<path d="M6.4 1.2 Q6.4 0.6 7 0.6 Q9 0.6 9 2.4" fill="none" stroke="#b7bcc2" stroke-width="1.2" stroke-linecap="round"/>
+<rect x="6.5" y="1" width="0.4" height="2.8" rx="0.2" fill="#ffffff" opacity="0.6"/>
 </svg>

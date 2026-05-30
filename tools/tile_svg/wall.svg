@@ -1,10 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <rect x="0" y="0" width="16" height="16" fill="#d9ccb1"/>
-  <rect x="0" y="13" width="16" height="3" fill="#c8b994"/>
-  <line x1="0" y1="5" x2="16" y2="5" stroke="#cfc09e" stroke-width="1" opacity="0.8"/>
-  <line x1="0" y1="10" x2="16" y2="10" stroke="#cfc09e" stroke-width="1" opacity="0.8"/>
-  <line x1="6" y1="0" x2="6" y2="5" stroke="#cfc09e" stroke-width="1" opacity="0.7"/>
-  <line x1="11" y1="5" x2="11" y2="10" stroke="#cfc09e" stroke-width="1" opacity="0.7"/>
-  <line x1="4" y1="10" x2="4" y2="13" stroke="#cfc09e" stroke-width="1" opacity="0.7"/>
-  <line x1="0" y1="13" x2="16" y2="13" stroke="#33271a" stroke-width="1" opacity="0.25"/>
+<rect x="0" y="0" width="16" height="16" fill="#d8c19a"/>
+<rect x="0" y="0" width="16" height="2" fill="#e2cfa9"/>
+<rect x="0" y="5" width="16" height="1" fill="#6b4f30"/>
+<rect x="0" y="10" width="16" height="1" fill="#6b4f30"/>
+<rect x="0" y="15" width="16" height="1" fill="#6b4f30"/>
+<rect x="7" y="0" width="1" height="5" fill="#6b4f30"/>
+<rect x="3" y="6" width="1" height="4" fill="#6b4f30"/>
+<rect x="11" y="6" width="1" height="4" fill="#6b4f30"/>
+<rect x="7" y="11" width="1" height="4" fill="#6b4f30"/>
+<rect x="0" y="6" width="16" height="1" fill="#e2cfa9" opacity="0.8"/>
+<rect x="0" y="11" width="16" height="1" fill="#e2cfa9" opacity="0.8"/>
+<rect x="0" y="4" width="16" height="1" fill="#b89a6e"/>
+<rect x="0" y="9" width="16" height="1" fill="#b89a6e"/>
+<rect x="0" y="14" width="16" height="1" fill="#b89a6e"/>
+<rect x="2" y="2" width="4" height="1" fill="#cdb588" opacity="0.6"/>
+<rect x="9" y="7" width="4" height="1" fill="#cdb588" opacity="0.6"/>
+<rect x="1" y="12" width="4" height="1" fill="#cdb588" opacity="0.6"/>
 </svg>

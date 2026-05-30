@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="12" height="10" viewBox="0 0 12 10">
-  <rect x="1" y="1" width="10" height="8" rx="0.8" fill="#9c6b3f" stroke="#241f2e" stroke-width="1"/>
-  <rect x="2.4" y="2.4" width="7.2" height="5.2" fill="#7fb6d8"/>
-  <rect x="2.4" y="5.8" width="7.2" height="1.8" fill="#6fae4b"/>
-  <circle cx="8.4" cy="3.8" r="1" fill="#e7b73c"/>
-  <path d="M2.4 5.8 L4.6 3.6 L6.4 5.8 Z" fill="#5fb863"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="10" viewBox="0 0 12 10"><rect x="0.5" y="0.8" width="11" height="8.4" rx="0.8" fill="#7c5230"/><rect x="0.5" y="0.5" width="11" height="8.4" rx="0.8" fill="#a9794a" stroke="#3a2c1e" stroke-width="0.6"/><rect x="0.7" y="0.7" width="10.6" height="1" rx="0.5" fill="#c9a06a"/><rect x="1.8" y="1.7" width="8.4" height="6" rx="0.3" fill="#a9d6e6"/><rect x="1.8" y="1.7" width="8.4" height="6" rx="0.3" fill="#a9d6e6" stroke="#3a2c1e" stroke-width="0.5"/><rect x="1.8" y="1.7" width="8.4" height="2.6" fill="#bfe3ef"/><circle cx="8.6" cy="3" r="1" fill="#f6e08a"/><path d="M1.8 6 Q4 4.2 6 5.4 Q8 6.6 10.2 5 L10.2 7.7 L1.8 7.7 Z" fill="#4a7a33"/><path d="M1.8 6.6 Q4.5 5.4 6.5 6.4 Q8.5 7.4 10.2 6.4 L10.2 7.7 L1.8 7.7 Z" fill="#6fa84a"/><path d="M3 5.5 L3.6 4 L4.2 5.5 Z" fill="#3f6a2c"/><path d="M7.4 5.2 L8 3.6 L8.6 5.2 Z" fill="#3f6a2c"/></svg>

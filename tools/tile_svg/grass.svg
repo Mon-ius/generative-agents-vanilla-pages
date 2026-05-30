@@ -1,15 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-<rect x="0" y="0" width="16" height="16" fill="#6fae4b"/>
-<rect x="0" y="0" width="16" height="8" fill="#77b552" opacity="0.35"/>
-<rect x="0" y="11" width="16" height="5" fill="#62a043" opacity="0.4"/>
-<path d="M2 13 L2.6 10 L3.2 13 Z" fill="#4f8c39"/>
-<path d="M6 6 L6.6 3 L7.2 6 Z" fill="#4f8c39"/>
-<path d="M11 14 L11.6 11 L12.2 14 Z" fill="#4f8c39"/>
-<path d="M13 7 L13.5 4.5 L14 7 Z" fill="#4f8c39"/>
-<rect x="4" y="9" width="1" height="1" fill="#62a043"/>
-<rect x="9" y="3" width="1" height="1" fill="#62a043"/>
-<rect x="14" y="11" width="1" height="1" fill="#62a043"/>
-<rect x="1" y="5" width="1" height="1" fill="#77b552"/>
-<rect x="8" y="13" width="1" height="1" fill="#77b552"/>
-<rect x="12" y="1" width="1" height="1" fill="#77b552"/>
+<rect x="0" y="0" width="16" height="16" fill="#5b8f3f"/>
+<path d="M0 0 H16 V5 H0 Z" fill="#6fa84a" opacity="0.45"/>
+<path d="M0 11 H16 V16 H0 Z" fill="#4a7a33" opacity="0.5"/>
+<path d="M2 4 q1 -3 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M3 5 q0.6 -2.4 1.4 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M7 3 q1 -2.6 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M12 5 q1 -3 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M13 6 q0.6 -2.2 1.4 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M5 9 q1 -2.8 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M9 10 q1 -2.6 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M1 12 q1 -2.6 2 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M14 13 q1 -2.4 2 0" stroke="#4a7a33" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M6 14 q1 -2.6 2 0" stroke="#74b85a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<path d="M10 14 q0.6 -2.2 1.4 0" stroke="#6fa84a" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+<circle cx="11" cy="3" r="0.9" fill="#f3d24e"/>
+<circle cx="11" cy="3" r="0.4" fill="#fff0b0"/>
+<circle cx="4" cy="11" r="0.8" fill="#e98fb0"/>
+<circle cx="4" cy="11" r="0.35" fill="#fff0f5"/>
 </svg>
