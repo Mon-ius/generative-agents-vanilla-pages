@@ -60,17 +60,14 @@ export class MapView {
 
   // Center the camera on the selected agent at a comfortable game zoom
   // (~cellsAcross cells across the viewport width), snapping for the first paint.
-  defaultView(cellsAcross = 7) {
+  defaultView(cellsAcross = 12) {
     const cam = this.camera;
     if (!cam) return;
     const CELL = this.layout.CELL || 176;
     const vp = this._viewport();
     const s = Math.min(cam.maxScale(), Math.max(cam.minScale(), vp.w / (cellsAcross * CELL)));
-    const p = this.pos.get(this.sim.selectedAgentId);
-    const wx = p ? p.x : this.layout.W / 2;
-    const wy = p ? p.y : this.layout.H / 2;
     cam.tscale = s;
-    cam.centerOn(wx, wy);
+    cam.centerOn(this.layout.W / 2, this.layout.H / 2); // open centered on the map
     cam.scale = cam.tscale;
     cam.x = cam.tx;
     cam.y = cam.ty;
@@ -94,6 +91,7 @@ export class MapView {
       getViewport: () => this._viewport(),
       onChange: () => this._persist && this._persist(),
       config: {
+        infinite: CONFIG.camera.infinite,
         minZoom: CONFIG.camera.minZoom,
         maxZoom: CONFIG.camera.maxZoom,
         zoomStep: CONFIG.camera.zoomStep,
@@ -268,13 +266,17 @@ export class MapView {
     // World transform: dpr * camera.
     ctx.setTransform(dpr * cam.scale, 0, 0, dpr * cam.scale, dpr * cam.x, dpr * cam.y);
 
-    // Base grass fill behind any un-baked chunk gaps.
-    ctx.fillStyle = "#84b95a";
-    ctx.fillRect(0, 0, this.layout.W, this.layout.H);
-
-    // Culled static chunks.
+    // Infinite grass: fill the entire visible world rect (which extends beyond the
+    // town into the boundless surrounding meadow) with the world-anchored grass tile.
     const viewRect = cam.visibleWorldRect();
     const cell = this.layout.CELL;
+    const grassCv = this.sprites && this.sprites.grass;
+    if (grassCv && !this._grassPattern) { try { this._grassPattern = ctx.createPattern(grassCv, "repeat"); } catch (_) { this._grassPattern = null; } }
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = this._grassPattern || "#84b95a";
+    ctx.fillRect(viewRect.x - cell, viewRect.y - cell, viewRect.w + cell * 2, viewRect.h + cell * 2);
+
+    // Culled static chunks.
     const expanded = { x: viewRect.x - cell, y: viewRect.y - cell, w: viewRect.w + cell * 2, h: viewRect.h + cell * 2 };
     for (const { cx, cy } of visibleChunks(this.layout, expanded)) {
       const wr = chunkWorldRect(this.layout, cx, cy);
@@ -327,7 +329,7 @@ export class MapView {
     const amb = ambient(this.sim.time.minutesIntoDay);
     if (amb.a > 0.001) {
       ctx.fillStyle = `rgba(${amb.r},${amb.g},${amb.b},${amb.a})`;
-      ctx.fillRect(0, 0, this.layout.W, this.layout.H);
+      ctx.fillRect(viewRect.x - cell, viewRect.y - cell, viewRect.w + cell * 2, viewRect.h + cell * 2);
     }
 
     // Reset transform for the DOM bubble pass (screen-space positioning).

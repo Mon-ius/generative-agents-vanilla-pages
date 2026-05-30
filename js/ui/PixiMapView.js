@@ -78,6 +78,7 @@ export class PixiMapView {
       getViewport: () => this._viewport(),
       onChange: () => this._persist && this._persist(),
       config: {
+        infinite: CONFIG.camera.infinite,
         minZoom: CONFIG.camera.minZoom,
         maxZoom: CONFIG.camera.maxZoom,
         zoomStep: CONFIG.camera.zoomStep,
@@ -128,6 +129,11 @@ export class PixiMapView {
     this._clearChunks();
     this.layout = computeLayout(this.sim);
 
+    // Infinite grass beneath everything — covers the boundless area beyond the
+    // town chunks so panning/zooming never reveals a hard edge.
+    this.grassLayer = this._makeGrassLayer();
+    if (this.grassLayer) stage.addChild(this.grassLayer);
+
     // Lazily-baked static world: chunk sprites added on demand by _cullChunks.
     this.chunkLayer = new PIXI.Container();
     stage.addChild(this.chunkLayer);
@@ -168,24 +174,46 @@ export class PixiMapView {
     this._built = true;
   }
 
-  // Center the camera on the selected agent at a comfortable game zoom
-  // (~cellsAcross cells visible across the viewport width), snapping so there
-  // is no glide on the first paint / after a reset.
-  defaultView(cellsAcross = 7) {
+  // Open centered on the MAP CENTER at a comfortable game zoom (~cellsAcross
+  // cells across the viewport), snapping so there is no glide on first paint.
+  defaultView(cellsAcross = 12) {
     const cam = this.camera;
     if (!cam) return;
     const CELL = this.layout.CELL || 176;
     const vp = this._viewport();
     const s = Math.min(cam.maxScale(), Math.max(cam.minScale(), vp.w / (cellsAcross * CELL)));
-    const e = this.entries.get(this.sim.selectedAgentId);
-    const wx = e && e.pos ? e.pos.x : this.layout.W / 2;
-    const wy = e && e.pos ? e.pos.y : this.layout.H / 2;
     cam.tscale = s;
-    cam.centerOn(wx, wy);
+    cam.centerOn(this.layout.W / 2, this.layout.H / 2);
     cam.scale = cam.tscale;
     cam.x = cam.tx;
     cam.y = cam.ty;
     this._invalidateCull && this._invalidateCull();
+  }
+
+  // Build the infinite-grass tiling layer from the grass tile (null if no tiles
+  // are loaded — the app's green background then shows beyond the town instead).
+  _makeGrassLayer() {
+    const PIXI = this.PIXI;
+    const g = this.sprites && this.sprites.grass;
+    if (!g || !PIXI || !PIXI.TilingSprite) return null;
+    let tex;
+    try { tex = PIXI.Texture.from(g); if (tex.source && "scaleMode" in tex.source) tex.source.scaleMode = "nearest"; }
+    catch (_) { return null; }
+    const ts = new PIXI.TilingSprite({ texture: tex, width: this.layout.W, height: this.layout.H });
+    ts.eventMode = "none";
+    return ts;
+  }
+
+  // Resize/position a world-space node to cover the camera's visible rect (+pad),
+  // keeping a TilingSprite's pattern anchored to world coords. Used for the
+  // infinite grass and the day/night overlay so both fill the boundless view.
+  _coverVisible(node, pad) {
+    if (!node) return;
+    const r = this.camera.visibleWorldRect();
+    node.position.set(r.x - pad, r.y - pad);
+    node.width = r.w + pad * 2;
+    node.height = r.h + pad * 2;
+    if (node.tilePosition) node.tilePosition.set(-(r.x - pad), -(r.y - pad));
   }
 
   // ---- static world chunks (lazy + culled) ---------------------------------
@@ -463,6 +491,7 @@ export class PixiMapView {
     this.camera.tick(reduce);
     this.world.scale.set(this.camera.scale);
     this.world.position.set(this.camera.x, this.camera.y);
+    if (this.grassLayer) this._coverVisible(this.grassLayer, this.layout.CELL || 176);
     this._cullChunks();
 
     const selId = this.sim.selectedAgentId;
@@ -529,6 +558,7 @@ export class PixiMapView {
 
     this._updateGroupBubble();
 
+    this._coverVisible(this.overlay, this.layout.CELL || 176); // tint the boundless view too
     const amb = ambient(this.sim.time.minutesIntoDay);
     this.overlay.tint = (amb.r << 16) | (amb.g << 8) | amb.b;
     this.overlay.alpha = amb.a;

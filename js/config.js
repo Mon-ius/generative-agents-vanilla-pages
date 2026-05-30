@@ -52,7 +52,8 @@ export const CONFIG = {
 
   // ----- Camera (zoom/pan) -----
   camera: {
-    minZoom: null, // computed as fit-to-viewport when null
+    infinite: true, // boundless world: infinite grass beyond the town, roam freely
+    minZoom: 0.16, // absolute zoom-out floor (town sits in a sea of grass)
     maxZoom: 4,
     zoomStep: 1.12,
     easing: 0.18,

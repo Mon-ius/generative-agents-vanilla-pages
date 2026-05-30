@@ -110,6 +110,9 @@ export class Camera {
    */
   minScale() {
     const { w, h } = this._vp();
+    // Boundless world: the zoom-out floor is an absolute value, not "fit the
+    // world" (there is no world edge — grass extends infinitely).
+    if (this.config.infinite) return this.config.minZoom || 0.12;
     const fit = Math.min(w / this.worldW, h / this.worldH);
     const floor = this.config.minZoom; // explicit hard floor, if any
     if (typeof floor === "number" && floor > 0) return Math.min(fit, floor);
@@ -122,15 +125,18 @@ export class Camera {
 
   // ---- imperative controls -------------------------------------------------
 
-  /** Fit the entire world to the viewport and center it. Sets the target. */
+  /** Frame the whole town, centered. (With an infinite world this is "show the
+   * town", not "fit the edges" — there are no edges.) Sets the target. */
   fit() {
     const { w, h } = this._vp();
-    const s = this.minScale();
+    const frame = Math.min(w / this.worldW, h / this.worldH) * (this.config.infinite ? 0.9 : 1);
+    const s = clamp(frame, this.minScale(), this.maxScale());
     this.tscale = s;
-    // center: leftover viewport space split evenly around the scaled world.
+    // center the town in the viewport.
     this.tx = (w - this.worldW * s) / 2;
     this.ty = (h - this.worldH * s) / 2;
     this.vx = this.vy = 0;
+    this._clampTarget();
     this._emit();
   }
 
@@ -191,6 +197,16 @@ export class Camera {
    */
   _clampTarget() {
     const { w, h } = this._vp();
+    if (this.config.infinite) {
+      // Boundless: roam freely into the surrounding infinite grass, but keep the
+      // town reachable by limiting the screen-centre world point to within `pad`
+      // of the town's bounds (so you can't get lost in an endless empty field).
+      const pad = Math.max(this.worldW, this.worldH) * 0.85;
+      const s = this.tscale;
+      this.tx = clamp(this.tx, w / 2 - (this.worldW + pad) * s, w / 2 + pad * s);
+      this.ty = clamp(this.ty, h / 2 - (this.worldH + pad) * s, h / 2 + pad * s);
+      return;
+    }
     const sw = this.worldW * this.tscale;
     const sh = this.worldH * this.tscale;
 
@@ -290,6 +306,7 @@ export class Camera {
 
   /** True when the scaled world overflows the viewport — i.e. there is room to pan. */
   canPan() {
+    if (this.config.infinite) return true; // boundless world: always pannable (grass to roam)
     const { w, h } = this._vp();
     return this.worldW * this.scale > w + 0.5 || this.worldH * this.scale > h + 0.5;
   }
