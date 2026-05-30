@@ -11,7 +11,8 @@ multi-district town — observe, store/retrieve memories, plan their day, reflec
 ES-module JavaScript — **no build step, no bundler, no transpiler, no backend, no LLM
 API keys**. The town is rendered with vendored PixiJS (WebGL) and an automatic canvas-2D
 fallback, both **high-DPI**, **chunk-baked + viewport-culled**, with a shared
-**draggable/zoomable Camera** and animated **CharacterFactory** avatars.
+**free-roam Camera** over a **boundless** map (the town floats in an infinite field of
+grass) and animated **CharacterFactory** avatars.
 
 ## Deploy snapshot + dev tooling
 
@@ -42,7 +43,7 @@ node tools/check-all.mjs    # or: npm run check   — node --check every js/**/*
 window.runSmokeTest()       // in the browser console; MUTATES the live sim (steps/selects/saves/resets)
 ```
 `window.__app` (`{ app, sim, renderer, controls, map }`) is exposed for live inspection;
-`__app.map.camera` exposes the pan/zoom Camera (`fit()`, `zoomIn/Out`, `toJSON/applyState`).
+`__app.map.camera` exposes the pan/zoom Camera (`fit()`, `zoomIn/Out`, `centerOn(wx,wy)`, `toJSON/applyState`).
 
 **Deploy** — GitHub Pages branch publishing. The current branch is **`master`** (the
 README's deploy script says `main` — that is stale; the repo was renamed to `master`).
@@ -128,8 +129,9 @@ all cognition is delegated to focused modules, and **all text generation goes th
   overridable via the `#seed=…` URL hash for shareable runs) is **different** from the
   procedural-art seed `"willow-creek-art-v2"` and from the town name "Willow Creek".
 - **Two separate persistence stores** (both `localStorage`, version-suffixed keys):
-  full sim state under `CONFIG.storageKey` (`…:state:v1`) via `sim.save()/load()`; UI
-  settings (speed/debug/seed) under `CONFIG.settingsKey` (`…:settings:v1`).
+  full sim state under `CONFIG.storageKey` (`generative-agents-vanilla:state:v1`) via
+  `sim.save()/load()`; UI settings (speed/debug/seed) under `CONFIG.settingsKey`
+  (`generative-agents-vanilla:settings:v1`).
 - **Two save paths**: localStorage (`sim.save()/sim.load()`) vs. file export/import
   (`sim.getState()` → JSON download; `sim.loadState(state)` ← imported file).
 
@@ -149,11 +151,18 @@ modules, so they stay in lockstep:
   it's **baked per chunk** (4×4 cells) **lazily and viewport-culled**. `makeChunkCanvas`,
   `visibleChunks`, `chunkDims`, `chunkWorldRect`, `chunkKey`. Pixi LRU-caches chunk textures
   (`CONFIG.rendering.chunkCacheMax`); off-screen chunks/agents are hidden.
-- **`camera.js`** (`Camera`) — shared **drag-pan + wheel/pinch-zoom + inertia + fit + clamp**,
-  `worldToScreen`/`screenToWorld`, `visibleWorldRect()` (the culling source), `toJSON/applyState`
-  (persisted to `settings.camera`). Pixi applies it to the world container; canvas via
-  `ctx.setTransform`. Each renderer's `defaultView()` opens centered on the selected agent at a
-  game zoom (~7 cells); the **Fit** toolbar button / zoom-out shows the whole town.
+- **`camera.js`** (`Camera`) — **one** renderer-agnostic controller for **both** views (Pixi
+  applies it to the world container via `scale`/`position`; canvas via `ctx.setTransform`):
+  **drag-pan + wheel/pinch-zoom + inertia + double-tap-zoom**, `worldToScreen`/`screenToWorld`,
+  `visibleWorldRect()` (the culling source), `centerOn(wx,wy)`, `toJSON/applyState` (persisted to
+  `settings.camera`). Node-safe — the pure math constructs/runs with no DOM (tests use it). The
+  world is **boundless** (`CONFIG.camera.infinite`): there are **no map edges** — the town floats
+  in infinite grass, so the zoom-out floor is an **absolute** `minScale` (`CONFIG.camera.minZoom`),
+  **not** fit-to-world; `canPan()` is always true; and `_clampTarget()` only *soft*-limits roaming
+  (a `pad` around the town keeps it reachable instead of clamping to an edge). `fit()` / the **Fit**
+  toolbar button frames the town centered (not its edges); the initial view opens centered on the
+  town, and **selecting or clicking a resident** (on the map or in the legend) smoothly `centerOn`s
+  them.
 - **`characters.js`** (`createCharacterFactory`) — **one avatar source for both renderers**:
   loads the manifest (`assets/characters.json`) + sheets, runtime-slices the walk frames,
   and **always** has an enhanced **procedural** fallback (varied skin/hair/outfit
@@ -187,10 +196,10 @@ packs); the two atlases are the only image assets.
 
 - **`js/config.js` is the single source of tunable truth** — now also `CONFIG.world`
   (`gridWidth/Height`, `cellPixels`), `CONFIG.rendering` (`resolutionScale`, `chunkCells`,
-  `chunkCacheMax`, `maxBakePx`), `CONFIG.camera` (`maxZoom`, `zoomStep`, `easing`),
+  `chunkCacheMax`, `maxBakePx`), `CONFIG.camera` (`infinite`, `minZoom`, `maxZoom`, `zoomStep`, `easing`),
   `CONFIG.movement` (`pathfindingEnabled`, `subdivisions`, `walkSpeedPixelsPerFrame`,
   `maxAStarNodes`), `CONFIG.characters` (`useSpritesheets`, `fps`, `frameScale`), plus
-  `conversation.maxGroupSize` and `ui.timelineMax`. `js/ui/ParamControls.js` mutates retrieval/
+  `conversation.maxGroupSize` and `ui` (`timelineVisible`/`memoryVisible`/`timelineMax`). `js/ui/ParamControls.js` mutates retrieval/
   reflection live for in-browser ablation; the engine re-reads `CONFIG` each tick. Caveat:
   `TimeManager` **caches** `minutesPerTick`, so the Minutes/tick slider also writes
   `sim.time.minutesPerTick` — keep that dual-write.
