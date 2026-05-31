@@ -836,40 +836,53 @@ function spriteBuilding(g, S, rc, lightsOn) {
   g.textAlign = "left";
 }
 
-// 2×2 room layout per building type (kinds are shuffled per building)
-const ROOMS = {
-  home: ["bedroom", "bath", "kitchen", "living"],
-  cafe: ["counter", "seating", "seating", "kitchen"],
-  shop: ["shelves", "shelves", "counter", "storage"],
-  library: ["shelves", "shelves", "study", "study"],
-  school: ["board", "desks", "desks", "study"],
-  health: ["cot", "cot", "bath", "storage"],
-  civic: ["meeting", "study", "shelves", "living"],
-  studio: ["work", "study", "living", "storage"],
+// Per-type floor plan: a top band of two small rooms (a private room + a bath/
+// utility) over one large common room — matching the reference houses. Each entry
+// is { tl, tr, main } room-kind ids consumed by furnish().
+const PLAN = {
+  home:    { tl: "bedroom", tr: "bath", main: "living"  },
+  cafe:    { tl: "bedroom", tr: "bath", main: "cafe"    },
+  shop:    { tl: "storage", tr: "bath", main: "shop"    },
+  library: { tl: "study",   tr: "bath", main: "library" },
+  school:  { tl: "bedroom", tr: "bath", main: "class"   },
+  health:  { tl: "ward",    tr: "bath", main: "ward"    },
+  civic:   { tl: "study",   tr: "bath", main: "meeting" },
+  studio:  { tl: "bedroom", tr: "bath", main: "studio"  },
 };
+const DEFAULT_PLAN = { tl: "bedroom", tr: "bath", main: "living" };
 
+// Lay out a building interior as "two small rooms over one large room" with a
+// doorway gap punched through each interior wall, then furnish each room with
+// wall-hugging fixtures.
 function spriteRooms(g, S, type, x, y, w, h, rng) {
-  const kinds = (ROOMS[type] || ["living", "study", "bedroom", "kitchen"]).slice();
-  for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
-  const gap = 3;
-  const rw = (w - gap) / 2, rh = (h - gap) / 2;
-  const cells = [
-    { x, y, w: rw, h: rh },
-    { x: x + rw + gap, y, w: rw, h: rh },
-    { x, y: y + rh + gap, w: rw, h: rh },
-    { x: x + rw + gap, y: y + rh + gap, w: rw, h: rh },
-  ];
-  cells.forEach((c, i) => furnish(g, S, kinds[i % kinds.length], c, rng));
-  // interior wall dividers
+  const plan = PLAN[type] || DEFAULT_PLAN;
+  const wall = 3, door = 16;
+  const topH = Math.max(22, Math.round(h * 0.44));   // residential band height
+  const splitX = x + Math.round(w * 0.56);           // private | bath divider
+  const tl = { x, y, w: splitX - x - wall, h: topH };
+  const tr = { x: splitX + wall, y, w: x + w - (splitX + wall), h: topH };
+  const main = { x, y: y + topH + wall, w, h: h - topH - wall };
+
+  furnish(g, S, plan.tl, tl, rng);
+  furnish(g, S, plan.tr, tr, rng);
+  furnish(g, S, plan.main, main, rng);
+
+  // interior walls, each with a doorway gap
   g.fillStyle = "#bdb094";
-  g.fillRect(x + rw, y, gap, h);
-  g.fillRect(x, y + rh, w, gap);
+  const hGap = x + Math.round(w * 0.5) - door / 2;   // door between band & common room
+  g.fillRect(x, y + topH, Math.max(0, hGap - x), wall);
+  g.fillRect(hGap + door, y + topH, Math.max(0, x + w - (hGap + door)), wall);
+  const vGap = y + Math.round(topH * 0.52) - door / 2; // door between the two top rooms
+  g.fillRect(splitX, y, wall, Math.max(0, vGap - y));
+  g.fillRect(splitX, vGap + door, wall, Math.max(0, y + topH - (vGap + door)));
 }
 
+// Common rooms get warm wood; private/utility rooms get tan tile; baths get pink.
+const TILED_ROOMS = new Set(["bedroom", "study", "storage", "ward", "kitchen"]);
 function roomFloor(g, S, kind, c) {
   let f = S.floor_wood;
   if (kind === "bath") f = S.floor_pink || S.floor_tile;
-  else if (kind === "kitchen") f = S.floor_tile;
+  else if (TILED_ROOMS.has(kind)) f = S.floor_tile;
   clipTile(g, f || S.floor_wood, c.x, c.y, c.w, c.h);
 }
 
@@ -879,88 +892,84 @@ function furnish(g, S, kind, c, rng) {
   g.beginPath();
   g.rect(c.x, c.y, c.w, c.h);
   g.clip();
-  const L = c.x + 2, T = c.y + 2, R = c.x + c.w, B = c.y + c.h;
+  const L = c.x + 2, T = c.y + 2, R = c.x + c.w, B = c.y + c.h, MX = c.x + c.w / 2, MY = c.y + c.h / 2;
   const beds = [S.bed, S.bed_red, S.bed_green].filter(Boolean);
   const chairs = [S.chair, S.chair_red, S.chair_yellow, S.chair_green].filter(Boolean);
   const rugs = [S.rug, S.rug_blue, S.rug_green].filter(Boolean);
   switch (kind) {
+    // ---- small rooms in the top band: fixtures hug the back (top) wall ----
     case "bedroom":
       put(g, pick(beds, rng), L, T);
-      put(g, S.nightstand, R - 14, T);
-      put(g, (rng() < 0.45 && S.wardrobe) ? S.wardrobe : (rng() < 0.6 ? S.dresser : S.bookshelf), L, B - 18);
-      if (rng() < 0.5) put(g, S.lamp, R - 12, B - 20);
-      if (rng() < 0.5) put(g, S.clock || S.painting, R - 13, T + 14);
+      put(g, S.nightstand, L + 16, T);
+      put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 17, T);
+      if (rng() < 0.5 && S.clock) put(g, S.clock, MX - 5, T);
+      else if (S.lamp) put(g, S.lamp, R - 11, B - 20);
       break;
     case "bath":
       put(g, S.toilet, L, T);
-      put(g, S.vanity || S.sink, R - 18, T);
-      if (rng() < 0.6) put(g, S.plant, L, B - 20);
-      break;
-    case "kitchen":
-      put(g, S.counter, L, T);
-      put(g, S.fridge, R - 18, T + 2);
-      put(g, S.oven || S.stove, L, B - 18);
-      if (S.utensil_rack) put(g, S.utensil_rack, L + 2, T + 13);
-      break;
-    case "living":
-      put(g, pick(rugs, rng), L + 2, B - 22);
-      put(g, S.sofa, L, T);
-      if (rng() < 0.7) put(g, S.tv, R - 20, T + 2);
-      if (rng() < 0.6) put(g, S.plant, R - 14, B - 20);
-      if (rng() < 0.5 && S.clock) put(g, S.clock, L + 3, T);
-      break;
-    case "shelves":
-      put(g, S.bookshelf, L, T);
-      put(g, S.bookshelf, L + 20, T);
-      if (rng() < 0.5) put(g, S.bookshelf, R - 18, T);
-      break;
-    case "counter":
-      put(g, S.bar || S.counter, L, T);
-      if (S.stool) { put(g, S.stool, L + 5, B - 11); put(g, S.stool, L + 17, B - 11); put(g, S.stool, L + 29, B - 11); }
-      else { put(g, pick(chairs, rng), L + 4, B - 16); put(g, pick(chairs, rng), L + 22, B - 16); }
-      break;
-    case "seating":
-      put(g, S.table, L + 6, T + 6);
-      put(g, pick(chairs, rng), L, T);
-      put(g, pick(chairs, rng), R - 14, T);
-      put(g, pick(chairs, rng), L, B - 14);
-      put(g, pick(chairs, rng), R - 14, B - 14);
-      break;
-    case "desks":
-      put(g, S.desk, L, T); put(g, S.desk, L + 22, T);
-      put(g, S.desk, L, T + 18); put(g, S.desk, L + 22, T + 18);
-      break;
-    case "board":
-      put(g, S.board, L, T);
-      put(g, S.desk, L, T + 14); put(g, S.desk, L + 22, T + 14);
-      break;
-    case "cot":
-      put(g, pick(beds, rng), L, T);
-      if (rng() < 0.6) put(g, S.plant, R - 14, B - 20);
+      put(g, S.vanity || S.sink, R - 17, T);
+      if (rng() < 0.5) put(g, S.plant, L, B - 18);
       break;
     case "study":
       put(g, S.desk, L, T);
-      put(g, pick(chairs, rng), L + 2, T + 14);
-      put(g, S.bookshelf, R - 18, T);
-      break;
-    case "meeting":
-      put(g, S.table, L + 8, T + 8);
-      put(g, pick(chairs, rng), L, T); put(g, pick(chairs, rng), R - 14, T);
-      put(g, pick(chairs, rng), L, B - 14); put(g, pick(chairs, rng), R - 14, B - 14);
-      break;
-    case "work":
-      put(g, S.easel || S.table, L, T);
-      if (S.microphone) put(g, S.microphone, R - 11, B - 24);
-      put(g, S.bookshelf, R - 18, T);
-      if (rng() < 0.6) put(g, S.plant, L, B - 20);
+      put(g, pick(chairs, rng), L + 2, T + 13);
+      put(g, S.bookshelf, R - 17, T);
       break;
     case "storage":
       put(g, S.washer || S.fridge, L, T);
-      put(g, S.dresser, R - 18, T);
-      if (rng() < 0.5) put(g, S.bookshelf, L, B - 16);
+      put(g, S.dresser, R - 17, T);
+      break;
+    case "ward":
+      put(g, pick(beds, rng), L, T);
+      put(g, S.nightstand, R - 13, T);
+      break;
+    // ---- large common rooms (bottom): a back counter/feature + central pieces ----
+    case "living":
+      put(g, pick(rugs, rng), MX - 13, B - 22);
+      put(g, S.sofa, MX - 15, T);
+      if (S.tv) put(g, S.tv, MX + 8, T + 1);
+      put(g, S.table, MX - 3, MY);
+      if (rng() < 0.7) put(g, S.plant, R - 14, B - 18);
+      if (S.clock) put(g, S.clock, L, T);
+      break;
+    case "cafe":
+      put(g, S.bar || S.counter, L, T);                         // bar along back wall
+      if (S.stool) for (let i = 0; i < 3; i++) put(g, S.stool, L + 6 + i * 12, T + 15);
+      put(g, S.fridge, R - 17, T + 1);
+      put(g, S.table, L + 5, B - 22); put(g, pick(chairs, rng), L + 1, B - 11); put(g, pick(chairs, rng), L + 19, B - 11);
+      put(g, S.table, R - 27, B - 22); put(g, pick(chairs, rng), R - 30, B - 11); put(g, pick(chairs, rng), R - 13, B - 11);
+      if (S.microphone) put(g, S.microphone, MX - 3, B - 24);
+      break;
+    case "shop":
+      put(g, S.bookshelf, L, T); put(g, S.bookshelf, L + 19, T);  // stock shelves
+      put(g, S.fridge, R - 17, T + 1);
+      put(g, S.counter, MX - 8, B - 18);
+      if (rng() < 0.6) put(g, S.plant, L, B - 18);
+      break;
+    case "library":
+      put(g, S.bookshelf, L, T); put(g, S.bookshelf, L + 19, T); put(g, S.bookshelf, R - 17, T);
+      put(g, pick(rugs, rng), MX - 13, B - 22);
+      put(g, S.table, MX - 3, MY); put(g, pick(chairs, rng), MX - 11, B - 12); put(g, pick(chairs, rng), MX + 7, B - 12);
+      break;
+    case "class":
+      if (S.board) put(g, S.board, MX - 15, T);                  // chalkboard on back wall
+      for (let r = 0; r < 2; r++) for (let i = 0; i < 3; i++) put(g, S.desk, L + 4 + i * 20, T + 16 + r * 16);
+      break;
+    case "meeting":
+      put(g, S.table, MX - 4, MY - 6);
+      put(g, pick(chairs, rng), MX - 12, MY - 12); put(g, pick(chairs, rng), MX + 6, MY - 12);
+      put(g, pick(chairs, rng), MX - 12, MY + 6); put(g, pick(chairs, rng), MX + 6, MY + 6);
+      put(g, S.bookshelf, L, T); put(g, S.bookshelf, R - 17, T);
+      break;
+    case "studio":
+      put(g, S.easel || S.table, L, T);
+      if (S.microphone) put(g, S.microphone, MX, T);
+      put(g, S.bookshelf, R - 17, T);
+      put(g, S.table, MX - 3, B - 20);
+      if (rng() < 0.6) put(g, S.plant, L, B - 18);
       break;
     default:
-      put(g, S.table, L + 6, T + 6);
+      put(g, S.table, MX - 6, MY);
       put(g, S.plant, L, T);
   }
   g.restore();
