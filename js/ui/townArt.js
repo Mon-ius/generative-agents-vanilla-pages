@@ -92,6 +92,7 @@ export function computeLayout(sim) {
   // Collision grid for pathfinding — built AFTER rects so it matches the drawn
   // footprints exactly. buildGrid is DOM-free, so this stays headless-safe.
   layout.collisionGrid = buildGrid(layout);
+  layout.complexes = groupComplexes(layout);
 
   return layout;
 }
@@ -719,14 +720,16 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
   if (rectsIntersect(wr, W - 150, 60, 9 * 14, 3 * 14)) flowerPatch(g, S, W - 150, 60, 9, 3, seededRandom("fp1"));
   if (rectsIntersect(wr, 52, H - 96, 6 * 14, 3 * 14)) flowerPatch(g, S, 52, H - 96, 6, 3, seededRandom("fp2"));
 
-  // buildings / park / plaza, back-to-front (only those near wr)
-  const visible = [...rects.values()]
-    .filter((rc) => footprintNearRect(wr, rc, MARGIN))
-    .sort((a, b) => a.cy - b.cy);
-  for (const rc of visible) {
+  // apartment complexes (grouped buildings), back-to-front, only those near wr
+  const complexes = (layout.complexes || [])
+    .filter((cp) => rectsIntersect(wr, cp.x - MARGIN, cp.y - MARGIN, cp.w + MARGIN * 2, cp.h + MARGIN * 2))
+    .sort((a, b) => (a.y + a.h) - (b.y + b.h));
+  for (const cp of complexes) spriteComplex(g, S, cp, lightsOn);
+  // parks & plazas (outdoor) drawn standalone, on top
+  for (const rc of rects.values()) {
+    if (!footprintNearRect(wr, rc, MARGIN)) continue;
     if (rc.loc.type === "park") spritePark(g, S, rc);
     else if (rc.loc.type === "square") spritePlaza(g, S, rc);
-    else spriteBuilding(g, S, rc, lightsOn);
   }
 }
 
@@ -797,12 +800,62 @@ function put(g, img, x, y) {
 
 function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)] : null; }
 
-function spriteBuilding(g, S, rc, lightsOn) {
+// Group buildings into apartment COMPLEXES by super-block, so a cluster of homes/
+// shops renders as ONE shell with an array of rooms + shared corridors (parks &
+// plazas stay standalone). Deterministic; computed once in computeLayout.
+function groupComplexes(layout) {
+  const BW = 6, BH = 4; // super-block size in cells
+  const groups = new Map();
+  for (const rc of layout.rects.values()) {
+    const t = rc.loc.type;
+    if (t === "park" || t === "square") continue;
+    const key = Math.floor(rc.loc.x / BW) + "," + Math.floor(rc.loc.y / BH);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(rc);
+  }
+  const complexes = [];
+  for (const members of groups.values()) {
+    let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+    for (const r of members) { a = Math.min(a, r.bx); b = Math.min(b, r.by); c = Math.max(c, r.bx + r.bw); d = Math.max(d, r.by + r.bh); }
+    const pad = 6;
+    complexes.push({ members, x: a - pad, y: b - pad, w: c - a + pad * 2, h: d - b + pad * 2 });
+  }
+  return complexes;
+}
+
+// Draw an apartment complex: a shared corridor floor, each member unit's walled
+// interior (no individual roof), one compound outer wall with a ground-floor entry
+// gap, a single eave across the top, and entry fixtures (stairs / mat / mailbox /
+// windows). A lone member just renders as a normal standalone building.
+function spriteComplex(g, S, complex, lightsOn) {
+  const { members, x, y, w, h } = complex;
+  if (members.length <= 1) { if (members[0]) spriteBuilding(g, S, members[0], lightsOn); return; }
+  clipTile(g, S.corridor || S.floor_wood, x, y, w, h);                 // shared corridor floor
+  for (const rc of [...members].sort((p, q) => p.by - q.by)) spriteBuilding(g, S, rc, lightsOn, { noRoof: true });
+  const WL = S.wall2 || S.wall;
+  if (WL) {
+    g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+    for (let xx = x; xx < x + w; xx += 16) g.drawImage(WL, xx, y, 16, 16);                                   // top wall
+    for (let yy = y; yy < y + h; yy += 16) { g.drawImage(WL, x, yy, 16, 16); g.drawImage(WL, x + w - 16, yy, 16, 16); } // sides
+    const eL = x + w / 2 - 24, eR = x + w / 2 + 24;                                                          // bottom wall w/ entry gap
+    for (let xx = x; xx < x + w; xx += 16) if (xx + 16 <= eL || xx >= eR) g.drawImage(WL, xx, y + h - 16, 16, 16);
+    if (S.window) for (let wx = x + 30; wx < x + w - 30; wx += 80) g.drawImage(S.window, wx, y + 2, 16, 12); // windows on the front wall
+    g.restore();
+  }
+  g.strokeStyle = "#2f2a22"; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  shingleRoof(g, { bx: x, bw: w, by: y }, ROOF_DEFAULT);              // one eave across the whole complex
+  if (lightsOn) eaveLight(g, { bx: x, bw: w, by: y });
+  if (S.stairs) g.drawImage(S.stairs, x + w / 2 - 14, y + h - 3, 28, 16);
+  if (S.doormat) g.drawImage(S.doormat, x + w / 2 - 8, y + h - 19, 16, 8);
+  if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
+}
+
+function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
   const { bx, by, bw, bh, cx } = rc;
   const rng = seededRandom("furn-" + rc.loc.id);
 
-  // wooden entry deck/porch below the door (about half of the buildings)
-  if (S.deck && seededRandom("deck-" + rc.loc.id)() < 0.5) clipTile(g, S.deck, cx - 22, by + bh - 1, 44, 18);
+  // wooden entry deck/porch below the door (standalone buildings only, not in a complex)
+  if (!opts.noRoof && S.deck && seededRandom("deck-" + rc.loc.id)() < 0.5) clipTile(g, S.deck, cx - 22, by + bh - 1, 44, 18);
 
   clipTile(g, S.floor_wood, bx, by, bw, bh); // base floor
 
@@ -826,8 +879,8 @@ function spriteBuilding(g, S, rc, lightsOn) {
   g.strokeStyle = "#2f2a22";
   g.lineWidth = 1;
   g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-  // cozy shingled roof eave capping the top
-  shingleRoof(g, rc, ROOF[rc.loc.type] || ROOF_DEFAULT);
+  // cozy shingled roof eave capping the top (skipped for units inside a complex)
+  if (!opts.noRoof) shingleRoof(g, rc, ROOF[rc.loc.type] || ROOF_DEFAULT);
   // warm window-light wash on the eave when lit (e.g. night bakes)
   if (lightsOn) eaveLight(g, rc);
   const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;

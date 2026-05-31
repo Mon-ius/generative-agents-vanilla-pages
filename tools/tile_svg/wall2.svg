@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="wall2_mortar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0d4ba"/><stop offset="1" stop-color="#cabd9d"/></linearGradient>
+    <linearGradient id="wall2_brick" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bd7656"/><stop offset="0.5" stop-color="#b06a4a"/><stop offset="1" stop-color="#9c5a3f"/></linearGradient>
+    <linearGradient id="wall2_brickB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b67050"/><stop offset="1" stop-color="#955338"/></linearGradient>
+    <filter id="wall2_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.45 0.5" numOctaves="3" seed="11" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <!-- mortar base fills full bounds (opaque, tileable) -->
+  <rect width="64" height="64" fill="url(#wall2_mortar)"/>
+  <!-- four courses of 16px brick rows, offset alternating; wrap at edges to tile seamlessly -->
+  <!-- row 0 (y 1..14): half-offset, bricks split at left/right edge -->
+  <rect x="-8" y="1" width="30" height="13" rx="1.5" fill="url(#wall2_brick)"/>
+  <rect x="24" y="1" width="30" height="13" rx="1.5" fill="url(#wall2_brickB)"/>
+  <rect x="56" y="1" width="30" height="13" rx="1.5" fill="url(#wall2_brick)"/>
+  <!-- row 1 (y 17..30): aligned -->
+  <rect x="1" y="17" width="30" height="13" rx="1.5" fill="url(#wall2_brickB)"/>
+  <rect x="33" y="17" width="30" height="13" rx="1.5" fill="url(#wall2_brick)"/>
+  <!-- row 2 (y 33..46): half-offset -->
+  <rect x="-8" y="33" width="30" height="13" rx="1.5" fill="url(#wall2_brick)"/>
+  <rect x="24" y="33" width="30" height="13" rx="1.5" fill="url(#wall2_brickB)"/>
+  <rect x="56" y="33" width="30" height="13" rx="1.5" fill="url(#wall2_brick)"/>
+  <!-- row 3 (y 49..62): aligned -->
+  <rect x="1" y="49" width="30" height="13" rx="1.5" fill="url(#wall2_brickB)"/>
+  <rect x="33" y="49" width="30" height="13" rx="1.5" fill="url(#wall2_brick)"/>
+  <!-- grain over the whole block -->
+  <rect width="64" height="64" fill="#6e3c28" filter="url(#wall2_grain)" opacity="0.32"/>
+  <!-- top-left light highlight band on each course top edge -->
+  <g opacity="0.4" fill="#e6b89a">
+    <rect x="-8" y="1" width="30" height="2" rx="1"/><rect x="24" y="1" width="30" height="2" rx="1"/><rect x="56" y="1" width="30" height="2" rx="1"/>
+    <rect x="1" y="17" width="30" height="2" rx="1"/><rect x="33" y="17" width="30" height="2" rx="1"/>
+    <rect x="-8" y="33" width="30" height="2" rx="1"/><rect x="24" y="33" width="30" height="2" rx="1"/><rect x="56" y="33" width="30" height="2" rx="1"/>
+    <rect x="1" y="49" width="30" height="2" rx="1"/><rect x="33" y="49" width="30" height="2" rx="1"/>
+  </g>
+  <!-- bottom-right shading under each brick -->
+  <g opacity="0.28" fill="#5e2f1d">
+    <rect x="-8" y="12" width="30" height="2"/><rect x="24" y="12" width="30" height="2"/><rect x="56" y="12" width="30" height="2"/>
+    <rect x="1" y="28" width="30" height="2"/><rect x="33" y="28" width="30" height="2"/>
+    <rect x="-8" y="44" width="30" height="2"/><rect x="24" y="44" width="30" height="2"/><rect x="56" y="44" width="30" height="2"/>
+    <rect x="1" y="60" width="30" height="2"/><rect x="33" y="60" width="30" height="2"/>
+  </g>
+</svg>

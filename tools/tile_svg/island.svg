@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="64" viewBox="0 0 112 64">
+  <defs>
+    <linearGradient id="island_wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#946334"/><stop offset="1" stop-color="#5f4326"/></linearGradient>
+    <linearGradient id="island_counter" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0d0b4"/><stop offset="0.5" stop-color="#cbb08a"/><stop offset="1" stop-color="#b59970"/></linearGradient>
+    <linearGradient id="island_stool" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d7dde1"/><stop offset="1" stop-color="#a9b4bb"/></linearGradient>
+    <radialGradient id="island_sink" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#cdd6dc"/><stop offset="1" stop-color="#8b969d"/></radialGradient>
+    <filter id="island_woodgrain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.4" numOctaves="3" seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0 0 0 0" result="a"/>
+      <feComposite in="a" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="island_stonegrain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="3" seed="3" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0" result="a"/>
+      <feComposite in="a" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <!-- contact shadow -->
+  <ellipse cx="56" cy="56" rx="48" ry="6" fill="#3a2c1e" opacity="0.25"/>
+  <!-- wood cabinet base (visible front face below the slab) -->
+  <rect x="14" y="22" width="84" height="32" rx="3" fill="url(#island_wood)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="14" y="22" width="84" height="32" rx="3" fill="#4a3320" filter="url(#island_woodgrain)" opacity="0.4"/>
+  <!-- cabinet door seams -->
+  <g stroke="#3a2c1e" stroke-width="1" opacity="0.55">
+    <line x1="42" y1="24" x2="42" y2="52"/>
+    <line x1="70" y1="24" x2="70" y2="52"/>
+  </g>
+  <g fill="#3a2c1e" opacity="0.8">
+    <rect x="34" y="36" width="4" height="2" rx="1"/>
+    <rect x="46" y="36" width="4" height="2" rx="1"/>
+    <rect x="62" y="36" width="4" height="2" rx="1"/>
+    <rect x="74" y="36" width="4" height="2" rx="1"/>
+  </g>
+  <!-- counter slab (top), slightly overhanging -->
+  <rect x="10" y="10" width="92" height="18" rx="3" fill="url(#island_counter)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="10" y="10" width="92" height="18" rx="3" fill="#9c805c" filter="url(#island_stonegrain)" opacity="0.3"/>
+  <!-- sheen highlight on top-left of slab -->
+  <rect x="14" y="12" width="84" height="3" rx="1.5" fill="#f3e9d6" opacity="0.6"/>
+  <!-- faint seam across slab -->
+  <line x1="56" y1="11" x2="56" y2="27" stroke="#a98d63" stroke-width="0.8" opacity="0.5"/>
+  <!-- small sink basin inset -->
+  <rect x="64" y="14" width="22" height="11" rx="2" fill="url(#island_sink)" stroke="#3a2c1e" stroke-width="1.1"/>
+  <ellipse cx="75" cy="16" rx="8" ry="2" fill="#eef4f7" opacity="0.5"/>
+  <circle cx="83" cy="13" r="1.3" fill="#c9d2d8" stroke="#3a2c1e" stroke-width="0.6"/>
+  <!-- two stools tucked at the front -->
+  <g>
+    <ellipse cx="34" cy="54" rx="7" ry="4" fill="url(#island_stool)" stroke="#3a2c1e" stroke-width="1.2"/>
+    <ellipse cx="34" cy="52.5" rx="5" ry="2.5" fill="#eef0f2" opacity="0.5"/>
+    <ellipse cx="78" cy="54" rx="7" ry="4" fill="url(#island_stool)" stroke="#3a2c1e" stroke-width="1.2"/>
+    <ellipse cx="78" cy="52.5" rx="5" ry="2.5" fill="#eef0f2" opacity="0.5"/>
+  </g>
+</svg>

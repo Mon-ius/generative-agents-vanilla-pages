@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 64 48">
+  <defs>
+    <linearGradient id="window_frame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b88d4f"/><stop offset="0.5" stop-color="#9c6b3f"/><stop offset="1" stop-color="#7c5430"/></linearGradient>
+    <linearGradient id="window_sill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cba067"/><stop offset="1" stop-color="#8a5e35"/></linearGradient>
+    <linearGradient id="window_glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#cfe7f2"/><stop offset="0.45" stop-color="#add0e6"/><stop offset="0.7" stop-color="#9cc4dd"/><stop offset="1" stop-color="#bfddee"/>
+    </linearGradient>
+    <linearGradient id="window_sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="window_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.6 0.7" numOctaves="2" seed="4" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0" result="a"/>
+      <feComposite in="a" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <!-- outer wooden frame -->
+  <rect x="5" y="3" width="54" height="40" rx="3" fill="url(#window_frame)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <!-- inner glass recess -->
+  <rect x="10" y="8" width="44" height="29" rx="2" fill="#5b4a6e"/>
+  <!-- left pane -->
+  <rect x="11.5" y="9.5" width="19" height="26" rx="1.5" fill="url(#window_glass)"/>
+  <!-- right pane -->
+  <rect x="33.5" y="9.5" width="19" height="26" rx="1.5" fill="url(#window_glass)"/>
+  <!-- subtle glass grain/texture -->
+  <rect x="11.5" y="9.5" width="41" height="26" fill="#7fb0d4" filter="url(#window_grain)" opacity="0.18"/>
+  <!-- diagonal glass sheen across both panes -->
+  <polygon points="13,9.5 24,9.5 16,35.5 11.5,35.5" fill="url(#window_sheen)" opacity="0.55"/>
+  <polygon points="36,9.5 44,9.5 38,35.5 34.5,35.5" fill="url(#window_sheen)" opacity="0.5"/>
+  <!-- bright top-left specular glint -->
+  <rect x="12.5" y="10.5" width="7" height="2" rx="1" fill="#ffffff" opacity="0.7"/>
+  <rect x="34.5" y="10.5" width="7" height="2" rx="1" fill="#ffffff" opacity="0.6"/>
+  <!-- centre mullion -->
+  <rect x="30" y="8" width="4" height="29" rx="1" fill="url(#window_frame)" stroke="#3a2c1e" stroke-width="1"/>
+  <!-- top frame highlight -->
+  <rect x="6" y="4" width="52" height="2.5" rx="1.2" fill="#d8b277" opacity="0.7"/>
+  <!-- sill -->
+  <rect x="3" y="40" width="58" height="6" rx="2" fill="url(#window_sill)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="4" y="41" width="56" height="1.6" rx="0.8" fill="#e0c089" opacity="0.7"/>
+</svg>

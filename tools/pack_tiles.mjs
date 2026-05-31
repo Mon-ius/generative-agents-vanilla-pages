@@ -34,6 +34,11 @@ export const SPRITES = [
   { name: "weed", w: 16, h: 16 }, { name: "rock", w: 16, h: 12 }, { name: "mushroom", w: 12, h: 12 }, { name: "stump", w: 16, h: 14 },
   // ---- expansion: terrain (tileable ground) ----
   { name: "gravel", w: 16, h: 16 }, { name: "sand", w: 16, h: 16 }, { name: "deck", w: 16, h: 16 },
+  // ---- apartment complexes: corridors, doors, entry, fixtures, wall variants ----
+  { name: "corridor", w: 16, h: 16 }, { name: "door", w: 12, h: 20 },
+  { name: "stairs", w: 28, h: 16 }, { name: "doormat", w: 16, h: 8 },
+  { name: "mailbox", w: 16, h: 16 }, { name: "island", w: 28, h: 16 },
+  { name: "wall2", w: 16, h: 16 }, { name: "window", w: 16, h: 12 },
 ];
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");

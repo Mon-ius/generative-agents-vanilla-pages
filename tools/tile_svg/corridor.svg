@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="corridor_floor" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b88d4f"/><stop offset="0.5" stop-color="#a9794a"/><stop offset="1" stop-color="#9c6b3f"/></linearGradient>
+    <linearGradient id="corridor_runner" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9c5a3f"/><stop offset="0.5" stop-color="#b06a4a"/><stop offset="1" stop-color="#9c5a3f"/></linearGradient>
+    <filter id="corridor_woodgrain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.5" numOctaves="3" seed="11" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="corridor_fabric" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.35 0.45" numOctaves="3" seed="4" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.5"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <!-- wood floor base -->
+  <rect width="64" height="64" fill="url(#corridor_floor)"/>
+  <rect width="64" height="64" fill="#7c5430" filter="url(#corridor_woodgrain)" opacity="0.5"/>
+  <!-- floor plank seams -->
+  <rect x="0" y="15" width="64" height="1" fill="#7c5430" opacity="0.35"/>
+  <rect x="0" y="47" width="64" height="1" fill="#7c5430" opacity="0.35"/>
+  <!-- centre carpet runner -->
+  <rect x="16" y="0" width="32" height="64" fill="url(#corridor_runner)"/>
+  <rect x="16" y="0" width="32" height="64" fill="#8a4d36" filter="url(#corridor_fabric)" opacity="0.4"/>
+  <!-- runner patterned borders -->
+  <rect x="18" y="0" width="2" height="64" fill="#f3d24e" opacity="0.6"/>
+  <rect x="44" y="0" width="2" height="64" fill="#f3d24e" opacity="0.6"/>
+  <rect x="21" y="0" width="1" height="64" fill="#d9ccb1" opacity="0.45"/>
+  <rect x="42" y="0" width="1" height="64" fill="#d9ccb1" opacity="0.45"/>
+  <!-- runner diamond motif (repeats seamlessly along length) -->
+  <g fill="#f3d24e" opacity="0.5">
+    <path d="M32 6 L36 12 L32 18 L28 12 Z"/>
+    <path d="M32 38 L36 44 L32 50 L28 44 Z"/>
+  </g>
+  <g fill="#d9ccb1" opacity="0.35">
+    <path d="M32 22 L35 27 L32 32 L29 27 Z"/>
+    <path d="M32 54 L35 59 L32 64 L29 59 Z"/>
+    <path d="M32 -10 L35 -5 L32 0 L29 -5 Z"/>
+  </g>
+  <!-- runner edge shading + top-left sheen -->
+  <rect x="16" y="0" width="32" height="2" fill="#ffffff" opacity="0.12"/>
+  <rect x="16" y="0" width="2" height="64" fill="#ffffff" opacity="0.12"/>
+  <rect x="46" y="0" width="2" height="64" fill="#3a2c1e" opacity="0.22"/>
+</svg>

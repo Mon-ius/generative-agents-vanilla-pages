@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="mailbox_steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f2"/><stop offset="0.5" stop-color="#c9d2d8"/><stop offset="1" stop-color="#a7b3bc"/></linearGradient>
+    <linearGradient id="mailbox_door" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dde4e9"/><stop offset="1" stop-color="#b3bec6"/></linearGradient>
+    <linearGradient id="mailbox_post" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a4730"/><stop offset="0.5" stop-color="#7c5430"/><stop offset="1" stop-color="#4a3826"/></linearGradient>
+    <linearGradient id="mailbox_cap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dde4e9"/><stop offset="1" stop-color="#9aa6ae"/></linearGradient>
+    <filter id="mailbox_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.6" numOctaves="3" seed="4" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0 0 0 0" result="a"/>
+      <feComposite in="a" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <!-- contact shadow -->
+  <ellipse cx="33" cy="59" rx="17" ry="4" fill="#3a2c1e" opacity="0.28"/>
+  <!-- post -->
+  <rect x="29" y="40" width="6" height="18" fill="url(#mailbox_post)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <!-- cabinet body -->
+  <rect x="13" y="9" width="38" height="33" rx="3" fill="url(#mailbox_steel)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="13" y="9" width="38" height="33" rx="3" fill="#8f9aa2" filter="url(#mailbox_grain)" opacity="0.25"/>
+  <!-- top cap / pediment -->
+  <rect x="11" y="7" width="42" height="5" rx="2" fill="url(#mailbox_cap)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <!-- top-left highlight edge -->
+  <rect x="15" y="11" width="34" height="2" fill="#f4f7f9" opacity="0.6"/>
+  <!-- 2 columns x 3 rows of doors -->
+  <g stroke="#7d8890" stroke-width="1">
+    <rect x="16" y="13.5" width="16" height="8" rx="1.2" fill="url(#mailbox_door)"/>
+    <rect x="33" y="13.5" width="16" height="8" rx="1.2" fill="url(#mailbox_door)"/>
+    <rect x="16" y="23"  width="16" height="8" rx="1.2" fill="url(#mailbox_door)"/>
+    <rect x="33" y="23"  width="16" height="8" rx="1.2" fill="url(#mailbox_door)"/>
+    <rect x="16" y="32.5" width="16" height="8" rx="1.2" fill="url(#mailbox_door)"/>
+    <rect x="33" y="32.5" width="16" height="8" rx="1.2" fill="url(#mailbox_door)"/>
+  </g>
+  <!-- slots + knobs -->
+  <g>
+    <rect x="19" y="15.5" width="9" height="1.4" rx="0.7" fill="#6b757c"/>
+    <rect x="36" y="15.5" width="9" height="1.4" rx="0.7" fill="#6b757c"/>
+    <rect x="19" y="25"  width="9" height="1.4" rx="0.7" fill="#6b757c"/>
+    <rect x="36" y="25"  width="9" height="1.4" rx="0.7" fill="#6b757c"/>
+    <rect x="19" y="34.5" width="9" height="1.4" rx="0.7" fill="#6b757c"/>
+    <rect x="36" y="34.5" width="9" height="1.4" rx="0.7" fill="#6b757c"/>
+  </g>
+  <g fill="#f3d24e" stroke="#3a2c1e" stroke-width="0.6">
+    <circle cx="29.5" cy="18.8" r="1.1"/>
+    <circle cx="46.5" cy="18.8" r="1.1"/>
+    <circle cx="29.5" cy="28.3" r="1.1"/>
+    <circle cx="46.5" cy="28.3" r="1.1"/>
+    <circle cx="29.5" cy="37.8" r="1.1"/>
+    <circle cx="46.5" cy="37.8" r="1.1"/>
+  </g>
+</svg>

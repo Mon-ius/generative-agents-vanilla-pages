@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="64" viewBox="0 0 112 64">
+  <defs>
+    <linearGradient id="stairs_tread" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dad7cd"/>
+      <stop offset="1" stop-color="#cba067"/>
+    </linearGradient>
+    <linearGradient id="stairs_riser" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b6ac95"/>
+      <stop offset="1" stop-color="#9c7a4f"/>
+    </linearGradient>
+    <linearGradient id="stairs_side" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c5430"/>
+      <stop offset="1" stop-color="#a9794a"/>
+    </linearGradient>
+    <filter id="stairs_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.14 0.26" numOctaves="3" seed="11" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <!-- contact shadow -->
+  <ellipse cx="56" cy="60" rx="50" ry="5" fill="#3a2c1e" opacity="0.22"/>
+  <!-- bottom step (widest) -->
+  <polygon points="6,62 106,62 98,50 14,50" fill="url(#stairs_side)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <polygon points="6,52 106,52 106,62 6,62" fill="url(#stairs_riser)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <polygon points="6,52 106,52 98,50 14,50" fill="url(#stairs_tread)"/>
+  <polygon points="6,52 106,52 98,50 14,50" fill="#4f8a36" filter="url(#stairs_grain)" opacity="0.18"/>
+  <!-- third step -->
+  <polygon points="16,50 96,50 90,40 22,40" fill="url(#stairs_riser)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <polygon points="16,42 96,42 90,40 22,40" fill="url(#stairs_tread)"/>
+  <polygon points="16,42 96,42 90,40 22,40" fill="#4f8a36" filter="url(#stairs_grain)" opacity="0.18"/>
+  <!-- second step -->
+  <polygon points="24,40 88,40 83,31 29,31" fill="url(#stairs_riser)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <polygon points="24,33 88,33 83,31 29,31" fill="url(#stairs_tread)"/>
+  <polygon points="24,33 88,33 83,31 29,31" fill="#4f8a36" filter="url(#stairs_grain)" opacity="0.18"/>
+  <!-- top step (narrowest) -->
+  <polygon points="31,31 81,31 77,23 35,23" fill="url(#stairs_riser)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <polygon points="31,25 81,25 77,23 35,23" fill="url(#stairs_tread)"/>
+  <polygon points="31,25 81,25 77,23 35,23" fill="#4f8a36" filter="url(#stairs_grain)" opacity="0.18"/>
+  <!-- top-left edge highlights -->
+  <line x1="8" y1="51" x2="104" y2="51" stroke="#f0ead8" stroke-width="1" opacity="0.6"/>
+  <line x1="18" y1="41" x2="94" y2="41" stroke="#f0ead8" stroke-width="1" opacity="0.55"/>
+  <line x1="26" y1="32" x2="86" y2="32" stroke="#f0ead8" stroke-width="1" opacity="0.5"/>
+  <line x1="33" y1="24" x2="79" y2="24" stroke="#f0ead8" stroke-width="1" opacity="0.5"/>
+  <!-- soft side shadow on right -->
+  <polygon points="106,52 106,62 98,52" fill="#3a2c1e" opacity="0.18"/>
+</svg>

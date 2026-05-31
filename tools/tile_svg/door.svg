@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="80" viewBox="0 0 48 80">
+  <defs>
+    <linearGradient id="door_frame" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b88d4f"/><stop offset="1" stop-color="#7c5430"/></linearGradient>
+    <linearGradient id="door_slab" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b88d4f"/><stop offset="0.5" stop-color="#9c6b3f"/><stop offset="1" stop-color="#7c5430"/></linearGradient>
+    <linearGradient id="door_panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9794a"/><stop offset="1" stop-color="#7c5430"/></linearGradient>
+    <radialGradient id="door_knob" cx="0.35" cy="0.35" r="0.7"><stop offset="0" stop-color="#fbe7a0"/><stop offset="0.5" stop-color="#f3d24e"/><stop offset="1" stop-color="#b8902a"/></radialGradient>
+    <filter id="door_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.55" numOctaves="3" seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <!-- faint contact shadow -->
+  <ellipse cx="25" cy="77" rx="20" ry="2.5" fill="#3a2c1e" opacity="0.2"/>
+  <!-- frame -->
+  <rect x="3" y="3" width="42" height="75" rx="2" fill="url(#door_frame)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <!-- door slab -->
+  <rect x="7" y="6" width="34" height="72" rx="1.5" fill="url(#door_slab)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="7" y="6" width="34" height="72" rx="1.5" fill="#7c5430" filter="url(#door_grain)" opacity="0.45"/>
+  <!-- top-left highlight -->
+  <rect x="8" y="7" width="32" height="2" fill="#ffffff" opacity="0.18"/>
+  <rect x="8" y="7" width="2" height="70" fill="#ffffff" opacity="0.15"/>
+  <!-- upper panel -->
+  <rect x="12" y="11" width="24" height="28" rx="1.5" fill="url(#door_panel)" stroke="#7c5430" stroke-width="1.5"/>
+  <rect x="13" y="12" width="22" height="2" fill="#3a2c1e" opacity="0.25"/>
+  <rect x="13" y="12" width="2" height="26" fill="#ffffff" opacity="0.1"/>
+  <!-- lower panel -->
+  <rect x="12" y="43" width="24" height="30" rx="1.5" fill="url(#door_panel)" stroke="#7c5430" stroke-width="1.5"/>
+  <rect x="13" y="44" width="22" height="2" fill="#3a2c1e" opacity="0.25"/>
+  <rect x="13" y="44" width="2" height="28" fill="#ffffff" opacity="0.1"/>
+  <!-- brass knob on right -->
+  <circle cx="35" cy="44" r="2.6" fill="#3a2c1e" opacity="0.3"/>
+  <circle cx="34.5" cy="43.5" r="2.4" fill="url(#door_knob)" stroke="#8a6a1a" stroke-width="0.6"/>
+  <circle cx="33.7" cy="42.7" r="0.7" fill="#fff7d6" opacity="0.85"/>
+</svg>
