@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <radialGradient id="mushroom_cap1" cx="0.38" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#e0746c"/><stop offset="0.6" stop-color="#c2453f"/><stop offset="1" stop-color="#8f2e2a"/>
+    </radialGradient>
+    <radialGradient id="mushroom_cap2" cx="0.4" cy="0.32" r="0.8">
+      <stop offset="0" stop-color="#d96058"/><stop offset="0.6" stop-color="#c2453f"/><stop offset="1" stop-color="#8f2e2a"/>
+    </radialGradient>
+    <linearGradient id="mushroom_stem" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fbf7ef"/><stop offset="1" stop-color="#ddd5c4"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="24" cy="44" rx="16" ry="3.5" fill="#2a3a22" opacity="0.2"/>
+  <!-- big mushroom -->
+  <rect x="15" y="24" width="7" height="18" rx="3.5" fill="url(#mushroom_stem)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <path d="M6 26 Q6 12 18.5 11 Q31 12 31 26 Q18.5 30 6 26 Z" fill="url(#mushroom_cap1)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <g fill="#fbf7ef">
+    <ellipse cx="13" cy="18" rx="2.4" ry="2"/><ellipse cx="22" cy="16" rx="2.8" ry="2.2"/>
+    <ellipse cx="26" cy="23" rx="2" ry="1.6"/><ellipse cx="11" cy="24" rx="1.8" ry="1.4"/>
+  </g>
+  <!-- small mushroom -->
+  <rect x="30" y="30" width="5" height="13" rx="2.5" fill="url(#mushroom_stem)" stroke="#3a2c1e" stroke-width="1.1"/>
+  <path d="M25 31 Q25 21 33 20 Q41 21 41 31 Q33 34 25 31 Z" fill="url(#mushroom_cap2)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <g fill="#fbf7ef">
+    <ellipse cx="31" cy="25" rx="2" ry="1.7"/><ellipse cx="37" cy="27" rx="1.7" ry="1.4"/><ellipse cx="34" cy="30" rx="1.5" ry="1.2"/>
+  </g>
+</svg>

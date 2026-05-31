@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="flower2_purple" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#c789e0"/><stop offset="0.6" stop-color="#b05fd0"/><stop offset="1" stop-color="#8a44a8"/>
+    </radialGradient>
+    <radialGradient id="flower2_blue" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#8fb0d8"/><stop offset="0.6" stop-color="#6c8fc0"/><stop offset="1" stop-color="#4f6fa0"/>
+    </radialGradient>
+    <linearGradient id="flower2_stem" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#74b85a"/><stop offset="1" stop-color="#4f8a36"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="32" cy="58" rx="16" ry="4" fill="#2a3a22" opacity="0.2"/>
+  <!-- stems -->
+  <path d="M30 58 Q26 44 22 30" fill="none" stroke="url(#flower2_stem)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M34 58 Q38 44 42 32" fill="none" stroke="url(#flower2_stem)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M32 58 Q31 46 32 38" fill="none" stroke="url(#flower2_stem)" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- leaves -->
+  <path d="M27 46 Q18 44 14 50 Q22 50 27 46 Z" fill="#4f8a36" stroke="#3a2c1e" stroke-width="0.8"/>
+  <path d="M37 48 Q46 46 50 52 Q42 52 37 48 Z" fill="#67a546" stroke="#3a2c1e" stroke-width="0.8"/>
+  <!-- flower 1 (purple, top-left) -->
+  <g stroke="#3a2c1e" stroke-width="0.7">
+    <g fill="url(#flower2_purple)">
+      <ellipse cx="22" cy="22" rx="5" ry="7"/><ellipse cx="22" cy="38" rx="5" ry="7"/>
+      <ellipse cx="14" cy="30" rx="7" ry="5"/><ellipse cx="30" cy="30" rx="7" ry="5"/>
+    </g>
+    <circle cx="22" cy="30" r="4" fill="#f3d24e"/>
+  </g>
+  <!-- flower 2 (blue, right) -->
+  <g stroke="#3a2c1e" stroke-width="0.7">
+    <g fill="url(#flower2_blue)">
+      <ellipse cx="42" cy="26" rx="4.5" ry="6"/><ellipse cx="42" cy="40" rx="4.5" ry="6"/>
+      <ellipse cx="35" cy="33" rx="6" ry="4.5"/><ellipse cx="49" cy="33" rx="6" ry="4.5"/>
+    </g>
+    <circle cx="42" cy="33" r="3.5" fill="#f3d24e"/>
+  </g>
+  <!-- flower 3 (purple, lower-centre, small) -->
+  <g stroke="#3a2c1e" stroke-width="0.7">
+    <g fill="url(#flower2_purple)">
+      <circle cx="29" cy="40" r="3.5"/><circle cx="35" cy="40" r="3.5"/><circle cx="32" cy="36" r="3.5"/><circle cx="32" cy="44" r="3.5"/>
+    </g>
+    <circle cx="32" cy="40" r="2.6" fill="#f3d24e"/>
+  </g>
+</svg>

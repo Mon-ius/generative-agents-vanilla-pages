@@ -21,6 +21,10 @@ export const SPRITE_NAMES = [
   // variants + extra furniture for richer, more varied interiors
   "bed_red", "bed_green", "chair_red", "chair_yellow", "chair_green",
   "rug_blue", "rug_green", "dresser", "nightstand", "sofa", "lamp", "tv", "painting",
+  // expansion: indoor props, outdoor decor, terrain (replicating the reference render)
+  "bar", "stool", "microphone", "washer", "utensil_rack", "wardrobe", "vanity", "oven", "clock", "easel",
+  "tree_pine", "tree_apple", "flower2", "weed", "rock", "mushroom", "stump",
+  "gravel", "sand", "deck",
 ];
 
 let _cache = null;

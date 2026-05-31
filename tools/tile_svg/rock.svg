@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 64 48">
+  <defs>
+    <linearGradient id="rock_big" x1="0.2" y1="0.1" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#dad7cd"/><stop offset="0.45" stop-color="#cfc6b2"/><stop offset="1" stop-color="#9a9486"/>
+    </linearGradient>
+    <linearGradient id="rock_small" x1="0.2" y1="0.1" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#d6cfbe"/><stop offset="0.5" stop-color="#c2bdaf"/><stop offset="1" stop-color="#9a9486"/>
+    </linearGradient>
+    <filter id="rock_speckle" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.35 0.4" numOctaves="3" seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.9 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.8"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="34" cy="43" rx="28" ry="5" fill="#2a3a22" opacity="0.22"/>
+  <!-- big boulder -->
+  <path d="M14 40 Q10 22 24 16 Q40 12 48 22 Q52 34 44 41 Q30 44 14 40 Z" fill="url(#rock_big)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <path d="M14 40 Q10 22 24 16 Q40 12 48 22 Q52 34 44 41 Q30 44 14 40 Z" fill="#7a766c" filter="url(#rock_speckle)" opacity="0.4"/>
+  <path d="M24 16 Q18 26 18 38" fill="none" stroke="#eef0ea" stroke-width="2" opacity="0.5"/>
+  <path d="M40 20 Q44 30 42 40" fill="none" stroke="#7a766c" stroke-width="2" opacity="0.4"/>
+  <!-- small pebble left -->
+  <path d="M4 44 Q3 36 10 35 Q17 36 16 43 Q10 46 4 44 Z" fill="url(#rock_small)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <path d="M4 44 Q3 36 10 35 Q17 36 16 43 Q10 46 4 44 Z" fill="#7a766c" filter="url(#rock_speckle)" opacity="0.35"/>
+  <!-- small pebble right -->
+  <path d="M48 44 Q47 37 54 36 Q61 37 60 43 Q54 46 48 44 Z" fill="url(#rock_small)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <path d="M48 44 Q47 37 54 36 Q61 37 60 43 Q54 46 48 44 Z" fill="#7a766c" filter="url(#rock_speckle)" opacity="0.35"/>
+</svg>

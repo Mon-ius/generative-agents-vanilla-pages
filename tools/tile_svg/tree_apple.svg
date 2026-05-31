@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="160" viewBox="0 0 128 160">
+  <defs>
+    <linearGradient id="tree_apple_trunk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a9794a"/><stop offset="0.5" stop-color="#7c5430"/><stop offset="1" stop-color="#5e3e23"/>
+    </linearGradient>
+    <radialGradient id="tree_apple_canopy" cx="0.38" cy="0.34" r="0.72">
+      <stop offset="0" stop-color="#84c86a"/><stop offset="0.45" stop-color="#59964a"/><stop offset="1" stop-color="#3f7a33"/>
+    </radialGradient>
+    <radialGradient id="tree_apple_fruit" cx="0.35" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#e87a72"/><stop offset="0.6" stop-color="#d24f4f"/><stop offset="1" stop-color="#9e3434"/>
+    </radialGradient>
+    <filter id="tree_apple_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.16 0.2" numOctaves="4" seed="5" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.9 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.6"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="66" cy="152" rx="38" ry="8" fill="#2a3a22" opacity="0.28"/>
+  <rect x="56" y="116" width="16" height="34" rx="4" fill="url(#tree_apple_trunk)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <path d="M64 132 q-9 4 -16 14" fill="none" stroke="#5e3e23" stroke-width="2" opacity="0.5"/>
+  <!-- round layered canopy -->
+  <ellipse cx="64" cy="62" rx="56" ry="52" fill="url(#tree_apple_canopy)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <ellipse cx="64" cy="62" rx="56" ry="52" fill="#3f7a33" filter="url(#tree_apple_grain)" opacity="0.5"/>
+  <!-- top-left highlights -->
+  <ellipse cx="44" cy="42" rx="22" ry="18" fill="#84c86a" opacity="0.55"/>
+  <ellipse cx="38" cy="34" rx="11" ry="9" fill="#9ad77e" opacity="0.5"/>
+  <!-- curved inner shadow on lower canopy -->
+  <path d="M16 70 Q64 118 112 70 Q64 104 16 70 Z" fill="#2f5e26" opacity="0.45"/>
+  <path d="M26 92 Q64 112 102 92" fill="none" stroke="#2f5e26" stroke-width="6" opacity="0.3"/>
+  <!-- apples -->
+  <g stroke="#3a2c1e" stroke-width="0.8">
+    <circle cx="40" cy="74" r="6" fill="url(#tree_apple_fruit)"/>
+    <circle cx="76" cy="50" r="6" fill="url(#tree_apple_fruit)"/>
+    <circle cx="92" cy="78" r="6" fill="url(#tree_apple_fruit)"/>
+    <circle cx="56" cy="92" r="5.5" fill="url(#tree_apple_fruit)"/>
+    <circle cx="58" cy="40" r="5" fill="url(#tree_apple_fruit)"/>
+  </g>
+  <g fill="#fff" opacity="0.8">
+    <circle cx="38" cy="72" r="1.6"/><circle cx="74" cy="48" r="1.6"/><circle cx="90" cy="76" r="1.6"/><circle cx="54" cy="90" r="1.4"/><circle cx="56" cy="38" r="1.3"/>
+  </g>
+</svg>

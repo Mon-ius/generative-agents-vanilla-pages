@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="96" viewBox="0 0 72 96">
+  <defs>
+    <linearGradient id="wardrobe_body" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a9794a"/><stop offset="0.5" stop-color="#9c6b3f"/><stop offset="1" stop-color="#7c5430"/></linearGradient>
+    <linearGradient id="wardrobe_door" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a9794a"/><stop offset="1" stop-color="#8a6038"/></linearGradient>
+    <linearGradient id="wardrobe_cornice" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cba067"/><stop offset="1" stop-color="#b88d4f"/></linearGradient>
+    <filter id="wardrobe_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03 0.55" numOctaves="3" seed="13" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0" result="a"/>
+      <feComposite in="a" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="36" cy="92" rx="30" ry="4" fill="#3a2c1e" opacity="0.2"/>
+  <rect x="8" y="10" width="56" height="82" rx="3" fill="url(#wardrobe_body)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="8" y="10" width="56" height="82" rx="3" fill="#6b4727" filter="url(#wardrobe_grain)" opacity="0.5"/>
+  <rect x="4" y="3" width="64" height="10" rx="3" fill="url(#wardrobe_cornice)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="4" y="3" width="64" height="10" rx="3" fill="#7c5430" filter="url(#wardrobe_grain)" opacity="0.35"/>
+  <rect x="11" y="14" width="24" height="75" rx="2" fill="url(#wardrobe_door)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="37" y="14" width="24" height="75" rx="2" fill="url(#wardrobe_door)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="11" y="14" width="50" height="75" fill="#6b4727" filter="url(#wardrobe_grain)" opacity="0.4"/>
+  <rect x="15" y="19" width="16" height="30" rx="2" fill="none" stroke="#6b4727" stroke-width="1.4"/>
+  <rect x="41" y="19" width="16" height="30" rx="2" fill="none" stroke="#6b4727" stroke-width="1.4"/>
+  <rect x="15" y="54" width="16" height="30" rx="2" fill="none" stroke="#6b4727" stroke-width="1.4"/>
+  <rect x="41" y="54" width="16" height="30" rx="2" fill="none" stroke="#6b4727" stroke-width="1.4"/>
+  <line x1="36" y1="14" x2="36" y2="89" stroke="#3a2c1e" stroke-width="1.4"/>
+  <line x1="13" y1="16" x2="13" y2="87" stroke="#cba067" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="32" cy="52" r="2.6" fill="#caa44e" stroke="#3a2c1e" stroke-width="1"/>
+  <circle cx="40" cy="52" r="2.6" fill="#caa44e" stroke="#3a2c1e" stroke-width="1"/>
+</svg>

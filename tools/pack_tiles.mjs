@@ -25,6 +25,15 @@ export const SPRITES = [
   { name: "rug_blue", w: 30, h: 20 }, { name: "rug_green", w: 30, h: 20 },
   { name: "dresser", w: 18, h: 14 }, { name: "nightstand", w: 12, h: 12 }, { name: "sofa", w: 30, h: 16 }, { name: "lamp", w: 10, h: 18 },
   { name: "tv", w: 18, h: 12 }, { name: "painting", w: 12, h: 10 },
+  // ---- expansion: replicate the reference render (indoor props) ----
+  { name: "bar", w: 40, h: 14 }, { name: "stool", w: 8, h: 8 }, { name: "microphone", w: 8, h: 22 },
+  { name: "washer", w: 16, h: 18 }, { name: "utensil_rack", w: 22, h: 10 }, { name: "wardrobe", w: 18, h: 24 },
+  { name: "vanity", w: 16, h: 18 }, { name: "oven", w: 16, h: 18 }, { name: "clock", w: 10, h: 10 }, { name: "easel", w: 16, h: 22 },
+  // ---- expansion: outdoor decor ----
+  { name: "tree_pine", w: 32, h: 44 }, { name: "tree_apple", w: 32, h: 40 }, { name: "flower2", w: 16, h: 16 },
+  { name: "weed", w: 16, h: 16 }, { name: "rock", w: 16, h: 12 }, { name: "mushroom", w: 12, h: 12 }, { name: "stump", w: 16, h: 14 },
+  // ---- expansion: terrain (tileable ground) ----
+  { name: "gravel", w: 16, h: 16 }, { name: "sand", w: 16, h: 16 }, { name: "deck", w: 16, h: 16 },
 ];
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");

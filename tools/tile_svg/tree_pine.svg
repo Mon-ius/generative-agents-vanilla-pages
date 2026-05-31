@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="176" viewBox="0 0 128 176">
+  <defs>
+    <linearGradient id="tree_pine_trunk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a9794a"/><stop offset="0.5" stop-color="#7c5430"/><stop offset="1" stop-color="#5e3e23"/>
+    </linearGradient>
+    <linearGradient id="tree_pine_t1" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#74b85a"/><stop offset="0.5" stop-color="#59964a"/><stop offset="1" stop-color="#2f6b2c"/>
+    </linearGradient>
+    <linearGradient id="tree_pine_t2" x1="0" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#84c86a"/><stop offset="0.5" stop-color="#3f8a3a"/><stop offset="1" stop-color="#2f6b2c"/>
+    </linearGradient>
+    <filter id="tree_pine_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.18 0.32" numOctaves="4" seed="11" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.9 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="68" cy="168" rx="34" ry="8" fill="#2a3a22" opacity="0.28"/>
+  <rect x="56" y="138" width="16" height="30" rx="3" fill="url(#tree_pine_trunk)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <!-- bottom tier -->
+  <path d="M64 96 L108 150 Q64 144 20 150 Z" fill="url(#tree_pine_t1)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <path d="M64 96 L108 150 Q64 144 20 150 Z" fill="#2f6b2c" filter="url(#tree_pine_grain)" opacity="0.5"/>
+  <path d="M64 96 L26 146 Q44 100 64 96 Z" fill="#2f6b2c" opacity="0.3"/>
+  <!-- mid tier -->
+  <path d="M64 56 L98 112 Q64 106 30 112 Z" fill="url(#tree_pine_t2)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <path d="M64 56 L98 112 Q64 106 30 112 Z" fill="#2f6b2c" filter="url(#tree_pine_grain)" opacity="0.5"/>
+  <path d="M64 56 L34 108 Q48 62 64 56 Z" fill="#2f6b2c" opacity="0.28"/>
+  <!-- top tier -->
+  <path d="M64 18 L88 70 Q64 64 40 70 Z" fill="url(#tree_pine_t2)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <path d="M64 18 L88 70 Q64 64 40 70 Z" fill="#74b85a" filter="url(#tree_pine_grain)" opacity="0.4"/>
+  <!-- snow / light dusting top-left of each tier -->
+  <path d="M64 18 L52 44 Q60 26 64 18 Z" fill="#f3f6f0" opacity="0.7"/>
+  <path d="M64 56 L48 82 Q58 64 64 56 Z" fill="#eef3ec" opacity="0.5"/>
+  <path d="M64 96 L46 122 Q56 102 64 96 Z" fill="#eef3ec" opacity="0.4"/>
+</svg>

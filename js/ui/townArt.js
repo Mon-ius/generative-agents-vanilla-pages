@@ -659,19 +659,33 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
   const wr = worldRect || { x: 0, y: 0, w: W, h: H };
   if (g.imageSmoothingEnabled !== undefined) g.imageSmoothingEnabled = false;
 
-  // grass carpet (with occasional lighter tile + flower), only over wr.
+  // grass carpet + sandy south shore + scattered ground decor, only over wr.
   const gr = seededRandom("spr-grass");
   const xr = tileRange(0, W, W, 16, wr, "x");
   const yr = tileRange(0, H, H, 16, wr, "y");
+  const beachTop = H - Math.round(CELL * 1.4); // sandy shoreline along the south edge
   for (let y = 0; y < H; y += 16) {
     for (let x = 0; x < W; x += 16) {
       // advance the RNG for EVERY world tile so placement stays chunk-independent,
       // but only paint tiles inside wr.
       const a = gr();
       const b = gr();
+      const c = gr();
       if (x < xr.a || x >= xr.b || y < yr.a || y >= yr.b) continue;
+      // south shore: a 1-tile dithered grass→sand transition, then full beach.
+      if (S.sand && y >= beachTop && (y >= beachTop + 16 || a < 0.5)) {
+        g.drawImage(S.sand, x, y, 16, 16);
+        if (c < 0.05 && S.rock) g.drawImage(S.rock, x, y + 3, 16, 12);
+        continue;
+      }
       g.drawImage(a < 0.14 && S.grass2 ? S.grass2 : S.grass, x, y, 16, 16);
-      if (b < 0.05 && S.flower) g.drawImage(S.flower, x, y, 16, 16);
+      // scattered lawn decor (mutually exclusive; building footprints get painted
+      // over by the building pass, so a stray sprite there is harmless).
+      if (b < 0.045 && S.flower) g.drawImage(S.flower, x, y, 16, 16);
+      else if (c < 0.03 && S.flower2) g.drawImage(S.flower2, x, y, 16, 16);
+      else if (c < 0.075 && S.weed) g.drawImage(S.weed, x, y, 16, 16);
+      else if (c < 0.092 && S.mushroom) g.drawImage(S.mushroom, x + 2, y + 3, 12, 12);
+      else if (c < 0.104 && S.rock) g.drawImage(S.rock, x, y + 3, 16, 12);
     }
   }
   // dirt paths along the row/column streets (clipped to wr inside clipTile).
@@ -685,13 +699,19 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
     if (rectsIntersect(wr, 0, y, W, road)) clipTile(g, S.path, 0, y, W, road, wr);
   }
 
-  // trees, bushes, flower beds (only near wr)
-  const MARGIN = 40;
+  // a deterministic forest grove (dense top-left, sparse elsewhere) on open cells
+  forestCluster(g, S, layout, wr);
+
+  // trees (varied species), bushes, stumps + rocks hugging building edges (only near wr)
+  const MARGIN = 48;
+  const species = [S.tree, S.tree_apple, S.tree_pine].filter(Boolean);
   for (const rc of rects.values()) {
     if (!footprintNearRect(wr, rc, MARGIN)) continue;
     const tr = seededRandom("t-" + rc.loc.id);
-    if (tr() < 0.6 && S.tree) g.drawImage(S.tree, rc.bx - 24, rc.by - 30, 32, 40);
+    if (tr() < 0.6 && species.length) g.drawImage(species[Math.floor(tr() * species.length)], rc.bx - 26, rc.by - 36, 32, 46);
     if (tr() < 0.4 && S.bush) g.drawImage(S.bush, rc.bx + rc.bw + 6, rc.by + rc.bh - 4, 20, 16);
+    if (tr() < 0.28 && S.stump) g.drawImage(S.stump, rc.bx - 18, rc.by + rc.bh - 8, 16, 14);
+    if (tr() < 0.3 && S.rock) g.drawImage(S.rock, rc.bx + rc.bw + 8, rc.by - 6, 16, 12);
   }
   if (rectsIntersect(wr, W - 150, 60, 9 * 14, 3 * 14)) flowerPatch(g, S, W - 150, 60, 9, 3, seededRandom("fp1"));
   if (rectsIntersect(wr, 52, H - 96, 6 * 14, 3 * 14)) flowerPatch(g, S, 52, H - 96, 6, 3, seededRandom("fp2"));
@@ -733,6 +753,32 @@ function flowerPatch(g, S, x, y, cw, ch, rnd) {
   for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) if (rnd() < 0.8) g.drawImage(S.flower, x + i * 14, y + j * 14, 16, 16);
 }
 
+// Scatter varied trees across OPEN (non-building) cells — a dense grove toward the
+// top-left corner, thinning out elsewhere — to echo the reference's woodland. Each
+// cell seeds its own RNG (seededRandom per cell), so placement is identical in every
+// chunk bake regardless of the worldRect (no cross-chunk drift). Trees draw behind
+// buildings (this runs before the building pass), so overhang reads naturally.
+function forestCluster(g, S, layout, wr) {
+  const species = [S.tree, S.tree_apple, S.tree_pine].filter(Boolean);
+  if (!species.length) return;
+  const { cols, rows, rects } = layout;
+  const occ = new Set();
+  for (const r of rects.values()) occ.add(r.loc.x + "," + r.loc.y);
+  for (let cy = 0; cy < rows; cy++) {
+    for (let cx = 0; cx < cols; cx++) {
+      if (occ.has(cx + "," + cy)) continue;
+      const rnd = seededRandom("forest-" + cx + "-" + cy);
+      const grove = cx < cols * 0.3 && cy < rows * 0.34; // top-left woodland
+      if (rnd() > (grove ? 0.6 : 0.045)) continue;
+      const px = cx * CELL + CELL * 0.5 + (rnd() - 0.5) * CELL * 0.4;
+      const py = cy * CELL + CELL * 0.62 + (rnd() - 0.5) * CELL * 0.3;
+      const t = species[Math.floor(rnd() * species.length)];
+      if (!rectsIntersect(wr, px - 20, py - 42, 40, 56)) continue;
+      g.drawImage(t, px - 16, py - 40, 32, 46);
+    }
+  }
+}
+
 function put(g, img, x, y) {
   if (!img) return;
   // Furniture sprites are authored ART_SS× their on-screen size (crisp, material-rich
@@ -751,6 +797,9 @@ function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)
 function spriteBuilding(g, S, rc, lightsOn) {
   const { bx, by, bw, bh, cx } = rc;
   const rng = seededRandom("furn-" + rc.loc.id);
+
+  // wooden entry deck/porch below the door (about half of the buildings)
+  if (S.deck && seededRandom("deck-" + rc.loc.id)() < 0.5) clipTile(g, S.deck, cx - 22, by + bh - 1, 44, 18);
 
   clipTile(g, S.floor_wood, bx, by, bw, bh); // base floor
 
@@ -838,25 +887,27 @@ function furnish(g, S, kind, c, rng) {
     case "bedroom":
       put(g, pick(beds, rng), L, T);
       put(g, S.nightstand, R - 14, T);
-      put(g, rng() < 0.6 ? S.dresser : S.bookshelf, L, B - 16);
+      put(g, (rng() < 0.45 && S.wardrobe) ? S.wardrobe : (rng() < 0.6 ? S.dresser : S.bookshelf), L, B - 18);
       if (rng() < 0.5) put(g, S.lamp, R - 12, B - 20);
-      if (rng() < 0.5) put(g, S.painting, R - 14, T + 14);
+      if (rng() < 0.5) put(g, S.clock || S.painting, R - 13, T + 14);
       break;
     case "bath":
       put(g, S.toilet, L, T);
-      put(g, S.sink, R - 16, T);
+      put(g, S.vanity || S.sink, R - 18, T);
       if (rng() < 0.6) put(g, S.plant, L, B - 20);
       break;
     case "kitchen":
       put(g, S.counter, L, T);
       put(g, S.fridge, R - 18, T + 2);
-      put(g, S.stove, L, B - 18);
+      put(g, S.oven || S.stove, L, B - 18);
+      if (S.utensil_rack) put(g, S.utensil_rack, L + 2, T + 13);
       break;
     case "living":
       put(g, pick(rugs, rng), L + 2, B - 22);
       put(g, S.sofa, L, T);
       if (rng() < 0.7) put(g, S.tv, R - 20, T + 2);
       if (rng() < 0.6) put(g, S.plant, R - 14, B - 20);
+      if (rng() < 0.5 && S.clock) put(g, S.clock, L + 3, T);
       break;
     case "shelves":
       put(g, S.bookshelf, L, T);
@@ -864,9 +915,9 @@ function furnish(g, S, kind, c, rng) {
       if (rng() < 0.5) put(g, S.bookshelf, R - 18, T);
       break;
     case "counter":
-      put(g, S.counter, L, T);
-      put(g, pick(chairs, rng), L + 4, B - 16);
-      put(g, pick(chairs, rng), L + 22, B - 16);
+      put(g, S.bar || S.counter, L, T);
+      if (S.stool) { put(g, S.stool, L + 5, B - 11); put(g, S.stool, L + 17, B - 11); put(g, S.stool, L + 29, B - 11); }
+      else { put(g, pick(chairs, rng), L + 4, B - 16); put(g, pick(chairs, rng), L + 22, B - 16); }
       break;
     case "seating":
       put(g, S.table, L + 6, T + 6);
@@ -898,12 +949,13 @@ function furnish(g, S, kind, c, rng) {
       put(g, pick(chairs, rng), L, B - 14); put(g, pick(chairs, rng), R - 14, B - 14);
       break;
     case "work":
-      put(g, S.table, L, T);
+      put(g, S.easel || S.table, L, T);
+      if (S.microphone) put(g, S.microphone, R - 11, B - 24);
       put(g, S.bookshelf, R - 18, T);
       if (rng() < 0.6) put(g, S.plant, L, B - 20);
       break;
     case "storage":
-      put(g, S.fridge, L, T);
+      put(g, S.washer || S.fridge, L, T);
       put(g, S.dresser, R - 18, T);
       if (rng() < 0.5) put(g, S.bookshelf, L, B - 16);
       break;
@@ -927,10 +979,14 @@ function spritePark(g, S, rc) {
 
 function spritePlaza(g, S, rc) {
   const { bx, by, bw, bh, cx, cy } = rc;
-  g.fillStyle = "#cfc6b2"; g.fillRect(bx, by, bw, bh);
-  g.strokeStyle = "#b6ac95"; g.lineWidth = 1;
-  for (let x = bx + 10; x < bx + bw; x += 10) { g.beginPath(); g.moveTo(x, by); g.lineTo(x, by + bh); g.stroke(); }
-  for (let y = by + 10; y < by + bh; y += 10) { g.beginPath(); g.moveTo(bx, y); g.lineTo(bx + bw, y); g.stroke(); }
+  if (S.gravel) {
+    clipTile(g, S.gravel, bx, by, bw, bh); // cobbled plaza ground
+  } else {
+    g.fillStyle = "#cfc6b2"; g.fillRect(bx, by, bw, bh);
+    g.strokeStyle = "#b6ac95"; g.lineWidth = 1;
+    for (let x = bx + 10; x < bx + bw; x += 10) { g.beginPath(); g.moveTo(x, by); g.lineTo(x, by + bh); g.stroke(); }
+    for (let y = by + 10; y < by + bh; y += 10) { g.beginPath(); g.moveTo(bx, y); g.lineTo(bx + bw, y); g.stroke(); }
+  }
   g.fillStyle = "#9aa0ad"; g.beginPath(); g.arc(cx, cy, 13, 0, Math.PI * 2); g.fill();
   g.fillStyle = "#7fb6d8"; g.beginPath(); g.arc(cx, cy, 9, 0, Math.PI * 2); g.fill();
   put(g, S.plant, bx + 4, by + 4);
