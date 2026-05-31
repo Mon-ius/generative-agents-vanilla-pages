@@ -804,21 +804,20 @@ function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)
 // shops renders as ONE shell with an array of rooms + shared corridors (parks &
 // plazas stay standalone). Deterministic; computed once in computeLayout.
 function groupComplexes(layout) {
-  const BW = 6, BH = 4; // super-block size in cells
   const groups = new Map();
   for (const rc of layout.rects.values()) {
     const t = rc.loc.type;
     if (t === "park" || t === "square") continue;
-    const key = Math.floor(rc.loc.x / BW) + "," + Math.floor(rc.loc.y / BH);
+    const key = rc.loc.complex || (Math.floor(rc.loc.x / 6) + "_" + Math.floor(rc.loc.y / 4));
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(rc);
   }
   const complexes = [];
   for (const members of groups.values()) {
+    // full-cell bounding box (cells are contiguous → the shell is a solid block)
     let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
-    for (const r of members) { a = Math.min(a, r.bx); b = Math.min(b, r.by); c = Math.max(c, r.bx + r.bw); d = Math.max(d, r.by + r.bh); }
-    const pad = 6;
-    complexes.push({ members, x: a - pad, y: b - pad, w: c - a + pad * 2, h: d - b + pad * 2 });
+    for (const r of members) { a = Math.min(a, r.loc.x); b = Math.min(b, r.loc.y); c = Math.max(c, r.loc.x); d = Math.max(d, r.loc.y); }
+    complexes.push({ members, x: a * CELL, y: b * CELL, w: (c - a + 1) * CELL, h: (d - b + 1) * CELL });
   }
   return complexes;
 }

@@ -53,11 +53,14 @@ export const DEFAULT_MAX_ASTAR_NODES = 4000;
 function footprintFor(loc, cell) {
   const cx = loc.x * cell + cell / 2;
   const cy = loc.y * cell + cell / 2;
-  const bw = Math.round(cell * 0.86);
-  const bh = Math.round(cell * 0.74);
-  const bx = Math.round(cx - bw / 2);
-  const by = Math.round(cy - bh / 2 - 8);
-  return { cx, cy, bx, by, bw, bh, door: { x: cx, y: by + bh + 12 } };
+  // Rooms are now packed into apartment complexes with NO grass lanes between them,
+  // so blocking whole cells would wall interior units off (no route in/out). Since
+  // movement is logical-instant and the A* path is purely cosmetic (the renderer
+  // just animates along it), the movement grid is kept open — agents take a direct
+  // route to their room. A zero-size footprint blocks nothing.
+  const bw = 0, bh = 0;
+  const bx = Math.round(cx), by = Math.round(cy);
+  return { cx, cy, bx, by, bw, bh, door: { x: cx, y: cy } };
 }
 
 function isOpenType(type) {
