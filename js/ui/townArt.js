@@ -66,8 +66,11 @@ export function computeLayout(sim) {
   for (const l of locs) {
     const cx = l.x * CELL + CELL / 2;
     const cy = l.y * CELL + CELL / 2;
-    const bw = Math.round(CELL * 0.86);
-    const bh = Math.round(CELL * 0.74);
+    // Footprint comes from the building TYPE's blueprint, so houses differ in size
+    // (capped < 1 cell so neighbours never overlap on the packed grid).
+    const foot = blueprintFor(l.type).foot || [0.86, 0.74];
+    const bw = Math.round(CELL * Math.min(0.94, foot[0]));
+    const bh = Math.round(CELL * Math.min(0.84, foot[1]));
     const bx = Math.round(cx - bw / 2);
     const by = Math.round(cy - bh / 2 - 8);
     rects.set(l.id, { loc: l, cx, cy, bx, by, bw, bh, door: { x: cx, y: by + bh + 12 } });
@@ -814,8 +817,8 @@ function spriteBuilding(g, S, rc, lightsOn) {
     const doorL = cx - 13, doorR = cx + 13;
     for (let x = bx; x < bx + bw; x += 16) if (x + 16 <= doorL || x >= doorR) g.drawImage(S.wall, x, by + bh - 16, 16, 16);
   }
-  // multi-room interior, furnished per-building for variety
-  spriteRooms(g, S, rc.loc.type, bx + 16, by + 16, bw - 32, bh - 30, rng);
+  // multi-room interior laid out from the building type's blueprint
+  drawRooms(g, S, rc.loc.type, bx + 16, by + 16, bw - 32, bh - 30, rng);
   // soft AO hugging the south/east interior walls (cheap, deterministic)
   interiorAO(g, bx + 16, by + 16, bw - 32, bh - 30);
   g.restore();
@@ -836,45 +839,79 @@ function spriteBuilding(g, S, rc, lightsOn) {
   g.textAlign = "left";
 }
 
-// Per-type floor plan: a top band of two small rooms (a private room + a bath/
-// utility) over one large common room — matching the reference houses. Each entry
-// is { tl, tr, main } room-kind ids consumed by furnish().
-const PLAN = {
-  home:    { tl: "bedroom", tr: "bath", main: "living"  },
-  cafe:    { tl: "bedroom", tr: "bath", main: "cafe"    },
-  shop:    { tl: "storage", tr: "bath", main: "shop"    },
-  library: { tl: "study",   tr: "bath", main: "library" },
-  school:  { tl: "bedroom", tr: "bath", main: "class"   },
-  health:  { tl: "ward",    tr: "bath", main: "ward"    },
-  civic:   { tl: "study",   tr: "bath", main: "meeting" },
-  studio:  { tl: "bedroom", tr: "bath", main: "studio"  },
+// ---- house blueprints (one template per building type) ----------------------
+// Instead of every building sharing one fixed plan, each TYPE has its own
+// blueprint: a grid where `cols`/`rows` are fractional track sizes of the interior
+// and `cells` place rooms on that grid (optional cspan/rspan merge tracks into a
+// bigger room). `foot` is the footprint as a fraction of a cell, so types differ
+// in overall size too. drawRooms() renders any blueprint generically — laying out
+// each room, then deriving interior walls (with one doorway per adjacent room
+// pair) from the cell spans. Add a type here to give it a bespoke floor plan.
+const BLUEPRINTS = {
+  // 2-over-1 plans, varied proportions + footprints
+  home:    { foot: [0.84, 0.76], cols: [0.56, 0.44],       rows: [0.44, 0.56], cells: [{ c: 0, r: 0, kind: "bedroom" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "living" }] },
+  shop:    { foot: [0.90, 0.78], cols: [0.56, 0.44],       rows: [0.36, 0.64], cells: [{ c: 0, r: 0, kind: "storage" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "shop" }] },
+  library: { foot: [0.92, 0.82], cols: [0.60, 0.40],       rows: [0.30, 0.70], cells: [{ c: 0, r: 0, kind: "study" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "library" }] },
+  school:  { foot: [0.92, 0.82], cols: [0.62, 0.38],       rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "study" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "class" }] },
+  studio:  { foot: [0.88, 0.80], cols: [0.58, 0.42],       rows: [0.40, 0.60], cells: [{ c: 0, r: 0, kind: "bedroom" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "studio" }] },
+  gym:     { foot: [0.92, 0.82], cols: [0.64, 0.36],       rows: [0.28, 0.72], cells: [{ c: 0, r: 0, kind: "study" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "meeting" }] },
+  // 3-over-1 plans (wide footprints so the three top rooms fit)
+  cafe:    { foot: [0.92, 0.80], cols: [0.34, 0.28, 0.38], rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "bedroom" }, { c: 1, r: 0, kind: "bath" }, { c: 2, r: 0, kind: "kitchen" }, { c: 0, r: 1, cspan: 3, kind: "cafe" }] },
+  civic:   { foot: [0.90, 0.80], cols: [0.34, 0.30, 0.36], rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "study" }, { c: 1, r: 0, kind: "bath" }, { c: 2, r: 0, kind: "storage" }, { c: 0, r: 1, cspan: 3, kind: "meeting" }] },
+  // a 2×2 clinic
+  health:  { foot: [0.88, 0.80], cols: [0.52, 0.48],       rows: [0.50, 0.50], cells: [{ c: 0, r: 0, kind: "ward" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, kind: "ward" }, { c: 1, r: 1, kind: "study" }] },
 };
-const DEFAULT_PLAN = { tl: "bedroom", tr: "bath", main: "living" };
+// related types reuse a base blueprint
+const BLUEPRINT_ALIAS = {
+  bar: "cafe", bakery: "cafe", market: "shop", gallery: "library",
+  clinic: "health", office: "civic", workshop: "studio", dock: "home", garden: "home",
+};
+const DEFAULT_BLUEPRINT = { foot: [0.84, 0.74], cols: [0.56, 0.44], rows: [0.44, 0.56], cells: [{ c: 0, r: 0, kind: "bedroom" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "living" }] };
 
-// Lay out a building interior as "two small rooms over one large room" with a
-// doorway gap punched through each interior wall, then furnish each room with
-// wall-hugging fixtures.
-function spriteRooms(g, S, type, x, y, w, h, rng) {
-  const plan = PLAN[type] || DEFAULT_PLAN;
-  const wall = 3, door = 16;
-  const topH = Math.max(22, Math.round(h * 0.38));   // residential band (shorter → deeper common room)
-  const splitX = x + Math.round(w * 0.56);           // private | bath divider
-  const tl = { x, y, w: splitX - x - wall, h: topH };
-  const tr = { x: splitX + wall, y, w: x + w - (splitX + wall), h: topH };
-  const main = { x, y: y + topH + wall, w, h: h - topH - wall };
+function blueprintFor(type) {
+  return BLUEPRINTS[type] || BLUEPRINTS[BLUEPRINT_ALIAS[type]] || DEFAULT_BLUEPRINT;
+}
 
-  furnish(g, S, plan.tl, tl, rng);
-  furnish(g, S, plan.tr, tr, rng);
-  furnish(g, S, plan.main, main, rng);
-
-  // interior walls, each with a doorway gap
+// Render any blueprint into the interior rect (x,y,w,h): lay out each room from the
+// grid, furnish it, then draw the interior walls implied by the cell spans — with
+// exactly one doorway punched per pair of adjacent rooms (so every room connects).
+function drawRooms(g, S, type, x, y, w, h, rng) {
+  const bp = blueprintFor(type);
+  const cols = bp.cols, rows = bp.rows, nc = cols.length, nr = rows.length;
+  const wall = 3, door = 15;
+  const colX = [x]; for (let i = 0; i < nc; i++) colX.push(colX[i] + cols[i] * w); colX[nc] = x + w;
+  const rowY = [y]; for (let i = 0; i < nr; i++) rowY.push(rowY[i] + rows[i] * h); rowY[nr] = y + h;
+  // which cell index owns each grid square (respecting spans)
+  const occ = Array.from({ length: nr }, () => new Array(nc).fill(-1));
+  bp.cells.forEach((cell, i) => {
+    for (let r = cell.r; r < cell.r + (cell.rspan || 1) && r < nr; r++)
+      for (let c = cell.c; c < cell.c + (cell.cspan || 1) && c < nc; c++) occ[r][c] = i;
+  });
+  // floors + furniture, one room per cell
+  bp.cells.forEach((cell) => {
+    const c2 = cell.c + (cell.cspan || 1), r2 = cell.r + (cell.rspan || 1);
+    const rx = colX[cell.c] + wall / 2, ry = rowY[cell.r] + wall / 2;
+    const rw = colX[c2] - colX[cell.c] - wall, rh = rowY[r2] - rowY[cell.r] - wall;
+    if (rw > 4 && rh > 4) furnish(g, S, cell.kind, { x: rx, y: ry, w: rw, h: rh }, rng);
+  });
+  // interior walls — one doorway per adjacent room pair
   g.fillStyle = "#bdb094";
-  const hGap = x + Math.round(w * 0.5) - door / 2;   // door between band & common room
-  g.fillRect(x, y + topH, Math.max(0, hGap - x), wall);
-  g.fillRect(hGap + door, y + topH, Math.max(0, x + w - (hGap + door)), wall);
-  const vGap = y + Math.round(topH * 0.52) - door / 2; // door between the two top rooms
-  g.fillRect(splitX, y, wall, Math.max(0, vGap - y));
-  g.fillRect(splitX, vGap + door, wall, Math.max(0, y + topH - (vGap + door)));
+  const doored = new Set();
+  const key = (a, b) => (a < b ? a + ":" + b : b + ":" + a);
+  for (let c = 1; c < nc; c++) for (let r = 0; r < nr; r++) {
+    const a = occ[r][c - 1], b = occ[r][c];
+    if (a === b) continue;
+    const wx = colX[c] - wall / 2, y0 = rowY[r], y1 = rowY[r + 1], k = key(a, b);
+    if (doored.has(k)) g.fillRect(wx, y0, wall, y1 - y0);
+    else { doored.add(k); const m = (y0 + y1) / 2; g.fillRect(wx, y0, wall, Math.max(0, m - door / 2 - y0)); g.fillRect(wx, m + door / 2, wall, Math.max(0, y1 - (m + door / 2))); }
+  }
+  for (let r = 1; r < nr; r++) for (let c = 0; c < nc; c++) {
+    const a = occ[r - 1][c], b = occ[r][c];
+    if (a === b) continue;
+    const wy = rowY[r] - wall / 2, x0 = colX[c], x1 = colX[c + 1], k = key(a, b);
+    if (doored.has(k)) g.fillRect(x0, wy, x1 - x0, wall);
+    else { doored.add(k); const m = (x0 + x1) / 2; g.fillRect(x0, wy, Math.max(0, m - door / 2 - x0), wall); g.fillRect(m + door / 2, wy, Math.max(0, x1 - (m + door / 2)), wall); }
+  }
 }
 
 // Common rooms get warm wood; private/utility rooms get tan tile; baths get pink.
@@ -902,9 +939,10 @@ function furnish(g, S, kind, c, rng) {
     // ---- small rooms in the top band: fixtures hug the back (top) wall ----
     case "bedroom":
       put(g, pick(beds, rng), L, T);                 // bed | nightstand | dresser, left→right
-      put(g, S.nightstand, L + 26, T);
-      put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 19, T);
-      if (S.lamp && rng() < 0.5) put(g, S.lamp, R - 12, B - 20);
+      if (c.w > 42) put(g, S.nightstand, L + 26, T);
+      if (c.w > 58) put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 19, T);
+      else if (S.dresser) put(g, S.dresser, R - 19, B - 16);
+      if (S.lamp && rng() < 0.5) put(g, S.lamp, L + 2, B - 20);
       break;
     case "bath":
       put(g, S.toilet, L, T);
@@ -923,8 +961,14 @@ function furnish(g, S, kind, c, rng) {
       break;
     case "ward":
       put(g, pick(beds, rng), L, T);
-      put(g, S.nightstand, L + 26, T);
-      put(g, S.dresser, R - 19, T);
+      if (c.w > 42) put(g, S.nightstand, L + 26, T);
+      if (c.w > 58) put(g, S.dresser, R - 19, T);
+      break;
+    case "kitchen":
+      put(g, S.counter, L, T);
+      put(g, S.fridge, R - 18, T);
+      put(g, S.oven || S.stove, L, B - 18);
+      if (S.utensil_rack) put(g, S.utensil_rack, L + 2, T + 13);
       break;
     // ---- large common rooms (bottom): back-wall feature + spaced front seating ----
     case "living":
