@@ -16,6 +16,10 @@ export class Location {
     this.district = data.district || null;
     this.capacity = data.capacity || 8;
     this.spriteKey = data.spriteKey || null;
+    // apartment-complex id (from the packer): townArt groups members under one
+    // shared shell. Without this the renderer falls back to a coarse grid key and
+    // lumps unrelated buildings into giant sparse "complexes" of bare corridor floor.
+    this.complex = data.complex || null;
   }
 
   distanceTo(other) {
@@ -38,6 +42,7 @@ export class Location {
       district: this.district,
       capacity: this.capacity,
       spriteKey: this.spriteKey,
+      complex: this.complex,
     };
   }
 }

@@ -511,6 +511,18 @@ export function shingleRoof(g, r, roof) {
   g.stroke();
 }
 
+// A flat light-grey wall cap across the top of a building/complex — the top-down
+// cutaway look (no colored roof): the wall's top face seen from above, lit on the
+// top edge with a crisp dark outline. Replaces the shingle roof in the sprite path.
+export function wallCap(g, r) {
+  const x = r.bx, w = r.bw, y = r.by, capH = 7;
+  g.fillStyle = "#d6d0c4"; g.fillRect(x, y - capH, w, capH);   // wall top face
+  g.fillStyle = "#efeae0"; g.fillRect(x, y - capH, w, 2);      // top-lit highlight
+  g.fillStyle = "#b4ac9a"; g.fillRect(x, y - 2, w, 2);         // contact shadow into the interior
+  g.strokeStyle = "#3a352e"; g.lineWidth = 1;
+  g.strokeRect(x + 0.5, y - capH + 0.5, w - 1, capH);
+}
+
 // ---- furniture & fixtures ---------------------------------------------------
 function floorWood(g, x, y, w, h) {
   g.fillStyle = C.floorWood; g.fillRect(x, y, w, h);
@@ -800,6 +812,21 @@ function put(g, img, x, y) {
 
 function pick(arr, rnd) { return arr.length ? arr[Math.floor(rnd() * arr.length)] : null; }
 
+// The reference's signature centrepiece: a table ringed by four chairs in alternating
+// red/yellow, sitting on a rug — fills the open middle of a common room so it doesn't
+// read as empty wood. (cx,cy) is the table centre. Draw order tucks the back/side
+// chairs under the table, then the front chair in front of it.
+function diningSet(g, S, cx, cy, rng, opts = {}) {
+  const rugs = [S.rug, S.rug_blue, S.rug_green].filter(Boolean);
+  if (opts.rug !== false && rugs.length) put(g, pick(rugs, rng), cx - 17, cy - 13);
+  const R = S.chair_red || S.chair, Y = S.chair_yellow || S.chair_red || S.chair;
+  put(g, R, cx - 7, cy - 19);                       // back chair (under table top edge)
+  put(g, Y, cx - 19, cy - 7);                       // left chair
+  put(g, Y, cx + 5, cy - 7);                        // right chair
+  if (S.table) put(g, S.table, cx - 14, cy - 12);   // table over the side/back chairs
+  put(g, R, cx - 7, cy + 4);                        // front chair, in front of the table
+}
+
 // Group buildings into apartment COMPLEXES by super-block, so a cluster of homes/
 // shops renders as ONE shell with an array of rooms + shared corridors (parks &
 // plazas stay standalone). Deterministic; computed once in computeLayout.
@@ -808,7 +835,10 @@ function groupComplexes(layout) {
   for (const rc of layout.rects.values()) {
     const t = rc.loc.type;
     if (t === "park" || t === "square") continue;
-    const key = rc.loc.complex || (Math.floor(rc.loc.x / 6) + "_" + Math.floor(rc.loc.y / 4));
+    // a building with no complex id renders standalone (its own unique key), never
+    // grid-merged — merging by a coarse grid lumped unrelated buildings into giant
+    // sparse complexes flooded with bare corridor floor.
+    const key = rc.loc.complex || ("solo_" + rc.loc.id);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(rc);
   }
@@ -830,6 +860,21 @@ function spriteComplex(g, S, complex, lightsOn) {
   const { members, x, y, w, h } = complex;
   if (members.length <= 1) { if (members[0]) spriteBuilding(g, S, members[0], lightsOn); return; }
   clipTile(g, S.corridor || S.floor_wood, x, y, w, h);                 // shared corridor floor
+  // dress any empty cells in the bounding box (a complex may not perfectly fill its
+  // rectangle) with a small rug + plant landing, so they don't read as bare corridor.
+  {
+    const gx0 = Math.round(x / CELL), gy0 = Math.round(y / CELL);
+    const cw = Math.round(w / CELL), ch = Math.round(h / CELL);
+    if (members.length < cw * ch) {
+      const occ = new Set(members.map((m) => m.loc.x + "," + m.loc.y));
+      for (let gy = gy0; gy < gy0 + ch; gy++) for (let gx = gx0; gx < gx0 + cw; gx++) {
+        if (occ.has(gx + "," + gy)) continue;
+        const px = gx * CELL + CELL / 2, py = gy * CELL + CELL / 2;
+        if (S.rug) put(g, S.rug, px - 18, py - 10);
+        if (S.plant) put(g, S.plant, px - 8, py - 18);
+      }
+    }
+  }
   for (const rc of [...members].sort((p, q) => p.by - q.by)) spriteBuilding(g, S, rc, lightsOn, { noRoof: true });
   const WL = S.wall2 || S.wall;
   if (WL) {
@@ -841,8 +886,8 @@ function spriteComplex(g, S, complex, lightsOn) {
     if (S.window) for (let wx = x + 30; wx < x + w - 30; wx += 80) g.drawImage(S.window, wx, y + 2, 16, 12); // windows on the front wall
     g.restore();
   }
-  g.strokeStyle = "#2f2a22"; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-  shingleRoof(g, { bx: x, bw: w, by: y }, ROOF_DEFAULT);              // one eave across the whole complex
+  g.strokeStyle = "#3a352e"; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  wallCap(g, { bx: x, bw: w, by: y });                               // flat light-grey wall cap (top-down cutaway, no roof)
   if (lightsOn) eaveLight(g, { bx: x, bw: w, by: y });
   if (S.stairs) g.drawImage(S.stairs, x + w / 2 - 14, y + h - 3, 28, 16);
   if (S.doormat) g.drawImage(S.doormat, x + w / 2 - 8, y + h - 19, 16, 8);
@@ -878,8 +923,8 @@ function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
   g.strokeStyle = "#2f2a22";
   g.lineWidth = 1;
   g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-  // cozy shingled roof eave capping the top (skipped for units inside a complex)
-  if (!opts.noRoof) shingleRoof(g, rc, ROOF[rc.loc.type] || ROOF_DEFAULT);
+  // flat light-grey wall cap capping the top (skipped for units inside a complex)
+  if (!opts.noRoof) wallCap(g, rc);
   // warm window-light wash on the eave when lit (e.g. night bakes)
   if (lightsOn) eaveLight(g, rc);
   const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
@@ -946,8 +991,8 @@ function drawRooms(g, S, type, x, y, w, h, rng) {
     const rw = colX[c2] - colX[cell.c] - wall, rh = rowY[r2] - rowY[cell.r] - wall;
     if (rw > 4 && rh > 4) furnish(g, S, cell.kind, { x: rx, y: ry, w: rw, h: rh }, rng);
   });
-  // interior walls — one doorway per adjacent room pair
-  g.fillStyle = "#bdb094";
+  // interior walls — one doorway per adjacent room pair (light-grey plaster)
+  g.fillStyle = "#cdc7ba";
   const doored = new Set();
   const key = (a, b) => (a < b ? a + ":" + b : b + ":" + a);
   for (let c = 1; c < nc; c++) for (let r = 0; r < nr; r++) {
@@ -984,9 +1029,8 @@ function furnish(g, S, kind, c, rng) {
   const L = c.x + 2, T = c.y + 2, R = c.x + c.w, B = c.y + c.h, MX = c.x + c.w / 2;
   const beds = [S.bed, S.bed_red, S.bed_green].filter(Boolean);
   const chairs = [S.chair, S.chair_red, S.chair_yellow, S.chair_green].filter(Boolean);
-  const rugs = [S.rug, S.rug_blue, S.rug_green].filter(Boolean);
-  // place a coffee table on a rug, centred along the front wall of a common room
-  const centrepiece = () => { put(g, pick(rugs, rng), MX - 15, B - 23); put(g, S.table, MX - 14, B - 25); };
+  // the signature dining set fills the open middle of a common room
+  const centrepiece = () => diningSet(g, S, MX, B - 18, rng);
   switch (kind) {
     // ---- small rooms in the top band: fixtures hug the back (top) wall ----
     case "bedroom":
@@ -1054,10 +1098,8 @@ function furnish(g, S, kind, c, rng) {
       for (let r = 0; r < 2; r++) for (let i = 0; i < 3; i++) put(g, S.desk, L + 10 + i * 22, T + 18 + r * 18);
       break;
     case "meeting": {
-      const my = c.y + c.h / 2;
-      put(g, S.table, MX - 14, my - 12);
-      put(g, pick(chairs, rng), MX - 22, my - 22); put(g, pick(chairs, rng), MX + 8, my - 22);
-      put(g, pick(chairs, rng), MX - 22, my + 8); put(g, pick(chairs, rng), MX + 8, my + 8);
+      const my = c.y + c.h / 2 + 4;
+      diningSet(g, S, MX, my, rng);
       put(g, S.bookshelf, L + 2, T); put(g, S.bookshelf, R - 19, T);
       break;
     }
@@ -1065,7 +1107,7 @@ function furnish(g, S, kind, c, rng) {
       put(g, S.easel || S.table, L + 6, T);
       if (S.microphone) put(g, S.microphone, L + 30, T);
       put(g, S.bookshelf, R - 19, T);
-      put(g, S.table, MX - 14, B - 24);
+      centrepiece();
       if (rng() < 0.6) put(g, S.plant, L, B - 18);
       break;
     default:
