@@ -852,45 +852,88 @@ function groupComplexes(layout) {
   return complexes;
 }
 
-// Draw an apartment complex: a shared corridor floor, each member unit's walled
-// interior (no individual roof), one compound outer wall with a ground-floor entry
-// gap, a single eave across the top, and entry fixtures (stairs / mat / mailbox /
-// windows). A lone member just renders as a normal standalone building.
+// Draw an apartment complex as ONE shell (matching the top-down cutaway reference):
+// every cell is a full-bleed unit, units share SINGLE-thickness walls on the cell
+// boundaries (no corridor, no gap), each unit is subdivided into rooms with one
+// doorway per adjacent pair, and every ground-floor unit gets its own south entry
+// door + deck. A lone member just renders as a normal standalone building.
 function spriteComplex(g, S, complex, lightsOn) {
   const { members, x, y, w, h } = complex;
   if (members.length <= 1) { if (members[0]) spriteBuilding(g, S, members[0], lightsOn); return; }
-  clipTile(g, S.corridor || S.floor_wood, x, y, w, h);                 // shared corridor floor
-  // dress any empty cells in the bounding box (a complex may not perfectly fill its
-  // rectangle) with a small rug + plant landing, so they don't read as bare corridor.
-  {
-    const gx0 = Math.round(x / CELL), gy0 = Math.round(y / CELL);
-    const cw = Math.round(w / CELL), ch = Math.round(h / CELL);
-    if (members.length < cw * ch) {
-      const occ = new Set(members.map((m) => m.loc.x + "," + m.loc.y));
-      for (let gy = gy0; gy < gy0 + ch; gy++) for (let gx = gx0; gx < gx0 + cw; gx++) {
-        if (occ.has(gx + "," + gy)) continue;
-        const px = gx * CELL + CELL / 2, py = gy * CELL + CELL / 2;
-        if (S.rug) put(g, S.rug, px - 18, py - 10);
-        if (S.plant) put(g, S.plant, px - 8, py - 18);
-      }
+
+  // grid of full cells inside the shell (cells are contiguous → a solid block)
+  const WT = 16;                                          // perimeter wall thickness (one tile)
+  const cols = Math.round(w / CELL), rows = Math.round(h / CELL);
+  const gx0 = Math.round(x / CELL), gy0 = Math.round(y / CELL);
+  const maxGy = gy0 + rows - 1;                           // bottom (ground-floor) row
+  const occ = new Set(members.map((m) => m.loc.x + "," + m.loc.y));
+
+  // --- per-unit full-cell interiors, drawn BEFORE the shared wall grid -------
+  // Each unit fills its whole cell; the interior is inset by a FULL wall tile on the
+  // shell's outer edges and a HALF tile (the shared-wall half-width) on internal
+  // edges, so room floors meet the wall centrelines exactly — no gap, no wood strip.
+  for (const rc of [...members].sort((p, q) => p.loc.y - q.loc.y)) {
+    const ux = rc.loc.x * CELL, uy = rc.loc.y * CELL;
+    const cI = rc.loc.x - gx0, rI = rc.loc.y - gy0;       // cell column/row within the shell
+    const iL = cI === 0 ? WT : 8, iT = rI === 0 ? WT : 8; // inset per edge (perimeter vs shared)
+    const iR = cI === cols - 1 ? WT : 8, iB = rI === rows - 1 ? WT : 8;
+    const ix = ux + iL, iy = uy + iT, iw = CELL - iL - iR, ih = CELL - iT - iB;
+    clipTile(g, S.floor_wood, ux, uy, CELL, CELL);        // full-cell base floor (no seams)
+    const rng = seededRandom("furn-" + rc.loc.id);
+    g.save(); g.beginPath(); g.rect(ux, uy, CELL, CELL); g.clip();
+    drawRooms(g, S, rc.loc.type, ix, iy, iw, ih, rng);
+    interiorAO(g, ix, iy, iw, ih);
+    g.restore();
+    // per-unit label, tucked just inside the top wall band
+    const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
+    g.font = "600 9px ui-monospace, Menlo, monospace";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillStyle = "rgba(0,0,0,0.62)";
+    g.fillText(label, ux + CELL / 2, uy + WT + 5, CELL - WT * 2 - 4);
+    g.textAlign = "left";
+  }
+
+  // dress any GAP cells (a complex may not perfectly fill its bounding rectangle)
+  if (members.length < cols * rows) {
+    for (let gy = gy0; gy <= maxGy; gy++) for (let gx = gx0; gx < gx0 + cols; gx++) {
+      if (occ.has(gx + "," + gy)) continue;
+      const ux = gx * CELL, uy = gy * CELL;
+      clipTile(g, S.floor_wood, ux, uy, CELL, CELL);
+      const px = ux + CELL / 2, py = uy + CELL / 2;
+      if (S.rug) put(g, S.rug, px - 18, py - 10);
+      if (S.plant) put(g, S.plant, px - 8, py - 18);
     }
   }
-  for (const rc of [...members].sort((p, q) => p.by - q.by)) spriteBuilding(g, S, rc, lightsOn, { noRoof: true });
-  const WL = S.wall2 || S.wall;
+
+  // --- ONE shared wall grid, clipped to the shell, drawn once per boundary ----
+  const WL = S.wall2 || S.wall, WI = S.wall || WL;
   if (WL) {
     g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
-    for (let xx = x; xx < x + w; xx += 16) g.drawImage(WL, xx, y, 16, 16);                                   // top wall
-    for (let yy = y; yy < y + h; yy += 16) { g.drawImage(WL, x, yy, 16, 16); g.drawImage(WL, x + w - 16, yy, 16, 16); } // sides
-    const eL = x + w / 2 - 24, eR = x + w / 2 + 24;                                                          // bottom wall w/ entry gap
-    for (let xx = x; xx < x + w; xx += 16) if (xx + 16 <= eL || xx >= eR) g.drawImage(WL, xx, y + h - 16, 16, 16);
-    if (S.window) for (let wx = x + 30; wx < x + w - 30; wx += 80) g.drawImage(S.window, wx, y + 2, 16, 12); // windows on the front wall
+    for (let xx = x; xx < x + w; xx += 16) g.drawImage(WL, xx, y, 16, 16);                                   // top
+    for (let yy = y; yy < y + h; yy += 16) { g.drawImage(WL, x, yy, 16, 16); g.drawImage(WL, x + w - 16, yy, 16, 16); } // left + right
+    for (let ci = 1; ci < cols; ci++) { const vx = x + ci * CELL - 8; for (let yy = y; yy < y + h; yy += 16) g.drawImage(WI, vx, yy, 16, 16); } // internal vertical (unit/unit)
+    for (let ri = 1; ri < rows; ri++) { const hy = y + ri * CELL - 8; for (let xx = x; xx < x + w; xx += 16) g.drawImage(WI, xx, hy, 16, 16); } // internal horizontal (floor/floor)
+    // bottom perimeter — a 28px south door gap under each ground-floor unit (solid under gaps)
+    for (let gx = gx0; gx < gx0 + cols; gx++) {
+      const ux = gx * CELL, cxu = ux + CELL / 2, isUnit = occ.has(gx + "," + maxGy);
+      const dL = isUnit ? cxu - 14 : Infinity, dR = isUnit ? cxu + 14 : -Infinity;
+      for (let xx = ux; xx < ux + CELL; xx += 16) if (xx + 16 <= dL || xx >= dR) g.drawImage(WL, xx, y + h - 16, 16, 16);
+    }
+    if (S.window) for (let wx = x + 30; wx < x + w - 30; wx += 80) g.drawImage(S.window, wx, y + 2, 16, 12); // windows on the front (top) wall
     g.restore();
   }
+
+  // --- cap, outline, per-unit entry fixtures ---------------------------------
   g.strokeStyle = "#3a352e"; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   wallCap(g, { bx: x, bw: w, by: y });                               // flat light-grey wall cap (top-down cutaway, no roof)
   if (lightsOn) eaveLight(g, { bx: x, bw: w, by: y });
-  if (S.stairs) g.drawImage(S.stairs, x + w / 2 - 14, y + h - 3, 28, 16);
-  if (S.doormat) g.drawImage(S.doormat, x + w / 2 - 8, y + h - 19, 16, 8);
+  for (let gx = gx0; gx < gx0 + cols; gx++) {
+    if (!occ.has(gx + "," + maxGy)) continue;                        // deck/stairs/mat per ground-floor unit
+    const cxu = gx * CELL + CELL / 2;
+    if (S.deck) clipTile(g, S.deck, cxu - 22, y + h - 1, 44, 18);
+    if (S.stairs) g.drawImage(S.stairs, cxu - 14, y + h - 3, 28, 16);
+    if (S.doormat) g.drawImage(S.doormat, cxu - 8, y + h - 19, 16, 8);
+  }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
 }
 
@@ -1038,12 +1081,17 @@ function furnish(g, S, kind, c, rng) {
       if (c.w > 42) put(g, S.nightstand, L + 26, T);
       if (c.w > 58) put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 19, T);
       else if (S.dresser) put(g, S.dresser, R - 19, B - 16);
-      if (S.lamp && rng() < 0.5) put(g, S.lamp, L + 2, B - 20);
+      if (S.rug && c.h > 44) put(g, pick([S.rug, S.rug_blue, S.rug_green].filter(Boolean), rng), L + 6, B - 24); // floor rug
+      if (S.lamp) put(g, S.lamp, R - 17, B - 20);                 // corner floor lamp
+      if (S.painting && c.w > 52) put(g, S.painting, MX - 2, T);  // wall art on the back wall
+      if (S.bookshelf && c.w > 76) put(g, S.bookshelf, R - 19, B - 17);
       break;
     case "bath":
       put(g, S.toilet, L, T);
       put(g, S.vanity || S.sink, R - 18, T);
-      if (rng() < 0.5) put(g, S.plant, L, B - 18);
+      if (S.sink && (S.vanity) && c.h > 50) put(g, S.sink, R - 18, B - 18); // second basin on a deep bath
+      if (S.plant) put(g, S.plant, L, B - 18);
+      if (S.rug && c.w > 40) put(g, S.rug_blue || S.rug, MX - 6, B - 20);   // bath mat
       break;
     case "study":
       put(g, S.desk, L, T);
@@ -1072,7 +1120,9 @@ function furnish(g, S, kind, c, rng) {
       if (S.tv) put(g, S.tv, L + 42, T);
       put(g, S.bookshelf, R - 19, T);
       centrepiece();
-      if (rng() < 0.6) put(g, S.plant, L, B - 18);
+      if (S.piano && c.w > 116) put(g, S.piano, R - 22, B - 22); // upright piano in the far corner
+      if (S.plant) put(g, S.plant, L, B - 18);                   // potted plant by the door
+      if (S.lamp && c.w > 96) put(g, S.lamp, L + 4, T + 20);     // reading lamp beside the sofa
       break;
     case "cafe":
       put(g, S.bar || S.counter, L + 4, T);           // bar along the back wall
