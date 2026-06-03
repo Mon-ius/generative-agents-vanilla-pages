@@ -22,7 +22,7 @@ toolchain (not served, harmless on Pages):
 - `package.json` — `{"type":"module"}` so Node can import the ES-module core; provides `npm run smoke` / `npm run check`.
 - `test/smoke.node.mjs` — headless harness for the DOM-free core (world integrity, **determinism**, save/load, pathfinding, group-conversation invariants). 21 checks.
 - `tools/check-all.mjs` — runs `node --check` over every `js/**/*.js` except `js/vendor`.
-- Still **no** ESLint/Prettier/CI. **All art is original, self-generated SVG → PNG atlases** (no third-party/Kenney assets): town tiles in `assets/sprites/atlas.png`, characters in `assets/characters/atlas.png`. Asset tools live in `tools/` (`gen_chars_svg.mjs`, `assemble_atlas.mjs`, `pack_tiles.mjs`, `svg2png.mjs`).
+- Still **no** ESLint/Prettier/CI. **All art is original, self-generated SVG → PNG atlases** (no third-party/Kenney assets): town tiles in `assets/sprites/atlas.png`, characters in `assets/characters/atlas.png`. Asset tools live in `tools/` (`gen_chars_svg.mjs`, `assemble_atlas.mjs`, `pack_tiles.mjs`, `svg2png.mjs`, `pack_locations.mjs` — assigns the packed grid x/y + `complex` ids in `seedLocations.js`, `screenshot.mjs` — headless-Chrome capture of the live app for the art verify loop).
 
 The README is inherited from the upstream source repo (`Mon-ius/generative-agents-vanilla-pages`)
 and is **stale** re: world size, art, and the renderer — trust this file over it.
@@ -144,9 +144,24 @@ all cognition is delegated to focused modules, and **all text generation goes th
 modules, so they stay in lockstep:
 
 - **`townArt.js`** — `CELL = CONFIG.world.cellPixels` (176). `computeLayout(sim)` returns a
-  **superset** `{cols,rows,W,H,CELL,rects, collisionGrid, chunkCells/chunkPx/chunkCols/chunkRows}`.
+  **superset** `{cols,rows,W,H,CELL,rects, collisionGrid, complexes, chunkCells/chunkPx/chunkCols/chunkRows}`.
   `drawTownInto(g, layout, sprites, worldRect, opts)` draws only what intersects `worldRect`
   (so a chunk can be baked); `drawTown`/`makeTownCanvas` are thin full-rect wrappers.
+- **Building art — top-down cutaway (no roofs).** Buildings render as **apartment complexes**:
+  `groupComplexes(layout)` buckets `rects` by each location's **`complex` id** (assigned by
+  `tools/pack_locations.mjs`, preserved through `Location` — *if that field is ever dropped again,
+  the renderer falls back to a coarse grid key and lumps unrelated buildings into giant sparse
+  pseudo-complexes flooded with bare corridor floor*; complex-less buildings get a unique `solo_<id>`
+  key → standalone). `spriteComplex` draws one shared corridor floor + each member's walled unit
+  (`spriteBuilding`, `noRoof`) + one outer shell wall with an entry gap; empty cells in the bounding
+  box get a rug+plant landing. **`wallCap()` caps every shell with a flat light-grey wall top
+  (the cutaway look) — there is NO colored shingle roof in the sprite path** (`shingleRoof`/`ROOF`
+  survive only in the procedural `drawBuilding` fallback). Each unit's interior comes from a per-type
+  **`BLUEPRINTS`** floor plan (`drawRooms` lays out rooms + one doorway per adjacent pair); `furnish`
+  fills each room by `kind` — baths get the **salmon diamond** floor (`floor_pink`), private rooms
+  the **cream carpet** (`floor_tile`), common rooms **warm orange planks** (`floor_wood`). The
+  reference's signature **`diningSet()`** (a table ringed by red/yellow chairs on a rug) anchors
+  every common room.
 - **`townChunks.js`** — the 24×24 world is too big for one texture (~8448px > WebGL limits), so
   it's **baked per chunk** (4×4 cells) **lazily and viewport-culled**. `makeChunkCanvas`,
   `visibleChunks`, `chunkDims`, `chunkWorldRect`, `chunkKey`. Pixi LRU-caches chunk textures
@@ -180,13 +195,18 @@ modules, so they stay in lockstep:
   one atlas SVG + writes the region manifest, and `tools/svg2png.mjs` rasterizes SVG→PNG via
   **self-launched headless Chrome** (transparent, pixel-exact, zero npm deps). Redraw via those
   three tools.
-- **Town tiles** (`assets.js`, `js/ui/townArt.js`) — the 37 terrain/furniture sprites are **also
+- **Town tiles** (`assets.js`, `js/ui/townArt.js`) — the ~65 terrain/furniture sprites are **also
   one CC0 SVG→PNG atlas** `assets/sprites/atlas.png`, addressed by `{x,y,w,h}` regions in
   `assets/manifest.json`. `loadSprites()` fetches that atlas **once** and slices each region into
   a per-name canvas, so `townArt` draws `S.<name>` exactly as before (no townArt change). Tiles
-  are hand-authored SVG in `tools/tile_svg/<name>.svg`, packed by `tools/pack_tiles.mjs` →
-  `svg2png.mjs`. If the atlas/manifest is missing (or headless), `loadSprites` → `{}` and townArt
-  falls back to its **procedural** drawing.
+  are hand-authored SVG in `tools/tile_svg/<name>.svg` (each a single `<svg>` sized base×SS where
+  SS=4, ids prefixed by the tile name — `tools/validate_tiles.mjs` enforces this), packed by
+  `tools/pack_tiles.mjs` → `svg2png.mjs`. The cutaway look lives in these tiles: light plaster
+  walls (`wall`/`wall2`), salmon diamond bath floor (`floor_pink`), cream bedroom carpet
+  (`floor_tile`), warm orange planks (`floor_wood`), plus the furniture (beds w/ white pillow +
+  colored blanket, red/yellow chairs, toilet/sink, fridge, bookshelf, piano, bar/stool, board, …).
+  If the atlas/manifest is missing (or headless), `loadSprites` → `{}` and townArt falls back to
+  its **procedural** drawing.
 
 High-DPI: Pixi `resolution = CONFIG.rendering.resolutionScale` (devicePixelRatio, capped 2) +
 `autoDensity`; canvas backs the store at `cssPx*dpr`. **All art is original SVG** (no third-party
@@ -207,12 +227,24 @@ packs); the two atlases are the only image assets.
   field names: `homeLocationId`, `workLocationId`, `currentLocationId`; every referenced id
   must exist in `seedLocations.js` or init breaks), then **Reset** to rebuild. Location
   `type`/`tags` (`cafe`, `park`, `shop`, `library`, `square`, …) drive plan-block resolution.
+  Each building location also carries a packed `x`/`y` and a `complex` id (grouped into one
+  cutaway shell by the renderer) — both assigned by `node tools/pack_locations.mjs`; re-run it
+  after adding/removing buildings so complexes stay contiguous. `Location` **must** keep copying
+  `complex` through its constructor + `toJSON` (see the building-art note above).
 - **Wire a real LLM**: there is no runtime/env switch — implement `LLMGenerationProvider` and
   change the `provider:` arg in `main.js` (where `new LocalGenerationProvider()` is passed to
   `new Simulation(...)`). Route the API through a backend proxy; never embed a key client-side.
 
 ## Art direction
 
-`ART_BIBLE.md` documents the palette, sprite grid, building-interior room layouts, and a QA
-checklist. Note it describes a procedural generator/`tools/` workflow that is **not present in
-this deploy repo** — treat it as design intent for the upstream source, not runnable here.
+The building art targets a **top-down RPG cutaway** look: apartment shells with the roof cut
+away to reveal walled units — light-grey plaster walls (no colored roofs), salmon diamond-tile
+baths, cream-carpet bedrooms, warm-orange wood-plank common rooms, detailed furniture, and a
+red/yellow dining set per common room. Iterate with the verify loop: edit a tile SVG (or the
+`townArt.js` placement) → `node tools/pack_tiles.mjs && node tools/svg2png.mjs` (rebuild the
+atlas; tile-art changes only) → serve → `node tools/screenshot.mjs <url> <out.png> --eval <frame js>`
+to capture the live town and eyeball it against the reference.
+
+`ART_BIBLE.md` documents the older palette, sprite grid, and room layouts. Note it describes a
+procedural generator/`tools/` workflow that is **not present in this deploy repo**, and it predates
+the cutaway refactor — treat it as historical design intent, not runnable here.
