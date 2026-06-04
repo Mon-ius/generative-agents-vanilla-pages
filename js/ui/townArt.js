@@ -343,13 +343,8 @@ function drawBuilding(g, r, rnd, lightsOn) {
   // warm window-light wash on the eave, only when lightsOn (e.g. night bakes).
   if (lightsOn) eaveLight(g, r);
 
-  // small unobtrusive label on the eave (aids the demo; original relies on the map)
-  const label = r.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || r.loc.name;
-  g.font = "600 8px ui-monospace, Menlo, monospace";
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillStyle = "rgba(0,0,0,0.55)";
-  g.fillText(label, r.cx, r.by + 3, r.bw - 6);
-  g.textAlign = "left";
+  // carved wood nameplate fixed to the front wall band (replaces the bare label)
+  nameSign(g, r.loc.name, r.cx, r.by + 8, Math.min(150, r.bw - 6));
 }
 
 function composeInterior(g, type, x, y, w, h, roof, rnd) {
@@ -827,6 +822,87 @@ function diningSet(g, S, cx, cy, rng, opts = {}) {
   put(g, R, cx - 7, cy + 4);                        // front chair, in front of the table
 }
 
+// A wall-mounted carved-wood NAMEPLATE — a real little signboard, not floating text.
+// Replaces the bare fillText label so each building's name reads as a physical object
+// screwed to its front wall band: a beveled wood plaque (light→warm→dark vertical
+// bevel) with a routed darker frame, four tiny corner screws, faint grain, a drop
+// shadow lifting it off the wall, and an INCISED name (a light wood-tone highlight
+// drawn one px below the dark glyphs fakes a carved groove). The name is dynamic so
+// this must be procedural (it can't be a static atlas sprite); board + text are drawn
+// together so they stay aligned, and both renderers bake it identically. Auto-fits the
+// font (10→8px) then ellipsis-truncates so long names never overflow. Args mirror the
+// old label anchor: (cx, topY) is the wall-band centre, maxBoardW the width budget.
+function nameSign(g, name, cx, topY, maxBoardW) {
+  const label = (name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || name).trim();
+
+  // auto-fit: shrink the font to an 8px floor, then ellipsis-truncate
+  const padX = 8;                                   // text inset inside the board
+  const maxTextW = Math.max(10, maxBoardW - padX * 2);
+  let fontPx = 10;
+  const fontAt = (px) => "600 " + px + "px ui-monospace, Menlo, monospace";
+  g.font = fontAt(fontPx);
+  while (fontPx > 8 && g.measureText(label).width > maxTextW) { fontPx -= 1; g.font = fontAt(fontPx); }
+  let txt = label;
+  if (g.measureText(txt).width > maxTextW) {         // still too wide at the floor → ellipsis
+    while (txt.length > 1 && g.measureText(txt + "…").width > maxTextW) txt = txt.slice(0, -1);
+    txt = txt + "…";
+  }
+
+  // board geometry (sized to the fitted text, clamped to the budget)
+  const textW = g.measureText(txt).width;
+  const boardW = Math.min(maxBoardW, Math.max(40, Math.ceil(textW) + padX * 2));
+  const boardH = 16;
+  const bx = Math.round(cx - boardW / 2), by = Math.round(topY - boardH / 2);
+
+  g.save();
+
+  // (1) drop shadow lifts the plaque off the wall
+  g.fillStyle = "rgba(0,0,0,0.28)";
+  roundRect(g, bx + 1, by + 2, boardW, boardH, 3); g.fill();
+
+  // (2) wood board with a vertical bevel: light top → warm body → dark base
+  const grad = g.createLinearGradient(0, by, 0, by + boardH);
+  grad.addColorStop(0, shade(C.wood, 0.18));
+  grad.addColorStop(0.5, C.wood);
+  grad.addColorStop(1, shade(C.wood, -0.12));
+  g.fillStyle = grad;
+  roundRect(g, bx, by, boardW, boardH, 3); g.fill();
+
+  // (3) faint horizontal grain (two darker streaks at fixed positions)
+  g.strokeStyle = shade(C.wood, -0.12); g.lineWidth = 0.6; g.globalAlpha = 0.35;
+  for (const fy of [by + boardH * 0.38, by + boardH * 0.68]) {
+    g.beginPath(); g.moveTo(bx + 3, Math.round(fy) + 0.5); g.lineTo(bx + boardW - 3, Math.round(fy) + 0.5); g.stroke();
+  }
+  g.globalAlpha = 1;
+
+  // (4) darker routed inner frame + bright top-left bevel highlight
+  g.strokeStyle = C.woodDark; g.lineWidth = 1;
+  roundRect(g, bx + 2.5, by + 2.5, boardW - 5, boardH - 5, 2); g.stroke();
+  g.strokeStyle = shade(C.wood, 0.3); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(bx + 1, by + boardH - 2); g.lineTo(bx + 1, by + 1); g.lineTo(bx + boardW - 2, by + 1); g.stroke();
+
+  // (5) four tiny dark mounting screws in the corners
+  const screw = (sx, sy) => {
+    g.fillStyle = C.wallLine; g.beginPath(); g.arc(sx, sy, 1.3, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = shade(C.wood, 0.25); g.lineWidth = 0.5;                 // slot
+    g.beginPath(); g.moveTo(sx - 1, sy); g.lineTo(sx + 1, sy); g.stroke();
+  };
+  screw(bx + 4, by + 4); screw(bx + boardW - 4, by + 4);
+  screw(bx + 4, by + boardH - 4); screw(bx + boardW - 4, by + boardH - 4);
+
+  // (6) incised name: a light wood-tone highlight one px BELOW the dark glyphs = groove
+  const ty = by + boardH / 2 + 0.5;
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = fontAt(fontPx);
+  g.fillStyle = shade(C.wood, 0.42);                 // groove highlight, one px lower
+  g.fillText(txt, cx, ty + 1);
+  g.fillStyle = "rgba(28,18,8,0.92)";                // incised dark text
+  g.fillText(txt, cx, ty);
+
+  g.restore();
+  g.textAlign = "left";                              // reset for the rest of the draw
+}
+
 // Group buildings into apartment COMPLEXES by super-block, so a cluster of homes/
 // shops renders as ONE shell with an array of rooms + shared corridors (parks &
 // plazas stay standalone). Deterministic; computed once in computeLayout.
@@ -884,13 +960,7 @@ function spriteComplex(g, S, complex, lightsOn) {
     drawRooms(g, S, rc.loc.type, ix, iy, iw, ih, rng);
     interiorAO(g, ix, iy, iw, ih);
     g.restore();
-    // per-unit label, tucked just inside the top wall band
-    const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
-    g.font = "600 9px ui-monospace, Menlo, monospace";
-    g.textAlign = "center"; g.textBaseline = "middle";
-    g.fillStyle = "rgba(0,0,0,0.62)";
-    g.fillText(label, ux + CELL / 2, uy + WT + 5, CELL - WT * 2 - 4);
-    g.textAlign = "left";
+    // (per-unit nameplates are drawn LAST, on top of the shared wall grid below)
   }
 
   // dress any GAP cells (a complex may not perfectly fill its bounding rectangle)
@@ -935,6 +1005,12 @@ function spriteComplex(g, S, complex, lightsOn) {
     if (S.doormat) g.drawImage(S.doormat, cxu - 8, y + h - 19, 16, 8);
   }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
+
+  // per-unit carved wood nameplates, drawn LAST so the shared wall grid + windows
+  // never clip them — each plaque is mounted on its unit's top wall band.
+  for (const rc of members) {
+    nameSign(g, rc.loc.name, rc.loc.x * CELL + CELL / 2, rc.loc.y * CELL + WT + 6, Math.min(150, CELL - WT * 2 - 4));
+  }
 }
 
 function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
@@ -970,13 +1046,8 @@ function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
   if (!opts.noRoof) wallCap(g, rc);
   // warm window-light wash on the eave when lit (e.g. night bakes)
   if (lightsOn) eaveLight(g, rc);
-  const label = rc.loc.name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || rc.loc.name;
-  g.font = "600 9px ui-monospace, Menlo, monospace";
-  g.textAlign = "center";
-  g.textBaseline = "middle";
-  g.fillStyle = "rgba(0,0,0,0.62)";
-  g.fillText(label, cx, by + 8, bw - 8);
-  g.textAlign = "left";
+  // carved wood nameplate on the front wall band (replaces the bare label)
+  nameSign(g, rc.loc.name, cx, by + 9, Math.min(150, bw - 8));
 }
 
 // ---- house blueprints (one template per building type) ----------------------
