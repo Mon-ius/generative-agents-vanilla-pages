@@ -343,8 +343,8 @@ function drawBuilding(g, r, rnd, lightsOn) {
   // warm window-light wash on the eave, only when lightsOn (e.g. night bakes).
   if (lightsOn) eaveLight(g, r);
 
-  // carved wood nameplate fixed to the front wall band (replaces the bare label)
-  nameSign(g, r.loc.name, r.cx, r.by + 8, Math.min(150, r.bw - 6));
+  // hanging wood shop-sign over the entrance (replaces the bare label)
+  nameSign(g, r.loc.name, r.cx, r.by + 4, Math.min(150, r.bw - 6));
 }
 
 function composeInterior(g, type, x, y, w, h, roof, rnd) {
@@ -822,82 +822,76 @@ function diningSet(g, S, cx, cy, rng, opts = {}) {
   put(g, R, cx - 7, cy + 4);                        // front chair, in front of the table
 }
 
-// A wall-mounted carved-wood NAMEPLATE — a real little signboard, not floating text.
-// Replaces the bare fillText label so each building's name reads as a physical object
-// screwed to its front wall band: a beveled wood plaque (light→warm→dark vertical
-// bevel) with a routed darker frame, four tiny corner screws, faint grain, a drop
-// shadow lifting it off the wall, and an INCISED name (a light wood-tone highlight
-// drawn one px below the dark glyphs fakes a carved groove). The name is dynamic so
-// this must be procedural (it can't be a static atlas sprite); board + text are drawn
-// together so they stay aligned, and both renderers bake it identically. Auto-fits the
-// font (10→8px) then ellipsis-truncates so long names never overflow. Args mirror the
-// old label anchor: (cx, topY) is the wall-band centre, maxBoardW the width budget.
-function nameSign(g, name, cx, topY, maxBoardW) {
-  const label = (name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || name).trim();
+// A hanging WOOD SHOP-SIGN — a real swinging signboard, not floating text. A short dark
+// iron bracket projects from the front wall band; two hanger links drop to a beveled wood
+// plank that hangs into the room, casting a soft shadow, with the name PAINTED in warm
+// cream over a faint dark underpaint. The name is dynamic so this is procedural (board +
+// text are drawn together so they stay aligned; both renderers bake it identically).
+// Auto-fits the font (9→7px) then ellipsis-truncates, and sizes the plank to the fitted
+// text (clamped to the budget) so it reads as a sign, not a banner. Args: (mountX, wallY)
+// is the wall point the bracket attaches to, maxW the plank width budget.
+function nameSign(g, name, mountX, wallY, maxW) {
+  const clean = (name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || name).trim();
 
-  // auto-fit: shrink the font to an 8px floor, then ellipsis-truncate
-  const padX = 8;                                   // text inset inside the board
-  const maxTextW = Math.max(10, maxBoardW - padX * 2);
-  let fontPx = 10;
-  const fontAt = (px) => "600 " + px + "px ui-monospace, Menlo, monospace";
-  g.font = fontAt(fontPx);
-  while (fontPx > 8 && g.measureText(label).width > maxTextW) { fontPx -= 1; g.font = fontAt(fontPx); }
-  let txt = label;
-  if (g.measureText(txt).width > maxTextW) {         // still too wide at the floor → ellipsis
-    while (txt.length > 1 && g.measureText(txt + "…").width > maxTextW) txt = txt.slice(0, -1);
-    txt = txt + "…";
+  // auto-fit: shrink the font to a 7px floor, then ellipsis-truncate
+  const padX = 8;
+  const cap = Math.max(46, Math.min(maxW, 132));    // plank width budget
+  const fontAt = (px) => "700 " + px + "px ui-monospace, Menlo, monospace";
+  let font = 9, text = clean;
+  g.font = fontAt(font);
+  while (g.measureText(text).width > cap - padX * 2 && font > 7) { font -= 0.5; g.font = fontAt(font); }
+  if (g.measureText(text).width > cap - padX * 2) {  // still too wide at the floor → ellipsis
+    while (text.length > 1 && g.measureText(text + "…").width > cap - padX * 2) text = text.slice(0, -1);
+    text = text + "…";
   }
 
-  // board geometry (sized to the fitted text, clamped to the budget)
-  const textW = g.measureText(txt).width;
-  const boardW = Math.min(maxBoardW, Math.max(40, Math.ceil(textW) + padX * 2));
-  const boardH = 16;
-  const bx = Math.round(cx - boardW / 2), by = Math.round(topY - boardH / 2);
+  // plank geometry: sized to the fitted text, then hung below the wall bracket
+  const boardW = Math.min(cap, Math.max(44, Math.ceil(g.measureText(text).width) + padX * 2));
+  const boardH = 15, armDrop = 6, r = 3;
+  const bx = Math.round(mountX - boardW / 2);
+  const topY = Math.round(wallY + armDrop);          // plank top edge (hangs below the wall)
 
   g.save();
+  g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round"; g.lineCap = "round";
 
-  // (1) drop shadow lifts the plaque off the wall
-  g.fillStyle = "rgba(0,0,0,0.28)";
-  roundRect(g, bx + 1, by + 2, boardW, boardH, 3); g.fill();
+  // (1) soft cast shadow under the swinging plank (offset down-right)
+  g.fillStyle = "rgba(0,0,0,0.22)";
+  roundRect(g, bx + 2, topY + 3, boardW, boardH, r); g.fill();
 
-  // (2) wood board with a vertical bevel: light top → warm body → dark base
-  const grad = g.createLinearGradient(0, by, 0, by + boardH);
-  grad.addColorStop(0, shade(C.wood, 0.18));
-  grad.addColorStop(0.5, C.wood);
-  grad.addColorStop(1, shade(C.wood, -0.12));
-  g.fillStyle = grad;
-  roundRect(g, bx, by, boardW, boardH, 3); g.fill();
+  // (2) dark iron bracket out of the wall + two hanger links to the plank's top corners
+  g.strokeStyle = "#2b2118"; g.lineWidth = 2.2;
+  g.beginPath(); g.moveTo(mountX, wallY - 3); g.lineTo(mountX, topY - 2); g.stroke();
+  g.lineWidth = 1.6;
+  const hangL = mountX - boardW * 0.32, hangR = mountX + boardW * 0.32;
+  g.beginPath();
+  g.moveTo(mountX, topY - 3); g.lineTo(hangL, topY + 1);
+  g.moveTo(mountX, topY - 3); g.lineTo(hangR, topY + 1);
+  g.stroke();
+  g.fillStyle = "#3a2e22"; g.beginPath(); g.arc(mountX, wallY - 3, 1.8, 0, Math.PI * 2); g.fill();  // iron peg on the wall
 
-  // (3) faint horizontal grain (two darker streaks at fixed positions)
-  g.strokeStyle = shade(C.wood, -0.12); g.lineWidth = 0.6; g.globalAlpha = 0.35;
-  for (const fy of [by + boardH * 0.38, by + boardH * 0.68]) {
-    g.beginPath(); g.moveTo(bx + 3, Math.round(fy) + 0.5); g.lineTo(bx + boardW - 3, Math.round(fy) + 0.5); g.stroke();
-  }
-  g.globalAlpha = 1;
+  // (3) the wood plank: warm fill + lit top bevel / shaded bottom edge
+  g.fillStyle = C.wood; roundRect(g, bx, topY, boardW, boardH, r); g.fill();
+  g.fillStyle = shade(C.wood, 0.16); roundRect(g, bx + 1, topY + 1, boardW - 2, 3, Math.max(0.5, r - 1)); g.fill();
+  g.fillStyle = shade(C.wood, -0.22); g.fillRect(bx + 2, topY + boardH - 3, boardW - 4, 2);
 
-  // (4) darker routed inner frame + bright top-left bevel highlight
-  g.strokeStyle = C.woodDark; g.lineWidth = 1;
-  roundRect(g, bx + 2.5, by + 2.5, boardW - 5, boardH - 5, 2); g.stroke();
-  g.strokeStyle = shade(C.wood, 0.3); g.lineWidth = 1;
-  g.beginPath(); g.moveTo(bx + 1, by + boardH - 2); g.lineTo(bx + 1, by + 1); g.lineTo(bx + boardW - 2, by + 1); g.stroke();
+  // (4) faint horizontal wood grain (clipped to the plank)
+  g.save(); roundRect(g, bx, topY, boardW, boardH, r); g.clip();
+  g.strokeStyle = shade(C.wood, -0.12); g.lineWidth = 0.5;
+  for (let i = 0; i < 3; i++) { const gy = topY + 4.5 + i * 3.4; g.beginPath(); g.moveTo(bx + 3, gy); g.lineTo(bx + boardW - 3, gy); g.stroke(); }
+  g.restore();
 
-  // (5) four tiny dark mounting screws in the corners
-  const screw = (sx, sy) => {
-    g.fillStyle = C.wallLine; g.beginPath(); g.arc(sx, sy, 1.3, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = shade(C.wood, 0.25); g.lineWidth = 0.5;                 // slot
-    g.beginPath(); g.moveTo(sx - 1, sy); g.lineTo(sx + 1, sy); g.stroke();
-  };
-  screw(bx + 4, by + 4); screw(bx + boardW - 4, by + 4);
-  screw(bx + 4, by + boardH - 4); screw(bx + boardW - 4, by + boardH - 4);
+  // (5) thin painted border + two iron pegs binding the plank to the links
+  g.strokeStyle = shade(C.wood, 0.30); g.lineWidth = 0.75;
+  roundRect(g, bx + 2.5, topY + 2.5, boardW - 5, boardH - 5, Math.max(0.5, r - 1.5)); g.stroke();
+  g.fillStyle = "#332a20";
+  g.beginPath(); g.arc(bx + 6, topY + 2.5, 1.3, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(bx + boardW - 6, topY + 2.5, 1.3, 0, Math.PI * 2); g.fill();
 
-  // (6) incised name: a light wood-tone highlight one px BELOW the dark glyphs = groove
-  const ty = by + boardH / 2 + 0.5;
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = fontAt(fontPx);
-  g.fillStyle = shade(C.wood, 0.42);                 // groove highlight, one px lower
-  g.fillText(txt, cx, ty + 1);
-  g.fillStyle = "rgba(28,18,8,0.92)";                // incised dark text
-  g.fillText(txt, cx, ty);
+  // (6) PAINTED name: warm cream over a faint dark underpaint (gives the strokes body)
+  g.font = fontAt(font);
+  const ty = topY + boardH / 2 + 0.5;
+  g.fillStyle = "rgba(40,28,16,0.45)"; g.fillText(text, mountX + 0.4, ty + 0.5);
+  g.fillStyle = "#f3e6c8"; g.fillText(text, mountX, ty);
 
   g.restore();
   g.textAlign = "left";                              // reset for the rest of the draw
@@ -1006,10 +1000,10 @@ function spriteComplex(g, S, complex, lightsOn) {
   }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
 
-  // per-unit carved wood nameplates, drawn LAST so the shared wall grid + windows
-  // never clip them — each plaque is mounted on its unit's top wall band.
+  // per-unit hanging shop-signs, drawn LAST so the shared wall grid + windows never
+  // clip them — each plank hangs from its unit's top wall band into the room.
   for (const rc of members) {
-    nameSign(g, rc.loc.name, rc.loc.x * CELL + CELL / 2, rc.loc.y * CELL + WT + 6, Math.min(150, CELL - WT * 2 - 4));
+    nameSign(g, rc.loc.name, rc.loc.x * CELL + CELL / 2, rc.loc.y * CELL + 10, Math.min(150, CELL - WT * 2 - 4));
   }
 }
 
@@ -1046,8 +1040,8 @@ function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
   if (!opts.noRoof) wallCap(g, rc);
   // warm window-light wash on the eave when lit (e.g. night bakes)
   if (lightsOn) eaveLight(g, rc);
-  // carved wood nameplate on the front wall band (replaces the bare label)
-  nameSign(g, rc.loc.name, cx, by + 9, Math.min(150, bw - 8));
+  // hanging wood shop-sign over the entrance (replaces the bare label)
+  nameSign(g, rc.loc.name, cx, by + 10, Math.min(150, bw - 8));
 }
 
 // ---- house blueprints (one template per building type) ----------------------
