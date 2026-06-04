@@ -208,19 +208,10 @@ export function drawTownInto(g, layout, sprites, worldRect, opts = {}) {
     if (rectsIntersect(wr, ux, uy, CELL, CELL)) drawStreet(g, r);
   }
 
-  // standalone flower beds (echo the flower field) at a couple of deterministic
-  // spots — drawn only if they fall within this rect.
-  if (rectsIntersect(wr, W - 150, 70, 110, 46)) flowerBed(g, W - 150, 70, 110, 46, seededRandom("bed-a"));
-  if (rectsIntersect(wr, 70, H - 80, 90, 40)) flowerBed(g, 70, H - 80, 90, 40, seededRandom("bed-b"));
-
-  // scattered trees around building edges / corners (only near this rect)
-  const MARGIN = 40; // eaves / tree canopy overhang
-  for (const r of rects.values()) {
-    if (!footprintNearRect(wr, r, MARGIN)) continue;
-    const tr = seededRandom("tree-" + r.loc.id);
-    if (tr() < 0.6) tree(g, r.bx - 16 + tr() * 6, r.by - 6, 0.9 + tr() * 0.3, tr);
-    if (tr() < 0.5) tree(g, r.bx + r.bw + 14, r.by + r.bh + 6, 0.85 + tr() * 0.3, tr);
-  }
+  // NO per-building edge trees/flower-beds: in the dense city-block layout they
+  // overhung the roofless cutaway interiors. Greenery lives only in the park/green
+  // courtyards (drawPark/drawPlaza) where it can't overlap a building.
+  const MARGIN = 40; // eaves overhang allowance for the visibility filter
 
   // buildings / park / plaza, back-to-front for correct overlap (only those whose
   // eave-expanded footprint intersects this rect).
@@ -701,19 +692,12 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
   // a deterministic forest grove (dense top-left, sparse elsewhere) on open cells
   forestCluster(g, S, layout, wr);
 
-  // trees (varied species), bushes, stumps + rocks hugging building edges (only near wr)
+  // NO per-building edge trees/bushes. In the dense city-block layout those poked
+  // into the streets and overhung the ROOFLESS cutaway interiors + the hanging
+  // shop signs. Greenery now lives only where it can never overlap a building:
+  // inside the green/park courtyards (spriteGreen/spritePark, below) and the
+  // forest grove on the open grass beyond the town (forestCluster, above).
   const MARGIN = 48;
-  const species = [S.tree, S.tree_apple, S.tree_pine].filter(Boolean);
-  for (const rc of rects.values()) {
-    if (!footprintNearRect(wr, rc, MARGIN)) continue;
-    const tr = seededRandom("t-" + rc.loc.id);
-    if (tr() < 0.6 && species.length) g.drawImage(species[Math.floor(tr() * species.length)], rc.bx - 26, rc.by - 36, 32, 46);
-    if (tr() < 0.4 && S.bush) g.drawImage(S.bush, rc.bx + rc.bw + 6, rc.by + rc.bh - 4, 20, 16);
-    if (tr() < 0.28 && S.stump) g.drawImage(S.stump, rc.bx - 18, rc.by + rc.bh - 8, 16, 14);
-    if (tr() < 0.3 && S.rock) g.drawImage(S.rock, rc.bx + rc.bw + 8, rc.by - 6, 16, 12);
-  }
-  if (rectsIntersect(wr, W - 150, 60, 9 * 14, 3 * 14)) flowerPatch(g, S, W - 150, 60, 9, 3, seededRandom("fp1"));
-  if (rectsIntersect(wr, 52, H - 96, 6 * 14, 3 * 14)) flowerPatch(g, S, 52, H - 96, 6, 3, seededRandom("fp2"));
 
   // apartment complexes (grouped buildings), back-to-front, only those near wr
   const complexes = (layout.complexes || [])
@@ -751,11 +735,6 @@ function clipTile(g, img, x, y, w, h, wr) {
   const y0 = Math.floor(cy / 16) * 16;
   for (let yy = y0; yy < cy + ch; yy += 16) for (let xx = x0; xx < cx + cw; xx += 16) g.drawImage(img, xx, yy, 16, 16);
   g.restore();
-}
-
-function flowerPatch(g, S, x, y, cw, ch, rnd) {
-  if (!S.flower) return;
-  for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) if (rnd() < 0.8) g.drawImage(S.flower, x + i * 14, y + j * 14, 16, 16);
 }
 
 // Scatter varied trees across OPEN (non-building) cells — a dense grove toward the
