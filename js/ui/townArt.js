@@ -343,8 +343,8 @@ function drawBuilding(g, r, rnd, lightsOn) {
   // warm window-light wash on the eave, only when lightsOn (e.g. night bakes).
   if (lightsOn) eaveLight(g, r);
 
-  // hanging wood shop-sign over the entrance (replaces the bare label)
-  nameSign(g, r.loc.name, r.cx, r.by + 4, Math.min(150, r.bw - 6));
+  // hanging wood shop-sign mounted over the wall band (rests on the interior top)
+  nameSign(g, r.loc.name, r.cx, r.by + 9, Math.min(150, r.bw - 6));
 }
 
 function composeInterior(g, type, x, y, w, h, roof, rnd) {
@@ -822,15 +822,16 @@ function diningSet(g, S, cx, cy, rng, opts = {}) {
   put(g, R, cx - 7, cy + 4);                        // front chair, in front of the table
 }
 
-// A hanging WOOD SHOP-SIGN — a real swinging signboard, not floating text. A short dark
-// iron bracket projects from the front wall band; two hanger links drop to a beveled wood
-// plank that hangs into the room, casting a soft shadow, with the name PAINTED in warm
-// cream over a faint dark underpaint. The name is dynamic so this is procedural (board +
-// text are drawn together so they stay aligned; both renderers bake it identically).
-// Auto-fits the font (9→7px) then ellipsis-truncates, and sizes the plank to the fitted
-// text (clamped to the budget) so it reads as a sign, not a banner. Args: (mountX, wallY)
-// is the wall point the bracket attaches to, maxW the plank width budget.
-function nameSign(g, name, mountX, wallY, maxW) {
+// A hanging WOOD SHOP-SIGN, mounted high on the storefront so it NEVER covers room
+// furniture. The plank sits OVER the top wall band: its bottom rests on the wall's inner
+// edge — `baseY`, the y where the unit's interior furniture begins — and it rises upward
+// over the wall, with two iron hanger links + a peg above it (kept within the wall band).
+// Warm wood, beveled, faint grain, the name PAINTED in cream over a dark underpaint. The
+// name is dynamic so this is procedural (board + text drawn together; both renderers bake
+// it identically). Auto-fits the font (9→7px) then ellipsis-truncates, and sizes the plank
+// to the fitted text so it reads as a sign. Args: (mountX, baseY) is the wall point the
+// plank rests against, maxW the plank width budget.
+function nameSign(g, name, mountX, baseY, maxW) {
   const clean = (name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || name).trim();
 
   // auto-fit: shrink the font to a 7px floor, then ellipsis-truncate
@@ -845,29 +846,29 @@ function nameSign(g, name, mountX, wallY, maxW) {
     text = text + "…";
   }
 
-  // plank geometry: sized to the fitted text, then hung below the wall bracket
+  // plank geometry: sized to the fitted text; its BOTTOM rests on the wall's inner edge
+  // (baseY) so the whole board sits up over the wall band, clear of the room interior.
   const boardW = Math.min(cap, Math.max(44, Math.ceil(g.measureText(text).width) + padX * 2));
-  const boardH = 15, armDrop = 6, r = 3;
+  const boardH = 13, r = 3;
   const bx = Math.round(mountX - boardW / 2);
-  const topY = Math.round(wallY + armDrop);          // plank top edge (hangs below the wall)
+  const bottomY = Math.round(baseY);                 // furniture begins here — plank stays above it
+  const topY = bottomY - boardH;                     // plank rises over the wall band
 
   g.save();
   g.textAlign = "center"; g.textBaseline = "middle"; g.lineJoin = "round"; g.lineCap = "round";
 
-  // (1) soft cast shadow under the swinging plank (offset down-right)
-  g.fillStyle = "rgba(0,0,0,0.22)";
-  roundRect(g, bx + 2, topY + 3, boardW, boardH, r); g.fill();
+  // (1) soft cast shadow under the plank (mostly over the wall; only ~2px translucent dip)
+  g.fillStyle = "rgba(0,0,0,0.20)";
+  roundRect(g, bx + 1.5, topY + 2, boardW, boardH, r); g.fill();
 
-  // (2) dark iron bracket out of the wall + two hanger links to the plank's top corners
-  g.strokeStyle = "#2b2118"; g.lineWidth = 2.2;
-  g.beginPath(); g.moveTo(mountX, wallY - 3); g.lineTo(mountX, topY - 2); g.stroke();
-  g.lineWidth = 1.6;
-  const hangL = mountX - boardW * 0.32, hangR = mountX + boardW * 0.32;
+  // (2) two iron hanger links + a wall peg ABOVE the plank (kept within the wall band)
+  const peg = topY - 4;
+  g.strokeStyle = "#2b2118"; g.lineWidth = 1.5;
   g.beginPath();
-  g.moveTo(mountX, topY - 3); g.lineTo(hangL, topY + 1);
-  g.moveTo(mountX, topY - 3); g.lineTo(hangR, topY + 1);
+  g.moveTo(mountX, peg); g.lineTo(bx + 6, topY + 1);
+  g.moveTo(mountX, peg); g.lineTo(bx + boardW - 6, topY + 1);
   g.stroke();
-  g.fillStyle = "#3a2e22"; g.beginPath(); g.arc(mountX, wallY - 3, 1.8, 0, Math.PI * 2); g.fill();  // iron peg on the wall
+  g.fillStyle = "#3a2e22"; g.beginPath(); g.arc(mountX, peg, 1.7, 0, Math.PI * 2); g.fill();  // peg on the wall
 
   // (3) the wood plank: warm fill + lit top bevel / shaded bottom edge
   g.fillStyle = C.wood; roundRect(g, bx, topY, boardW, boardH, r); g.fill();
@@ -877,15 +878,15 @@ function nameSign(g, name, mountX, wallY, maxW) {
   // (4) faint horizontal wood grain (clipped to the plank)
   g.save(); roundRect(g, bx, topY, boardW, boardH, r); g.clip();
   g.strokeStyle = shade(C.wood, -0.12); g.lineWidth = 0.5;
-  for (let i = 0; i < 3; i++) { const gy = topY + 4.5 + i * 3.4; g.beginPath(); g.moveTo(bx + 3, gy); g.lineTo(bx + boardW - 3, gy); g.stroke(); }
+  for (let i = 0; i < 2; i++) { const gy = topY + 4.5 + i * 3.6; g.beginPath(); g.moveTo(bx + 3, gy); g.lineTo(bx + boardW - 3, gy); g.stroke(); }
   g.restore();
 
   // (5) thin painted border + two iron pegs binding the plank to the links
   g.strokeStyle = shade(C.wood, 0.30); g.lineWidth = 0.75;
   roundRect(g, bx + 2.5, topY + 2.5, boardW - 5, boardH - 5, Math.max(0.5, r - 1.5)); g.stroke();
   g.fillStyle = "#332a20";
-  g.beginPath(); g.arc(bx + 6, topY + 2.5, 1.3, 0, Math.PI * 2); g.fill();
-  g.beginPath(); g.arc(bx + boardW - 6, topY + 2.5, 1.3, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(bx + 6, topY + 1.5, 1.2, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(bx + boardW - 6, topY + 1.5, 1.2, 0, Math.PI * 2); g.fill();
 
   // (6) PAINTED name: warm cream over a faint dark underpaint (gives the strokes body)
   g.font = fontAt(font);
@@ -1000,10 +1001,12 @@ function spriteComplex(g, S, complex, lightsOn) {
   }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
 
-  // per-unit hanging shop-signs, drawn LAST so the shared wall grid + windows never
-  // clip them — each plank hangs from its unit's top wall band into the room.
+  // per-unit hanging shop-signs, drawn LAST so the shared wall grid + windows never clip
+  // them — each plank sits over its unit's top wall band, resting on the interior top
+  // (uy + WT for the top row, uy + 8 for shared internal walls) so it clears all furniture.
   for (const rc of members) {
-    nameSign(g, rc.loc.name, rc.loc.x * CELL + CELL / 2, rc.loc.y * CELL + 10, Math.min(150, CELL - WT * 2 - 4));
+    const interiorTop = rc.loc.y * CELL + (rc.loc.y - gy0 === 0 ? WT : 8);
+    nameSign(g, rc.loc.name, rc.loc.x * CELL + CELL / 2, interiorTop, Math.min(150, CELL - WT * 2 - 4));
   }
 }
 
@@ -1040,8 +1043,8 @@ function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
   if (!opts.noRoof) wallCap(g, rc);
   // warm window-light wash on the eave when lit (e.g. night bakes)
   if (lightsOn) eaveLight(g, rc);
-  // hanging wood shop-sign over the entrance (replaces the bare label)
-  nameSign(g, rc.loc.name, cx, by + 10, Math.min(150, bw - 8));
+  // hanging wood shop-sign mounted over the wall band (rests on the interior top: by+16)
+  nameSign(g, rc.loc.name, cx, by + 16, Math.min(150, bw - 8));
 }
 
 // ---- house blueprints (one template per building type) ----------------------
