@@ -5,10 +5,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A dependency-free, **static** browser simulation of *generative agents* (inspired by
-Park et al., 2023). **24 residents** of "Willow Creek" — a **densely-packed, gap-free
-town of ~160 locations** (homes, work, and community buildings — cafés, shops, a chapel,
-cinema, bank, salon, florist, pharmacy, museum, post office, diner, plus landscaped
-green/plaza fillers so no cell is bare grass) bin-packed into one ~15×12 block — observe,
+Park et al., 2023). **24 residents** of "Willow Creek" — a **~270-location town laid out
+like a real community**: homes, work, and community buildings (cafés, shops, a chapel,
+cinema, bank, salon, florist, pharmacy, museum, post office, diner) packed into a **~3×3
+grid of city blocks** separated by a connected network of **paved streets** the residents
+walk, with landscaped green/plaza courtyards filling every leftover cell (so no cell is bare
+grass), all in a ~17×17 footprint — observe,
 store/retrieve memories, plan their day, reflect, hold
 **group conversations**, walk **A*-pathed routes**, and form relationships. Pure
 ES-module JavaScript — **no build step, no bundler, no transpiler, no backend, no LLM
@@ -165,7 +167,15 @@ modules, so they stay in lockstep:
   the **cream carpet** (`floor_tile`), common rooms **warm orange planks** (`floor_wood`). The
   reference's signature **`diningSet()`** (a table ringed by red/yellow chairs on a rug) anchors
   every common room.
-- **`townChunks.js`** — the 24×24 world is too big for one texture (~8448px > WebGL limits), so
+- **Streets & outdoor plots.** The packer emits real `street`-type cells between the city blocks;
+  `paveStreet` fills the **whole cell** edge-to-edge with the cobble tile (`S.gravel`) so a run of
+  street cells reads as one seamless road, drawn **as ground** (before trees/buildings) so eaves
+  and canopies overhang it. `streetFurniture` adds lamps to a deterministic subset on top.
+  Parks/squares/greens/plazas still render via `spritePark`/`spritePlaza`/`spriteGreen` over their
+  ~0.92-cell footprint (a grass verge shows at their edges). The procedural fallback mirrors this
+  with `drawStreet`/`drawPark`/`drawPlaza` (the old global path-band grid was removed — streets are
+  explicit cells now).
+- **`townChunks.js`** — the world is too big for one texture (> WebGL limits), so
   it's **baked per chunk** (4×4 cells) **lazily and viewport-culled**. `makeChunkCanvas`,
   `visibleChunks`, `chunkDims`, `chunkWorldRect`, `chunkKey`. Pixi LRU-caches chunk textures
   (`CONFIG.rendering.chunkCacheMax`); off-screen chunks/agents are hidden.
@@ -234,14 +244,19 @@ packs); the two atlases are the only image assets.
   cutaway shell by the renderer) — both assigned by `node tools/pack_locations.mjs`; re-run it
   after adding/removing buildings so complexes stay contiguous. `Location` **must** keep copying
   `complex` through its constructor + `toJSON` (see the building-art note above).
-  `pack_locations.mjs` now **bin-packs** (first-fit-decreasing) the type-complexes into one
-  dense ~square block with **no grass lanes**, intersperses parks/squares, then **fills every
-  remaining cell** in the bounding box with a generated `green`/`plaza` plot (ids `loc_fill_*`,
-  regenerated each run — it's idempotent) so the town has **no bare-grass gaps**. New community
-  building **types** each need: a `BLUEPRINTS` plan (or `BLUEPRINT_ALIAS`), a `furnish()` room
-  `kind`, a `ROOF` colour, and tags for plan-block resolution; new **outdoor** types must be
-  added to `OUTDOOR_TYPES`/`isOutdoorType` (so the complex grouper skips them) and routed in both
-  draw dispatches (`spritePark`/`spritePlaza`/`spriteGreen`). New furniture **sprites** follow the
+  `pack_locations.mjs` now lays the town out as a **real community**: it skyline-packs the
+  type-complexes into fixed `BW×BH` (=5×5) **city blocks**, tiles the blocks in a roughly-square
+  grid with **1-cell paved streets** between them (continuous avenues both ways — emitted as real
+  `street`-type cells, ids `loc_street_*`), and fills every unused block cell with a `green`/`plaza`
+  courtyard (ids `loc_fill_*`). Both `loc_street_*`/`loc_fill_*` are stripped + regenerated each
+  run (idempotent), so the town has **walkable streets** and **no bare-grass gaps**. `street` cells
+  are tagged `["street","road","outdoor"]` with **no** park/square/cafe tag, so they are never a
+  plan destination — residents just walk along them. New community building **types** each need: a
+  `BLUEPRINTS` plan (or `BLUEPRINT_ALIAS`), a `furnish()` room `kind`, a `ROOF` colour, and tags for
+  plan-block resolution; new **outdoor** types must be added to `OUTDOOR_TYPES`/`isOutdoorType` (so
+  the complex grouper skips them) **and** `isOpenType` in `pathfinding.js` (so the movement grid
+  keeps them open), then routed in both draw dispatches (`spritePark`/`spritePlaza`/`spriteGreen`/
+  `paveStreet`+`streetFurniture`+`drawStreet`). New furniture **sprites** follow the
   usual pipeline: add to `SPRITES` in `pack_tiles.mjs`, author `tools/tile_svg/<name>.svg`
   (base×4, single root `<svg>`, ids prefixed), then `validate_tiles` → `pack_tiles --manifest` →
   `svg2png`.

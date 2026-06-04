@@ -36,14 +36,14 @@ export const ROOF = {
   garden: "#5a9a4a", dock: "#6a8ca0", park: "#4fa05a", square: "#9aa0ad",
   chapel: "#8c7a9c", theater: "#6a4a6a", bank: "#7a8a6a", salon: "#c2607a",
   florist: "#5aa06a", pharmacy: "#4f8c8c", museum: "#9c8a5a", post: "#9c5a4a",
-  diner: "#c2703a", plaza: "#9aa0ad", green: "#5a9a4a",
+  diner: "#c2703a", plaza: "#9aa0ad", green: "#5a9a4a", street: "#a9a298", road: "#a9a298",
 };
 export const ROOF_DEFAULT = "#b06a4a";
 
 // Outdoor plots are NOT buildings: they never join an apartment complex shell and
 // render as open ground (parks, paved plazas, leafy greens). Kept in one place so
 // the complex grouper, the sprite path and the procedural fallback all agree.
-const OUTDOOR_TYPES = new Set(["park", "square", "plaza", "green"]);
+const OUTDOOR_TYPES = new Set(["park", "square", "plaza", "green", "street", "road"]);
 export function isOutdoorType(t) { return OUTDOOR_TYPES.has(t); }
 
 // ---- palette ----------------------------------------------------------------
@@ -199,7 +199,14 @@ export function drawTownInto(g, layout, sprites, worldRect, opts = {}) {
   const rnd = seededRandom("willow-creek-art-v2");
 
   drawGrass(g, W, H, rnd, wr);
-  drawPaths(g, layout, rnd, wr);
+  // Paved streets (explicit 'street' cells) are the road network now — drawn as
+  // ground here so building eaves / trees overhang them. (The old per-cell path
+  // bands are gone; the packer emits real street cells between the city blocks.)
+  for (const r of rects.values()) {
+    if (r.loc.type !== "street" && r.loc.type !== "road") continue;
+    const ux = r.loc.x * CELL, uy = r.loc.y * CELL;
+    if (rectsIntersect(wr, ux, uy, CELL, CELL)) drawStreet(g, r);
+  }
 
   // standalone flower beds (echo the flower field) at a couple of deterministic
   // spots — drawn only if they fall within this rect.
@@ -221,9 +228,11 @@ export function drawTownInto(g, layout, sprites, worldRect, opts = {}) {
     .filter((r) => footprintNearRect(wr, r, MARGIN))
     .sort((a, b) => a.cy - b.cy);
   for (const r of visible) {
+    const t = r.loc.type;
+    if (t === "street" || t === "road") continue;           // already paved as ground above
     const rng = seededRandom("bld-" + r.loc.id);
-    if (r.loc.type === "park" || r.loc.type === "green") drawPark(g, r, rng);
-    else if (r.loc.type === "square" || r.loc.type === "plaza") drawPlaza(g, r, rng);
+    if (t === "park" || t === "green") drawPark(g, r, rng);
+    else if (t === "square" || t === "plaza") drawPlaza(g, r, rng);
     else drawBuilding(g, r, rng, lightsOn);
   }
 }
@@ -280,36 +289,6 @@ function drawGrass(g, W, H, rnd, wr) {
     } else {
       g.fillStyle = FLOWERS[(x + y) % FLOWERS.length]; g.fillRect(x, y, 2, 2);
     }
-  }
-}
-
-function drawPaths(g, layout, rnd, wr) {
-  const { W, H, cols, rows } = layout;
-  const road = 30;
-  // Draw a path band clipped to wr so we only touch this chunk's pixels.
-  const draw = (x, y, w, h) => {
-    if (!rectsIntersect(wr, x - 2, y - 2, w + 4, h + 4)) return;
-    g.fillStyle = C.pathEdge; g.fillRect(x - 2, y - 2, w + 4, h + 4);
-    g.fillStyle = C.path; g.fillRect(x, y, w, h);
-  };
-  for (let c = 0; c < cols; c++) draw(c * CELL + CELL / 2 - road / 2, 0, road, H);
-  for (let r = 0; r < rows; r++) draw(0, r * CELL + CELL / 2 - road / 2, W, road);
-  // lighter centre + speckle
-  g.fillStyle = C.pathMid;
-  for (let c = 0; c < cols; c++) {
-    const x = c * CELL + CELL / 2 - 4;
-    if (rectsIntersect(wr, x, 0, 8, H)) g.fillRect(x, 0, 8, H);
-  }
-  for (let r = 0; r < rows; r++) {
-    const y = r * CELL + CELL / 2 - 4;
-    if (rectsIntersect(wr, 0, y, W, 8)) g.fillRect(0, y, W, 8);
-  }
-  g.fillStyle = C.pathSpeck;
-  for (let i = 0; i < (W * rows) * 0.02; i++) {
-    const sx = Math.floor(rnd() * W);
-    const sy = Math.floor(rnd() * H);
-    if (sx < wr.x - 2 || sx > wr.x + wr.w + 2 || sy < wr.y - 2 || sy > wr.y + wr.h + 2) continue;
-    g.fillRect(sx, sy, 2, 2);
   }
 }
 
@@ -708,15 +687,15 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
       else if (c < 0.104 && S.rock) g.drawImage(S.rock, x, y + 3, 16, 12);
     }
   }
-  // dirt paths along the row/column streets (clipped to wr inside clipTile).
-  const road = 32;
-  for (let c = 0; c < cols; c++) {
-    const x = c * CELL + CELL / 2 - road / 2;
-    if (rectsIntersect(wr, x, 0, road, H)) clipTile(g, S.path, x, 0, road, H, wr);
-  }
-  for (let r = 0; r < rows; r++) {
-    const y = r * CELL + CELL / 2 - road / 2;
-    if (rectsIntersect(wr, 0, y, W, road)) clipTile(g, S.path, 0, y, W, road, wr);
+  // Paved STREETS between the city blocks: the packer emits real 'street' cells,
+  // each paved full-bleed so neighbouring street cells merge into one continuous
+  // road. Drawn here (before trees/buildings) so eaves and canopies overhang the
+  // street naturally.
+  for (const rc of rects.values()) {
+    const t = rc.loc.type;
+    if (t !== "street" && t !== "road") continue;
+    const ux = rc.loc.x * CELL, uy = rc.loc.y * CELL;
+    if (rectsIntersect(wr, ux, uy, CELL, CELL)) paveStreet(g, S, rc, wr);
   }
 
   // a deterministic forest grove (dense top-left, sparse elsewhere) on open cells
@@ -741,13 +720,15 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
     .filter((cp) => rectsIntersect(wr, cp.x - MARGIN, cp.y - MARGIN, cp.w + MARGIN * 2, cp.h + MARGIN * 2))
     .sort((a, b) => (a.y + a.h) - (b.y + b.h));
   for (const cp of complexes) spriteComplex(g, S, cp, lightsOn);
-  // parks, plazas & greens (outdoor) drawn standalone, on top
+  // parks, plazas & greens (outdoor) drawn standalone, on top; street furniture
+  // (lamps) drawn last so it sits above the pavement and any overhang.
   for (const rc of rects.values()) {
     if (!footprintNearRect(wr, rc, MARGIN)) continue;
     const t = rc.loc.type;
     if (t === "park") spritePark(g, S, rc);
     else if (t === "square" || t === "plaza") spritePlaza(g, S, rc);
     else if (t === "green") spriteGreen(g, S, rc);
+    else if (t === "street" || t === "road") streetFurniture(g, S, rc);
   }
 }
 
@@ -1403,6 +1384,33 @@ function spriteGreen(g, S, rc) {
   if (S.flowerbed && rng() < 0.7) put(g, S.flowerbed, bx + 22, by + bh - 26);
   if (S.bench && rng() < 0.6) put(g, S.bench, bx + bw - 38, by + bh - 24);
   if (S.streetlamp && rng() < 0.5) put(g, S.streetlamp, bx + 22, by + 22);
+}
+
+// A paved STREET cell — filled full-bleed (the WHOLE cell, edge to edge) with the
+// cobble tile so a run of street cells reads as one seamless road between the city
+// blocks. Street furniture (lamps) is added on top later by streetFurniture().
+function paveStreet(g, S, rc, wr) {
+  const ux = rc.loc.x * CELL, uy = rc.loc.y * CELL;
+  if (S.gravel) clipTile(g, S.gravel, ux, uy, CELL, CELL, wr);
+  else if (S.path) clipTile(g, S.path, ux, uy, CELL, CELL, wr);
+  else { g.fillStyle = "#b3ac9e"; g.fillRect(ux, uy, CELL, CELL); }
+}
+
+// Street lamps along the road — a deterministic subset of cells (so lamps don't
+// crowd every cell), set toward a corner clear of the centre where avatars walk.
+function streetFurniture(g, S, rc) {
+  if (!S.streetlamp) return;
+  const rng = seededRandom("streetf-" + rc.loc.id);
+  if (rng() < 0.34) put(g, S.streetlamp, rc.loc.x * CELL + 12, rc.loc.y * CELL + 10);
+}
+
+// Procedural-fallback street: a full-cell cobbled road with a faint stone grid.
+function drawStreet(g, r) {
+  const ux = r.loc.x * CELL, uy = r.loc.y * CELL;
+  g.fillStyle = "#b3ac9e"; g.fillRect(ux, uy, CELL, CELL);   // cobble grey
+  g.strokeStyle = "rgba(60,52,40,0.10)"; g.lineWidth = 1;
+  for (let x = ux + 16; x < ux + CELL; x += 20) { g.beginPath(); g.moveTo(x, uy); g.lineTo(x, uy + CELL); g.stroke(); }
+  for (let y = uy + 16; y < uy + CELL; y += 20) { g.beginPath(); g.moveTo(ux, y); g.lineTo(ux + CELL, y); g.stroke(); }
 }
 
 // ---- shared helpers ---------------------------------------------------------
