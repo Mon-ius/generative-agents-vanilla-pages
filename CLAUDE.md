@@ -5,8 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A dependency-free, **static** browser simulation of *generative agents* (inspired by
-Park et al., 2023). **24 residents** of "Willow Creek" — a **24×24, ~126-location**
-multi-district town — observe, store/retrieve memories, plan their day, reflect, hold
+Park et al., 2023). **24 residents** of "Willow Creek" — a **densely-packed, gap-free
+town of ~160 locations** (homes, work, and community buildings — cafés, shops, a chapel,
+cinema, bank, salon, florist, pharmacy, museum, post office, diner, plus landscaped
+green/plaza fillers so no cell is bare grass) bin-packed into one ~15×12 block — observe,
+store/retrieve memories, plan their day, reflect, hold
 **group conversations**, walk **A*-pathed routes**, and form relationships. Pure
 ES-module JavaScript — **no build step, no bundler, no transpiler, no backend, no LLM
 API keys**. The town is rendered with vendored PixiJS (WebGL) and an automatic canvas-2D
@@ -195,7 +198,7 @@ modules, so they stay in lockstep:
   one atlas SVG + writes the region manifest, and `tools/svg2png.mjs` rasterizes SVG→PNG via
   **self-launched headless Chrome** (transparent, pixel-exact, zero npm deps). Redraw via those
   three tools.
-- **Town tiles** (`assets.js`, `js/ui/townArt.js`) — the ~65 terrain/furniture sprites are **also
+- **Town tiles** (`assets.js`, `js/ui/townArt.js`) — the ~88 terrain/furniture sprites are **also
   one CC0 SVG→PNG atlas** `assets/sprites/atlas.png`, addressed by `{x,y,w,h}` regions in
   `assets/manifest.json`. `loadSprites()` fetches that atlas **once** and slices each region into
   a per-name canvas, so `townArt` draws `S.<name>` exactly as before (no townArt change). Tiles
@@ -231,6 +234,17 @@ packs); the two atlases are the only image assets.
   cutaway shell by the renderer) — both assigned by `node tools/pack_locations.mjs`; re-run it
   after adding/removing buildings so complexes stay contiguous. `Location` **must** keep copying
   `complex` through its constructor + `toJSON` (see the building-art note above).
+  `pack_locations.mjs` now **bin-packs** (first-fit-decreasing) the type-complexes into one
+  dense ~square block with **no grass lanes**, intersperses parks/squares, then **fills every
+  remaining cell** in the bounding box with a generated `green`/`plaza` plot (ids `loc_fill_*`,
+  regenerated each run — it's idempotent) so the town has **no bare-grass gaps**. New community
+  building **types** each need: a `BLUEPRINTS` plan (or `BLUEPRINT_ALIAS`), a `furnish()` room
+  `kind`, a `ROOF` colour, and tags for plan-block resolution; new **outdoor** types must be
+  added to `OUTDOOR_TYPES`/`isOutdoorType` (so the complex grouper skips them) and routed in both
+  draw dispatches (`spritePark`/`spritePlaza`/`spriteGreen`). New furniture **sprites** follow the
+  usual pipeline: add to `SPRITES` in `pack_tiles.mjs`, author `tools/tile_svg/<name>.svg`
+  (base×4, single root `<svg>`, ids prefixed), then `validate_tiles` → `pack_tiles --manifest` →
+  `svg2png`.
 - **Wire a real LLM**: there is no runtime/env switch — implement `LLMGenerationProvider` and
   change the `provider:` arg in `main.js` (where `new LocalGenerationProvider()` is passed to
   `new Simulation(...)`). Route the API through a backend proxy; never embed a key client-side.

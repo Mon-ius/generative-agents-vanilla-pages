@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="56" viewBox="0 0 88 56">
+  <defs>
+    <linearGradient id="flowerbed_wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b88d4f"/><stop offset="0.5" stop-color="#9c6b3f"/><stop offset="1" stop-color="#7c5430"/>
+    </linearGradient>
+    <linearGradient id="flowerbed_soil" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a3f2a"/><stop offset="0.55" stop-color="#46301f"/><stop offset="1" stop-color="#382617"/>
+    </linearGradient>
+    <radialGradient id="flowerbed_red" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#e0673c"/><stop offset="1" stop-color="#b4534b"/>
+    </radialGradient>
+    <radialGradient id="flowerbed_gold" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#f0d05c"/><stop offset="1" stop-color="#c79a3b"/>
+    </radialGradient>
+    <radialGradient id="flowerbed_pink" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#e0708d"/><stop offset="1" stop-color="#d24f6f"/>
+    </radialGradient>
+    <radialGradient id="flowerbed_purple" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#c789e0"/><stop offset="0.6" stop-color="#b05fd0"/><stop offset="1" stop-color="#8a44a8"/>
+    </radialGradient>
+    <filter id="flowerbed_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5 0.5" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.8 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.6" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="flowerbed_woodgrain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03 0.45" numOctaves="3" seed="4" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.5" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="44" cy="50" rx="40" ry="6" fill="#2c4a1f" opacity="0.18"/>
+  <rect x="4" y="6" width="80" height="44" rx="6" fill="url(#flowerbed_wood)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="4" y="6" width="80" height="44" rx="6" fill="#6a4628" filter="url(#flowerbed_woodgrain)" opacity="0.4"/>
+  <rect x="5.6" y="7.6" width="76.8" height="40.8" rx="5" fill="none" stroke="#d8b271" stroke-width="0.9" opacity="0.7"/>
+  <rect x="11" y="12" width="66" height="32" rx="4" fill="url(#flowerbed_soil)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <rect x="11" y="12" width="66" height="32" rx="4" fill="#2a1c10" filter="url(#flowerbed_grain)" opacity="0.5"/>
+  <g fill="#2a1c10" opacity="0.5">
+    <ellipse cx="20" cy="40" rx="3" ry="1.4"/><ellipse cx="44" cy="41" rx="3.5" ry="1.4"/><ellipse cx="66" cy="40" rx="3" ry="1.4"/>
+  </g>
+  <g stroke="#3a2c1e" stroke-width="0.9" stroke-linecap="round" opacity="0.95">
+    <path d="M18 40 q1 -6 0 -11" fill="none" stroke="#4f8a36" stroke-width="2"/>
+    <path d="M30 41 q-1 -6 1 -11" fill="none" stroke="#4f8a36" stroke-width="2"/>
+    <path d="M44 41 q0 -6 0 -12" fill="none" stroke="#4f8a36" stroke-width="2"/>
+    <path d="M57 41 q1 -6 0 -11" fill="none" stroke="#4f8a36" stroke-width="2"/>
+    <path d="M69 40 q-1 -6 0 -11" fill="none" stroke="#4f8a36" stroke-width="2"/>
+  </g>
+  <g stroke="#3a2c1e" stroke-width="0.7">
+    <path d="M18 33 q-7 -2 -10 -7 q7 -1 10 4 z" fill="#59964a"/>
+    <path d="M44 34 q7 -2 10 -7 q-7 -1 -10 4 z" fill="#67a546"/>
+    <path d="M30 34 q-6 -1 -9 -6 q6 -1 9 4 z" fill="#59964a"/>
+    <path d="M57 33 q6 -2 9 -6 q-6 -1 -9 4 z" fill="#67a546"/>
+    <path d="M69 33 q-6 -2 -9 -6 q6 -1 9 4 z" fill="#59964a"/>
+  </g>
+  <g stroke="#3a2c1e" stroke-width="0.9">
+    <g transform="translate(18,24)"><circle cx="0" cy="-5" r="4" fill="url(#flowerbed_red)"/><circle cx="5" cy="0" r="4" fill="url(#flowerbed_red)"/><circle cx="-5" cy="0" r="4" fill="url(#flowerbed_red)"/><circle cx="0" cy="5" r="4" fill="url(#flowerbed_red)"/><circle cx="0" cy="0" r="2.6" fill="#f3d24e" stroke="none"/></g>
+    <g transform="translate(31,25)"><circle cx="0" cy="-4.5" r="3.7" fill="url(#flowerbed_gold)"/><circle cx="4.5" cy="0" r="3.7" fill="url(#flowerbed_gold)"/><circle cx="-4.5" cy="0" r="3.7" fill="url(#flowerbed_gold)"/><circle cx="0" cy="4.5" r="3.7" fill="url(#flowerbed_gold)"/><circle cx="0" cy="0" r="2.4" fill="#9c6b3f" stroke="none"/></g>
+    <g transform="translate(44,23)"><ellipse cx="0" cy="-5" rx="3.6" ry="4.6" fill="url(#flowerbed_purple)"/><ellipse cx="0" cy="5" rx="3.6" ry="4.6" fill="url(#flowerbed_purple)"/><ellipse cx="-5" cy="0" rx="4.6" ry="3.6" fill="url(#flowerbed_purple)"/><ellipse cx="5" cy="0" rx="4.6" ry="3.6" fill="url(#flowerbed_purple)"/><circle cx="0" cy="0" r="2.6" fill="#f3d24e" stroke="none"/></g>
+    <g transform="translate(57,24)"><circle cx="0" cy="-4.5" r="3.7" fill="url(#flowerbed_pink)"/><circle cx="4.5" cy="0" r="3.7" fill="url(#flowerbed_pink)"/><circle cx="-4.5" cy="0" r="3.7" fill="url(#flowerbed_pink)"/><circle cx="0" cy="4.5" r="3.7" fill="url(#flowerbed_pink)"/><circle cx="0" cy="0" r="2.4" fill="#f3d24e" stroke="none"/></g>
+    <g transform="translate(69,24)"><circle cx="0" cy="-4.5" r="3.8" fill="url(#flowerbed_red)"/><circle cx="4.5" cy="0" r="3.8" fill="url(#flowerbed_red)"/><circle cx="-4.5" cy="0" r="3.8" fill="url(#flowerbed_red)"/><circle cx="0" cy="4.5" r="3.8" fill="url(#flowerbed_red)"/><circle cx="0" cy="0" r="2.5" fill="#f3d24e" stroke="none"/></g>
+  </g>
+  <g fill="#fff" opacity="0.45">
+    <circle cx="16" cy="21" r="1.1"/><circle cx="29" cy="22.5" r="1"/><circle cx="42" cy="19.5" r="1.1"/><circle cx="55" cy="21.5" r="1"/><circle cx="67" cy="21.5" r="1.1"/>
+  </g>
+</svg>

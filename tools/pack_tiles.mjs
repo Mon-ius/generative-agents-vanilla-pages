@@ -39,6 +39,21 @@ export const SPRITES = [
   { name: "stairs", w: 28, h: 16 }, { name: "doormat", w: 16, h: 8 },
   { name: "mailbox", w: 16, h: 16 }, { name: "island", w: 28, h: 16 },
   { name: "wall2", w: 16, h: 16 }, { name: "window", w: 16, h: 12 },
+  // ---- community building props (chapel, theater, bank, salon, florist,
+  //      pharmacy, museum, post office, diner) ----
+  { name: "pew", w: 26, h: 10 }, { name: "altar", w: 24, h: 16 },
+  { name: "screen", w: 40, h: 14 }, { name: "seatrow", w: 32, h: 12 },
+  { name: "teller", w: 30, h: 14 }, { name: "vault", w: 20, h: 22 },
+  { name: "barber_chair", w: 14, h: 18 }, { name: "mirror", w: 10, h: 18 },
+  { name: "flower_stand", w: 22, h: 18 }, { name: "display_case", w: 26, h: 14 },
+  { name: "meds_shelf", w: 20, h: 28 }, { name: "po_boxes", w: 22, h: 26 },
+  { name: "pedestal", w: 14, h: 18 }, { name: "register", w: 16, h: 14 },
+  { name: "booth", w: 26, h: 16 },
+  // ---- outdoor decor: fountains/benches/lamps/greenery to fill the town with no gaps ----
+  { name: "fountain", w: 32, h: 32 }, { name: "bench", w: 26, h: 12 },
+  { name: "streetlamp", w: 12, h: 30 }, { name: "hedge", w: 16, h: 16 },
+  { name: "flowerbed", w: 22, h: 14 }, { name: "statue", w: 16, h: 28 },
+  { name: "market_stall", w: 30, h: 24 }, { name: "pond", w: 30, h: 22 },
 ];
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");

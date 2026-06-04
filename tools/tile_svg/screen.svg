@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="56" viewBox="0 0 160 56">
+  <defs>
+    <linearGradient id="screen_panel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4856"/><stop offset="1" stop-color="#23303c"/></linearGradient>
+    <radialGradient id="screen_glow" cx="0.5" cy="0.42" r="0.62"><stop offset="0" stop-color="#cfe6ef" stop-opacity="0.85"/><stop offset="0.4" stop-color="#8aa6bd" stop-opacity="0.45"/><stop offset="1" stop-color="#23303c" stop-opacity="0"/></radialGradient>
+    <linearGradient id="screen_frame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cdd4da"/><stop offset="0.5" stop-color="#9aa3ab"/><stop offset="1" stop-color="#7d868e"/></linearGradient>
+    <linearGradient id="screen_valance" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a3a35"/><stop offset="0.55" stop-color="#7c2a26"/><stop offset="1" stop-color="#5e1d1b"/></linearGradient>
+    <linearGradient id="screen_bloom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dff0f7" stop-opacity="0.7"/><stop offset="1" stop-color="#dff0f7" stop-opacity="0"/></linearGradient>
+    <filter id="screen_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.14 0.32" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.55 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="5" y="12" width="150" height="38" rx="3" fill="url(#screen_frame)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="6.4" y="13.4" width="147.2" height="35.2" rx="2" fill="none" stroke="#e6ebef" stroke-width="0.8" opacity="0.6"/>
+  <rect x="11" y="17" width="138" height="29" rx="1.5" fill="url(#screen_panel)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <rect x="11" y="17" width="138" height="29" rx="1.5" fill="url(#screen_glow)"/>
+  <rect x="11" y="17" width="138" height="29" fill="#1c2730" filter="url(#screen_grain)" opacity="0.4"/>
+  <ellipse cx="80" cy="30" rx="44" ry="9" fill="#bcd9e6" opacity="0.28"/>
+  <path d="M14 19 H146" fill="none" stroke="#cfe6ef" stroke-width="0.8" opacity="0.4"/>
+  <rect x="5" y="8" width="150" height="11" rx="2" fill="url(#screen_valance)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <path d="M7 19 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 q5 6 10 0 L153 19 V8 H7 Z" fill="url(#screen_valance)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <path d="M9 9 H151" fill="none" stroke="#c47168" stroke-width="0.9" opacity="0.55"/>
+  <path d="M12 24 q-4 18 0 8 M22 24 q-4 18 0 8 M32 24 q-4 18 0 8 M42 24 q-4 18 0 8 M52 24 q-4 18 0 8" fill="none" stroke="#5e1d1b" stroke-width="0.7" opacity="0.35"/>
+  <rect x="11" y="17" width="138" height="9" fill="url(#screen_bloom)" opacity="0.5"/>
+</svg>

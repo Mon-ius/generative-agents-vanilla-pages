@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="112" viewBox="0 0 64 112">
+  <defs>
+    <linearGradient id="statue_bronze" x1="0.2" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#7fae8e"/><stop offset="0.4" stop-color="#5f9576"/><stop offset="0.7" stop-color="#46785c"/><stop offset="1" stop-color="#355a44"/>
+    </linearGradient>
+    <linearGradient id="statue_bronzeface" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9cc4a8"/><stop offset="0.5" stop-color="#6ca083"/><stop offset="1" stop-color="#3f6e54"/>
+    </linearGradient>
+    <linearGradient id="statue_stoneTop" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#e0d8c6"/><stop offset="0.5" stop-color="#cfc6b2"/><stop offset="1" stop-color="#a59c86"/>
+    </linearGradient>
+    <linearGradient id="statue_stoneMid" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#d4cbb6"/><stop offset="0.5" stop-color="#c2b9a3"/><stop offset="1" stop-color="#968d78"/>
+    </linearGradient>
+    <linearGradient id="statue_stoneBase" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#c7bda7"/><stop offset="0.5" stop-color="#b6ac95"/><stop offset="1" stop-color="#857c69"/>
+    </linearGradient>
+    <radialGradient id="statue_sheen" cx="0.38" cy="0.28" r="0.6">
+      <stop offset="0" stop-color="#d6efdc" stop-opacity="0.85"/><stop offset="1" stop-color="#d6efdc" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="statue_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.22 0.36" numOctaves="3" seed="11" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="statue_speckle" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.4 0.45" numOctaves="3" seed="6" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.9 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.8"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="32" cy="104" rx="26" ry="5.5" fill="#2a3a22" opacity="0.24"/>
+  <rect x="9" y="92" width="46" height="14" rx="2.5" fill="url(#statue_stoneBase)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="9" y="92" width="46" height="14" rx="2.5" fill="#7a766c" filter="url(#statue_speckle)" opacity="0.32"/>
+  <rect x="11" y="93.5" width="42" height="2" fill="#efe9da" opacity="0.55"/>
+  <rect x="13" y="80" width="38" height="13" rx="2.2" fill="url(#statue_stoneMid)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="13" y="80" width="38" height="13" rx="2.2" fill="#7a766c" filter="url(#statue_speckle)" opacity="0.3"/>
+  <rect x="15" y="81.5" width="34" height="2" fill="#efe9da" opacity="0.5"/>
+  <rect x="18" y="68" width="28" height="13" rx="2" fill="url(#statue_stoneTop)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="18" y="68" width="28" height="13" rx="2" fill="#7a766c" filter="url(#statue_speckle)" opacity="0.28"/>
+  <rect x="20" y="69.5" width="24" height="2" fill="#f4efe2" opacity="0.6"/>
+  <rect x="24" y="62" width="16" height="7" rx="1.5" fill="url(#statue_stoneTop)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <ellipse cx="32" cy="62.5" rx="9" ry="2.6" fill="#dfd6c2" stroke="#3a2c1e" stroke-width="1.1"/>
+  <path d="M27 62 Q24 44 26 30 Q27 20 32 14 Q37 20 38 30 Q40 44 37 62 Z" fill="url(#statue_bronze)" stroke="#3a2c1e" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M27 62 Q26 50 28 40 L29 62 Z" fill="#355a44" opacity="0.5"/>
+  <path d="M28 30 Q26 46 27 60" fill="none" stroke="#a9d2b4" stroke-width="1.1" opacity="0.6"/>
+  <path d="M32 22 Q31 40 31 60" fill="none" stroke="#2f5440" stroke-width="1" opacity="0.55"/>
+  <path d="M30 33 q4 3 7 1" fill="none" stroke="#2f5440" stroke-width="1" opacity="0.5"/>
+  <path d="M26.5 34 Q24 30 26 26 L29 30 Z" fill="url(#statue_bronzeface)" stroke="#3a2c1e" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M37.5 34 Q40 30 38 26 L35 30 Z" fill="url(#statue_bronze)" stroke="#3a2c1e" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M28 22 Q27 16 32 13 Q37 16 36 22 Q32 25 28 22 Z" fill="url(#statue_bronzeface)" stroke="#3a2c1e" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M27 62 Q24 44 26 30 Q27 20 32 14 Q37 20 38 30 Q40 44 37 62 Z" fill="#2f5440" filter="url(#statue_grain)" opacity="0.35"/>
+  <path d="M30 16 Q29 19 31 21" fill="none" stroke="#cfeed8" stroke-width="1" opacity="0.7"/>
+</svg>

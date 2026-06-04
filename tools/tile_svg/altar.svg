@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="64" viewBox="0 0 96 64">
+  <defs>
+    <linearGradient id="altar_wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9c6b3f"/><stop offset="1" stop-color="#6a4628"/></linearGradient>
+    <linearGradient id="altar_cloth" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3ead2"/><stop offset="1" stop-color="#ddceac"/></linearGradient>
+    <linearGradient id="altar_hem" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dab656"/><stop offset="1" stop-color="#b07f2c"/></linearGradient>
+    <linearGradient id="altar_cross" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8b25a"/><stop offset="1" stop-color="#a87a28"/></linearGradient>
+    <radialGradient id="altar_flame" cx="0.5" cy="0.4" r="0.7"><stop offset="0" stop-color="#fff3c4"/><stop offset="0.5" stop-color="#f6b53e"/><stop offset="1" stop-color="#d97a1f"/></radialGradient>
+    <linearGradient id="altar_book" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b4534b"/><stop offset="1" stop-color="#8f3b35"/></linearGradient>
+    <linearGradient id="altar_candle" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9cfca"/><stop offset="1" stop-color="#9aa39c"/></linearGradient>
+    <filter id="altar_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.18 0.32" numOctaves="3" seed="14" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.55 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="14" y="40" width="68" height="14" rx="3" fill="url(#altar_wood)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="12" y="14" width="72" height="32" rx="4" fill="url(#altar_cloth)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="12" y="40" width="72" height="6" rx="2" fill="url(#altar_hem)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <path d="M18 42 l4 6 M30 42 l3 6 M48 42 l0 6 M66 42 l-3 6 M78 42 l-4 6" fill="none" stroke="#a87a28" stroke-width="1" opacity="0.7"/>
+  <rect x="12" y="14" width="72" height="32" fill="#c2b18c" filter="url(#altar_grain)" opacity="0.35"/>
+  <path d="M16 18 q32 -3 64 0" fill="none" stroke="#fff7e4" stroke-width="1" opacity="0.55"/>
+  <rect x="44" y="18" width="8" height="22" rx="1.5" fill="url(#altar_cross)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="38" y="24" width="20" height="6" rx="1.5" fill="url(#altar_cross)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <path d="M46 19 l4 0" fill="none" stroke="#fbe9b4" stroke-width="1" opacity="0.7"/>
+  <rect x="24" y="30" width="4" height="12" rx="1" fill="url(#altar_candle)" stroke="#3a2c1e" stroke-width="1.1"/>
+  <rect x="22" y="40" width="8" height="3" rx="1" fill="#8a939b" stroke="#3a2c1e" stroke-width="1"/>
+  <circle cx="26" cy="28" r="3" fill="url(#altar_flame)"/>
+  <rect x="68" y="30" width="4" height="12" rx="1" fill="url(#altar_candle)" stroke="#3a2c1e" stroke-width="1.1"/>
+  <rect x="66" y="40" width="8" height="3" rx="1" fill="#8a939b" stroke="#3a2c1e" stroke-width="1"/>
+  <circle cx="70" cy="28" r="3" fill="url(#altar_flame)"/>
+  <rect x="32" y="34" width="14" height="8" rx="1.5" fill="url(#altar_book)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <path d="M39 34 l0 8" fill="none" stroke="#5e2723" stroke-width="1" opacity="0.7"/>
+  <path d="M33 36 q3 1 6 0" fill="none" stroke="#f3d27a" stroke-width="0.9" opacity="0.8"/>
+</svg>

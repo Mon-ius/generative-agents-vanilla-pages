@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="72" viewBox="0 0 88 72">
+  <defs>
+    <linearGradient id="flower_stand_wood" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9c6b3f"/><stop offset="0.5" stop-color="#7c5430"/><stop offset="1" stop-color="#6a4628"/>
+    </linearGradient>
+    <linearGradient id="flower_stand_shelf" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9743f"/><stop offset="1" stop-color="#7c5430"/>
+    </linearGradient>
+    <linearGradient id="flower_stand_bucket" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c6cdd2"/><stop offset="1" stop-color="#8a939b"/>
+    </linearGradient>
+    <radialGradient id="flower_stand_red" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#d06a60"/><stop offset="1" stop-color="#b4534b"/>
+    </radialGradient>
+    <radialGradient id="flower_stand_gold" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#e7c352"/><stop offset="1" stop-color="#c79a3b"/>
+    </radialGradient>
+    <radialGradient id="flower_stand_pink" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#e88aa6"/><stop offset="1" stop-color="#d2658a"/>
+    </radialGradient>
+    <radialGradient id="flower_stand_purple" cx="0.4" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#9a6fc0"/><stop offset="1" stop-color="#8a5fb0"/>
+    </radialGradient>
+    <filter id="flower_stand_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04 0.2" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="44" cy="67" rx="32" ry="4" fill="#2c4a1f" opacity="0.18"/>
+  <g stroke="#3a2c1e" stroke-width="1.4">
+    <rect x="14" y="14" width="5" height="50" rx="2" fill="url(#flower_stand_wood)"/>
+    <rect x="69" y="14" width="5" height="50" rx="2" fill="url(#flower_stand_wood)"/>
+  </g>
+  <g stroke="#3a2c1e" stroke-width="1.4">
+    <path d="M16 50 L72 42 L72 49 L16 57 Z" fill="url(#flower_stand_shelf)"/>
+    <path d="M16 32 L72 24 L72 31 L16 39 Z" fill="url(#flower_stand_shelf)"/>
+  </g>
+  <path d="M16 50 L72 42 L72 49 L16 57 Z" fill="#6a4628" filter="url(#flower_stand_grain)" opacity="0.35"/>
+  <path d="M16 32 L72 24 L72 31 L16 39 Z" fill="#6a4628" filter="url(#flower_stand_grain)" opacity="0.35"/>
+  <g stroke="#ffffff" stroke-width="0.8" opacity="0.35">
+    <line x1="17" y1="50.6" x2="71" y2="42.6"/><line x1="17" y1="32.6" x2="71" y2="24.6"/>
+  </g>
+  <g stroke="#3a2c1e" stroke-width="1.2">
+    <path d="M22 49 L33 47.5 L31 56 Q26.5 57.5 24 56 Z" fill="url(#flower_stand_bucket)"/>
+    <path d="M38 46.7 L49 45.2 L47 53.5 Q42.5 55 40 53.5 Z" fill="url(#flower_stand_bucket)"/>
+    <path d="M54 44.4 L65 42.9 L63 51 Q58.5 52.5 56 51 Z" fill="url(#flower_stand_bucket)"/>
+    <path d="M22 31 L33 29.5 L31 38 Q26.5 39.5 24 38 Z" fill="url(#flower_stand_bucket)"/>
+    <path d="M38 28.7 L49 27.2 L47 35.5 Q42.5 37 40 35.5 Z" fill="url(#flower_stand_bucket)"/>
+    <path d="M54 26.4 L65 24.9 L63 33 Q58.5 34.5 56 33 Z" fill="url(#flower_stand_bucket)"/>
+  </g>
+  <g stroke="#4f8a36" stroke-width="1.6" fill="none">
+    <path d="M27 48 C26 42 26 38 27 34"/><path d="M30 48 C31 42 31 38 30 34"/>
+    <path d="M43 45.5 C42 39.5 42 35.5 43 31.5"/><path d="M46 45.5 C47 39.5 47 35.5 46 31.5"/>
+    <path d="M59 43 C58 37 58 33 59 29"/><path d="M62 43 C63 37 63 33 62 29"/>
+    <path d="M27 30 C26 24 26 20 27 16"/><path d="M30 30 C31 24 31 20 30 16"/>
+    <path d="M43 27.5 C42 21.5 42 17.5 43 13.5"/><path d="M46 27.5 C47 21.5 47 17.5 46 13.5"/>
+    <path d="M59 25 C58 19 58 15 59 11"/><path d="M62 25 C63 19 63 15 62 11"/>
+  </g>
+  <g stroke="#3a2c1e" stroke-width="1.1">
+    <g transform="translate(28,33)"><circle cx="0" cy="-4" r="3" fill="url(#flower_stand_red)"/><circle cx="4" cy="0" r="3" fill="url(#flower_stand_red)"/><circle cx="-4" cy="0" r="3" fill="url(#flower_stand_red)"/><circle cx="0" cy="4" r="3" fill="url(#flower_stand_red)"/><circle cx="0" cy="0" r="2" fill="#e7c352" stroke="none"/></g>
+    <g transform="translate(44.5,30.5)"><circle cx="0" cy="-4" r="3" fill="url(#flower_stand_gold)"/><circle cx="4" cy="0" r="3" fill="url(#flower_stand_gold)"/><circle cx="-4" cy="0" r="3" fill="url(#flower_stand_gold)"/><circle cx="0" cy="4" r="3" fill="url(#flower_stand_gold)"/><circle cx="0" cy="0" r="2" fill="#b4534b" stroke="none"/></g>
+    <g transform="translate(60.5,28)"><circle cx="0" cy="-4" r="3" fill="url(#flower_stand_pink)"/><circle cx="4" cy="0" r="3" fill="url(#flower_stand_pink)"/><circle cx="-4" cy="0" r="3" fill="url(#flower_stand_pink)"/><circle cx="0" cy="4" r="3" fill="url(#flower_stand_pink)"/><circle cx="0" cy="0" r="2" fill="#e7c352" stroke="none"/></g>
+    <g transform="translate(28,15)"><circle cx="0" cy="-4" r="3" fill="url(#flower_stand_purple)"/><circle cx="4" cy="0" r="3" fill="url(#flower_stand_purple)"/><circle cx="-4" cy="0" r="3" fill="url(#flower_stand_purple)"/><circle cx="0" cy="4" r="3" fill="url(#flower_stand_purple)"/><circle cx="0" cy="0" r="2" fill="#e7c352" stroke="none"/></g>
+    <g transform="translate(44.5,12.5)"><circle cx="0" cy="-4" r="3" fill="url(#flower_stand_pink)"/><circle cx="4" cy="0" r="3" fill="url(#flower_stand_pink)"/><circle cx="-4" cy="0" r="3" fill="url(#flower_stand_pink)"/><circle cx="0" cy="4" r="3" fill="url(#flower_stand_pink)"/><circle cx="0" cy="0" r="2" fill="#c79a3b" stroke="none"/></g>
+    <g transform="translate(60.5,10)"><circle cx="0" cy="-4" r="3" fill="url(#flower_stand_red)"/><circle cx="4" cy="0" r="3" fill="url(#flower_stand_red)"/><circle cx="-4" cy="0" r="3" fill="url(#flower_stand_red)"/><circle cx="0" cy="4" r="3" fill="url(#flower_stand_red)"/><circle cx="0" cy="0" r="2" fill="#e7c352" stroke="none"/></g>
+  </g>
+  <rect x="14" y="15" width="2" height="48" fill="#ffffff" opacity="0.2"/>
+</svg>

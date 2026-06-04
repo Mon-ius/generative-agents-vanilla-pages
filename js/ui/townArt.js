@@ -34,8 +34,17 @@ export const ROOF = {
   studio: "#9c4f6a", gallery: "#8c5f9c", bakery: "#c98a4a", market: "#b0723a",
   bar: "#8a5238", office: "#5a6f8c", gym: "#4f8c7a", workshop: "#9c6b3f",
   garden: "#5a9a4a", dock: "#6a8ca0", park: "#4fa05a", square: "#9aa0ad",
+  chapel: "#8c7a9c", theater: "#6a4a6a", bank: "#7a8a6a", salon: "#c2607a",
+  florist: "#5aa06a", pharmacy: "#4f8c8c", museum: "#9c8a5a", post: "#9c5a4a",
+  diner: "#c2703a", plaza: "#9aa0ad", green: "#5a9a4a",
 };
 export const ROOF_DEFAULT = "#b06a4a";
+
+// Outdoor plots are NOT buildings: they never join an apartment complex shell and
+// render as open ground (parks, paved plazas, leafy greens). Kept in one place so
+// the complex grouper, the sprite path and the procedural fallback all agree.
+const OUTDOOR_TYPES = new Set(["park", "square", "plaza", "green"]);
+export function isOutdoorType(t) { return OUTDOOR_TYPES.has(t); }
 
 // ---- palette ----------------------------------------------------------------
 const C = {
@@ -213,8 +222,8 @@ export function drawTownInto(g, layout, sprites, worldRect, opts = {}) {
     .sort((a, b) => a.cy - b.cy);
   for (const r of visible) {
     const rng = seededRandom("bld-" + r.loc.id);
-    if (r.loc.type === "park") drawPark(g, r, rng);
-    else if (r.loc.type === "square") drawPlaza(g, r, rng);
+    if (r.loc.type === "park" || r.loc.type === "green") drawPark(g, r, rng);
+    else if (r.loc.type === "square" || r.loc.type === "plaza") drawPlaza(g, r, rng);
     else drawBuilding(g, r, rng, lightsOn);
   }
 }
@@ -732,11 +741,13 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
     .filter((cp) => rectsIntersect(wr, cp.x - MARGIN, cp.y - MARGIN, cp.w + MARGIN * 2, cp.h + MARGIN * 2))
     .sort((a, b) => (a.y + a.h) - (b.y + b.h));
   for (const cp of complexes) spriteComplex(g, S, cp, lightsOn);
-  // parks & plazas (outdoor) drawn standalone, on top
+  // parks, plazas & greens (outdoor) drawn standalone, on top
   for (const rc of rects.values()) {
     if (!footprintNearRect(wr, rc, MARGIN)) continue;
-    if (rc.loc.type === "park") spritePark(g, S, rc);
-    else if (rc.loc.type === "square") spritePlaza(g, S, rc);
+    const t = rc.loc.type;
+    if (t === "park") spritePark(g, S, rc);
+    else if (t === "square" || t === "plaza") spritePlaza(g, S, rc);
+    else if (t === "green") spriteGreen(g, S, rc);
   }
 }
 
@@ -905,7 +916,7 @@ function groupComplexes(layout) {
   const groups = new Map();
   for (const rc of layout.rects.values()) {
     const t = rc.loc.type;
-    if (t === "park" || t === "square") continue;
+    if (isOutdoorType(t)) continue;
     // a building with no complex id renders standalone (its own unique key), never
     // grid-merged — merging by a coarse grid lumped unrelated buildings into giant
     // sparse complexes flooded with bare corridor floor.
@@ -1068,11 +1079,24 @@ const BLUEPRINTS = {
   civic:   { foot: [0.90, 0.80], cols: [0.34, 0.30, 0.36], rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "study" }, { c: 1, r: 0, kind: "bath" }, { c: 2, r: 0, kind: "storage" }, { c: 0, r: 1, cspan: 3, kind: "meeting" }] },
   // a 2×2 clinic
   health:  { foot: [0.88, 0.80], cols: [0.52, 0.48],       rows: [0.50, 0.50], cells: [{ c: 0, r: 0, kind: "ward" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, kind: "ward" }, { c: 1, r: 1, kind: "study" }] },
+  // ---- community buildings: a small service band + one big public room ----
+  chapel:  { foot: [0.92, 0.86], cols: [0.50, 0.50],       rows: [0.26, 0.74], cells: [{ c: 0, r: 0, kind: "study" }, { c: 1, r: 0, kind: "storage" }, { c: 0, r: 1, cspan: 2, kind: "chapel" }] },
+  theater: { foot: [0.94, 0.84], cols: [0.58, 0.42],       rows: [0.30, 0.70], cells: [{ c: 0, r: 0, kind: "storage" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "theater" }] },
+  bank:    { foot: [0.90, 0.80], cols: [0.50, 0.50],       rows: [0.40, 0.60], cells: [{ c: 0, r: 0, kind: "vaultroom" }, { c: 1, r: 0, kind: "study" }, { c: 0, r: 1, cspan: 2, kind: "bank" }] },
+  salon:   { foot: [0.88, 0.80], cols: [0.56, 0.44],       rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "storage" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "salon" }] },
+  florist: { foot: [0.90, 0.80], cols: [0.50, 0.50],       rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "storage" }, { c: 1, r: 0, kind: "kitchen" }, { c: 0, r: 1, cspan: 2, kind: "florist" }] },
+  pharmacy:{ foot: [0.90, 0.80], cols: [0.56, 0.44],       rows: [0.36, 0.64], cells: [{ c: 0, r: 0, kind: "storage" }, { c: 1, r: 0, kind: "study" }, { c: 0, r: 1, cspan: 2, kind: "pharmacy" }] },
+  museum:  { foot: [0.94, 0.82], cols: [0.50, 0.50],       rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "study" }, { c: 1, r: 0, kind: "storage" }, { c: 0, r: 1, cspan: 2, kind: "museum" }] },
+  post:    { foot: [0.90, 0.80], cols: [0.56, 0.44],       rows: [0.36, 0.64], cells: [{ c: 0, r: 0, kind: "storage" }, { c: 1, r: 0, kind: "study" }, { c: 0, r: 1, cspan: 2, kind: "post" }] },
+  diner:   { foot: [0.94, 0.80], cols: [0.34, 0.28, 0.38], rows: [0.34, 0.66], cells: [{ c: 0, r: 0, kind: "storage" }, { c: 1, r: 0, kind: "bath" }, { c: 2, r: 0, kind: "kitchen" }, { c: 0, r: 1, cspan: 3, kind: "diner" }] },
 };
 // related types reuse a base blueprint
 const BLUEPRINT_ALIAS = {
   bar: "cafe", bakery: "cafe", market: "shop", gallery: "library",
   clinic: "health", office: "civic", workshop: "studio", dock: "home", garden: "home",
+  // community-type synonyms reuse a bespoke plan above
+  church: "chapel", cinema: "theater", deli: "diner", grocer: "shop",
+  studio_art: "studio", clinic_dental: "health",
 };
 const DEFAULT_BLUEPRINT = { foot: [0.84, 0.74], cols: [0.56, 0.44], rows: [0.44, 0.56], cells: [{ c: 0, r: 0, kind: "bedroom" }, { c: 1, r: 0, kind: "bath" }, { c: 0, r: 1, cspan: 2, kind: "living" }] };
 
@@ -1122,8 +1146,9 @@ function drawRooms(g, S, type, x, y, w, h, rng) {
   }
 }
 
-// Common rooms get warm wood; private/utility rooms get tan tile; baths get pink.
-const TILED_ROOMS = new Set(["bedroom", "study", "storage", "ward", "kitchen"]);
+// Common rooms get warm wood; private/utility + institutional rooms get tan tile;
+// baths get pink. Banks/pharmacies/post/museum read better on cool civic tile.
+const TILED_ROOMS = new Set(["bedroom", "study", "storage", "ward", "kitchen", "vaultroom", "bank", "pharmacy", "post", "museum"]);
 function roomFloor(g, S, kind, c) {
   let f = S.floor_wood;
   if (kind === "bath") f = S.floor_pink || S.floor_tile;
@@ -1228,6 +1253,84 @@ function furnish(g, S, kind, c, rng) {
       centrepiece();
       if (rng() < 0.6) put(g, S.plant, L, B - 18);
       break;
+    // ---- community building public rooms ----
+    case "vaultroom":                               // bank back room: the vault
+      put(g, S.vault || S.fridge, L + 2, T);
+      if (S.display_case) put(g, S.display_case, R - 28, T);
+      else if (S.bookshelf) put(g, S.bookshelf, R - 19, T);
+      break;
+    case "chapel": {                                // altar on the back wall, pews facing it
+      put(g, S.altar || S.table, MX - 12, T);
+      const nrows = c.h > 76 ? 3 : 2;
+      for (let i = 0; i < nrows; i++) {
+        const py = T + 22 + i * 16;
+        if (py + 10 > B) break;
+        put(g, S.pew || S.sofa, L + 4, py);          // left pew column
+        put(g, S.pew || S.sofa, MX + 4, py);         // right pew column (center aisle)
+      }
+      if (S.plant) put(g, S.plant, L, B - 18);
+      break;
+    }
+    case "theater":                                 // screen on the back wall + tiered seat rows
+      put(g, S.screen || S.board, MX - 20, T);
+      for (let i = 0; i < 3; i++) {
+        const py = T + 18 + i * 15;
+        if (py + 12 > B) break;
+        put(g, S.seatrow || S.sofa, MX - 16, py);
+      }
+      break;
+    case "bank":                                    // teller line + a writing desk
+      put(g, S.teller || S.counter, MX - 15, T);
+      put(g, S.desk, L + 4, B - 16);
+      put(g, pick(chairs, rng), L + 6, B - 4);
+      if (S.register) put(g, S.register, R - 18, B - 16);
+      if (S.plant) put(g, S.plant, L, T);
+      break;
+    case "salon":                                   // mirrors on the back wall, a chair below each
+      for (let i = 0; i < 3; i++) {
+        const sx = L + 8 + i * 30;
+        if (sx + 14 > R) break;
+        if (S.mirror) put(g, S.mirror, sx + 2, T);
+        put(g, S.barber_chair || pick(chairs, rng), sx, T + 18);
+      }
+      if (S.plant) put(g, S.plant, R - 12, B - 18);
+      break;
+    case "florist":                                 // tiered flower stands + a checkout case
+      put(g, S.flower_stand || S.plant, L + 4, T);
+      if (S.flower_stand) put(g, S.flower_stand, L + 28, T);
+      if (S.display_case) put(g, S.display_case, MX - 13, B - 16);
+      if (S.register) put(g, S.register, R - 18, T);
+      if (S.plant) put(g, S.plant, R - 12, B - 18);
+      break;
+    case "pharmacy":                                // wall of medicine shelves + a register
+      put(g, S.meds_shelf || S.bookshelf, L + 2, T);
+      put(g, S.meds_shelf || S.bookshelf, L + 22, T);
+      if (S.meds_shelf || S.bookshelf) put(g, S.meds_shelf || S.bookshelf, R - 20, T);
+      if (S.register) put(g, S.register, MX - 8, B - 16);
+      if (S.display_case) put(g, S.display_case, L + 4, B - 16);
+      break;
+    case "museum":                                  // a line of pedestals + glass cases
+      for (let i = 0; i < 3; i++) {
+        const px = L + 12 + i * 34;
+        if (px + 14 > R) break;
+        put(g, S.pedestal || S.plant, px, T + 6);
+      }
+      if (S.display_case) { put(g, S.display_case, L + 2, B - 16); put(g, S.display_case, R - 28, B - 16); }
+      break;
+    case "post":                                    // wall of PO boxes + counter
+      put(g, S.po_boxes || S.bookshelf, L + 2, T);
+      if (S.po_boxes) put(g, S.po_boxes, L + 24, T);
+      if (S.register) put(g, S.register, R - 18, T);
+      put(g, S.counter, MX - 16, B - 16);
+      if (S.plant) put(g, S.plant, R - 12, B - 18);
+      break;
+    case "diner":                                   // booths flanking a counter + a dining set
+      put(g, S.booth || S.sofa, L + 4, T);
+      if (S.booth) put(g, S.booth, R - 28, T);
+      put(g, S.counter, MX - 16, T);
+      diningSet(g, S, MX, B - 18, rng);
+      if (S.register) put(g, S.register, L + 4, B - 16);
+      break;
     default:
       centrepiece();
       if (S.plant) put(g, S.plant, L, T);
@@ -1235,17 +1338,26 @@ function furnish(g, S, kind, c, rng) {
   g.restore();
 }
 
+// A fenced park: grass, a leafy border, a central tree, plus a bench, a flower bed
+// and a street lamp drawn from the new outdoor sprites (deterministic per plot).
 function spritePark(g, S, rc) {
   const { bx, by, bw, bh, cx, cy } = rc;
+  const rng = seededRandom("park-" + rc.loc.id);
   clipTile(g, S.grass2 || S.grass, bx, by, bw, bh);
   g.fillStyle = "#9c7a4c";
   for (let x = bx; x <= bx + bw; x += 12) { g.fillRect(x, by, 3, 6); g.fillRect(x, by + bh - 6, 3, 6); }
   for (let y = by; y <= by + bh; y += 12) { g.fillRect(bx, y, 3, 6); g.fillRect(bx + bw - 3, y, 3, 6); }
-  if (S.flower) for (let i = 0; i < 5; i++) g.drawImage(S.flower, bx + 8 + i * 14, by + bh - 22, 16, 16);
-  if (S.tree) g.drawImage(S.tree, cx - 16, cy - 16, 32, 40);
+  if (S.tree) g.drawImage(S.tree, cx - 16, cy - 20, 32, 40);
+  if (S.flowerbed) put(g, S.flowerbed, bx + 8, by + bh - 18);
+  else if (S.flower) for (let i = 0; i < 5; i++) g.drawImage(S.flower, bx + 8 + i * 14, by + bh - 22, 16, 16);
+  if (S.bench) put(g, S.bench, bx + bw - 32, by + bh - 16);
+  if (S.streetlamp) put(g, S.streetlamp, bx + 6, by + 6);
+  if (S.bush && rng() < 0.6) put(g, S.bush, bx + bw - 24, by + 8);
   g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
 }
 
+// A paved town plaza centred on the stone fountain sprite, with corner planters,
+// a bench and a street lamp. Falls back to the old drawn fountain if no sprite.
 function spritePlaza(g, S, rc) {
   const { bx, by, bw, bh, cx, cy } = rc;
   if (S.gravel) {
@@ -1256,11 +1368,41 @@ function spritePlaza(g, S, rc) {
     for (let x = bx + 10; x < bx + bw; x += 10) { g.beginPath(); g.moveTo(x, by); g.lineTo(x, by + bh); g.stroke(); }
     for (let y = by + 10; y < by + bh; y += 10) { g.beginPath(); g.moveTo(bx, y); g.lineTo(bx + bw, y); g.stroke(); }
   }
-  g.fillStyle = "#9aa0ad"; g.beginPath(); g.arc(cx, cy, 13, 0, Math.PI * 2); g.fill();
-  g.fillStyle = "#7fb6d8"; g.beginPath(); g.arc(cx, cy, 9, 0, Math.PI * 2); g.fill();
-  put(g, S.plant, bx + 4, by + 4);
-  put(g, S.plant, bx + bw - 18, by + bh - 18);
+  if (S.fountain) {
+    put(g, S.fountain, cx - 16, cy - 16);
+  } else {
+    g.fillStyle = "#9aa0ad"; g.beginPath(); g.arc(cx, cy, 13, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#7fb6d8"; g.beginPath(); g.arc(cx, cy, 9, 0, Math.PI * 2); g.fill();
+  }
+  if (S.bench) put(g, S.bench, bx + bw - 34, by + bh - 16);
+  if (S.streetlamp) put(g, S.streetlamp, bx + 6, by + 6);
+  put(g, S.plant, bx + 4, by + bh - 22);
+  put(g, S.plant, bx + bw - 18, by + 4);
   g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+}
+
+// A landscaped GREEN — the gap-filler plot that keeps the town free of bare grass
+// holes. Grass base, a clipped-hedge border, and a deterministic mix of greenery
+// (tree, flower bed, bench, the odd statue/pond/market stall) so each green differs.
+function spriteGreen(g, S, rc) {
+  const { bx, by, bw, bh, cx, cy } = rc;
+  const rng = seededRandom("green-" + rc.loc.id);
+  clipTile(g, S.grass || S.grass2, bx, by, bw, bh);
+  // hedge border (top-down, tileable) framing the plot
+  if (S.hedge) {
+    for (let x = bx; x < bx + bw; x += 16) { g.drawImage(S.hedge, x, by, 16, 16); g.drawImage(S.hedge, x, by + bh - 16, 16, 16); }
+    for (let y = by + 16; y < by + bh - 16; y += 16) { g.drawImage(S.hedge, bx, y, 16, 16); g.drawImage(S.hedge, bx + bw - 16, y, 16, 16); }
+  }
+  // one feature roll per plot for variety
+  const roll = rng();
+  if (roll < 0.16 && S.pond) put(g, S.pond, cx - 15, cy - 11);
+  else if (roll < 0.30 && S.statue) put(g, S.statue, cx - 8, cy - 14);
+  else if (roll < 0.44 && S.market_stall) put(g, S.market_stall, cx - 15, cy - 12);
+  else if (S.tree) g.drawImage(S.tree, cx - 16, cy - 22, 32, 40);
+  // secondary dressing
+  if (S.flowerbed && rng() < 0.7) put(g, S.flowerbed, bx + 22, by + bh - 26);
+  if (S.bench && rng() < 0.6) put(g, S.bench, bx + bw - 38, by + bh - 24);
+  if (S.streetlamp && rng() < 0.5) put(g, S.streetlamp, bx + 22, by + 22);
 }
 
 // ---- shared helpers ---------------------------------------------------------

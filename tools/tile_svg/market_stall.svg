@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="96" viewBox="0 0 120 96">
+  <defs>
+    <linearGradient id="market_stall_table" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9c6b3f"/><stop offset="1" stop-color="#6a4628"/>
+    </linearGradient>
+    <linearGradient id="market_stall_top" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b07f4d"/><stop offset="0.5" stop-color="#8f6238"/><stop offset="1" stop-color="#7c5430"/>
+    </linearGradient>
+    <linearGradient id="market_stall_post" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9c6b3f"/><stop offset="0.5" stop-color="#7c5430"/><stop offset="1" stop-color="#5e3f22"/>
+    </linearGradient>
+    <linearGradient id="market_stall_stripe" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c9605a"/><stop offset="1" stop-color="#a8463f"/>
+    </linearGradient>
+    <linearGradient id="market_stall_white" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbf7ef"/><stop offset="1" stop-color="#e3dccc"/>
+    </linearGradient>
+    <linearGradient id="market_stall_crateA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8753f"/><stop offset="1" stop-color="#7c5430"/>
+    </linearGradient>
+    <linearGradient id="market_stall_crateB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b07f4d"/><stop offset="1" stop-color="#85592f"/>
+    </linearGradient>
+    <radialGradient id="market_stall_apple" cx="0.36" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#d96f63"/><stop offset="1" stop-color="#a8463f"/>
+    </radialGradient>
+    <radialGradient id="market_stall_orange" cx="0.36" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#e3a64a"/><stop offset="1" stop-color="#c0792a"/>
+    </radialGradient>
+    <radialGradient id="market_stall_green" cx="0.36" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#7bbf5e"/><stop offset="1" stop-color="#4f8c45"/>
+    </radialGradient>
+    <radialGradient id="market_stall_grape" cx="0.36" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#9d76c0"/><stop offset="1" stop-color="#6f4f96"/>
+    </radialGradient>
+    <filter id="market_stall_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.16" numOctaves="3" seed="14" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.7 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="market_stall_cloth" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.09 0.12" numOctaves="2" seed="6" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.45 0 0 0 0" result="a"/>
+      <feComposite in="a" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="60" cy="86" rx="46" ry="6" fill="#3a2c1e" opacity="0.2"/>
+  <rect x="20" y="14" width="6" height="62" rx="2" fill="url(#market_stall_post)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <rect x="94" y="14" width="6" height="62" rx="2" fill="url(#market_stall_post)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <rect x="21.5" y="16" width="1.6" height="58" fill="#ffffff" opacity="0.25"/>
+  <rect x="95.5" y="16" width="1.6" height="58" fill="#ffffff" opacity="0.25"/>
+  <path d="M14 30 q46 -10 92 0 l-4 14 q-42 -8 -84 0 z" fill="url(#market_stall_white)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <g stroke="#3a2c1e" stroke-width="0.7">
+    <path d="M27 28.4 q5 -1 5 14.2 l-7.5 0.3 q-1 -8 -2.5 -13.7 z" fill="url(#market_stall_stripe)"/>
+    <path d="M42.5 26.6 q5 -0.6 4.2 14.6 l-7.5 0.2 q0 -8 -1.3 -14 z" fill="url(#market_stall_stripe)"/>
+    <path d="M58.5 25.8 q5 -0.2 4 14.7 l-7.6 0.1 q0.4 -8 -0.4 -14.5 z" fill="url(#market_stall_stripe)"/>
+    <path d="M74.5 26.4 q5 0.2 4.6 14.6 l-7.6 -0.1 q0.8 -8 0.6 -14.4 z" fill="url(#market_stall_stripe)"/>
+    <path d="M90 28 q4.8 0.8 6 13.9 l-7.4 -0.4 q0.6 -8 -0.8 -13.6 z" fill="url(#market_stall_stripe)"/>
+  </g>
+  <path d="M14 30 q46 -10 92 0 l-4 14 q-42 -8 -84 0 z" fill="#7c5430" filter="url(#market_stall_cloth)" opacity="0.22"/>
+  <path d="M16 31 q44 -8 88 0" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.6"/>
+  <g stroke="#3a2c1e" stroke-width="0.9" fill="url(#market_stall_white)">
+    <path d="M22 44 l3 7 l3 -7 z"/><path d="M37 42.5 l3 7 l3 -7 z"/><path d="M53 41.7 l3 7 l3 -7 z"/><path d="M69 42 l3 7 l3 -7 z"/><path d="M85 43.2 l3 7 l3 -7 z"/>
+  </g>
+  <rect x="16" y="58" width="88" height="20" rx="3" fill="url(#market_stall_table)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="16" y="58" width="88" height="20" rx="3" fill="#5b3d22" filter="url(#market_stall_grain)" opacity="0.35"/>
+  <rect x="14" y="52" width="92" height="9" rx="3" fill="url(#market_stall_top)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="16" y="53.5" width="88" height="2.5" rx="1.2" fill="#d6a766" opacity="0.55"/>
+  <g stroke="#3a2c1e" stroke-width="0.8" opacity="0.5">
+    <line x1="44" y1="60" x2="44" y2="76"/><line x1="74" y1="60" x2="74" y2="76"/>
+  </g>
+  <g>
+    <rect x="22" y="44" width="24" height="14" rx="2" fill="url(#market_stall_crateA)" stroke="#3a2c1e" stroke-width="1.3"/>
+    <g stroke="#3a2c1e" stroke-width="0.6" opacity="0.45"><line x1="30" y1="45" x2="30" y2="57"/><line x1="38" y1="45" x2="38" y2="57"/></g>
+    <g stroke="#3a2c1e" stroke-width="0.7">
+      <circle cx="27" cy="46" r="3.3" fill="url(#market_stall_apple)"/><circle cx="34" cy="45" r="3.3" fill="url(#market_stall_apple)"/><circle cx="41" cy="46" r="3.3" fill="url(#market_stall_apple)"/>
+      <circle cx="30.5" cy="49.5" r="3.3" fill="url(#market_stall_apple)"/><circle cx="37.5" cy="49.5" r="3.3" fill="url(#market_stall_apple)"/>
+    </g>
+    <circle cx="26" cy="45" r="1" fill="#ffffff" opacity="0.6"/><circle cx="33" cy="44" r="1" fill="#ffffff" opacity="0.6"/><circle cx="40" cy="45" r="1" fill="#ffffff" opacity="0.6"/>
+  </g>
+  <g>
+    <rect x="49" y="43" width="22" height="15" rx="2" fill="url(#market_stall_crateB)" stroke="#3a2c1e" stroke-width="1.3"/>
+    <g stroke="#3a2c1e" stroke-width="0.6" opacity="0.45"><line x1="56" y1="44" x2="56" y2="57"/><line x1="63" y1="44" x2="63" y2="57"/></g>
+    <g stroke="#3a2c1e" stroke-width="0.7">
+      <circle cx="54" cy="45" r="3.2" fill="url(#market_stall_orange)"/><circle cx="61" cy="44" r="3.2" fill="url(#market_stall_orange)"/><circle cx="67" cy="45.5" r="3.2" fill="url(#market_stall_orange)"/>
+      <circle cx="57.5" cy="49" r="3.2" fill="url(#market_stall_orange)"/><circle cx="64.5" cy="49" r="3.2" fill="url(#market_stall_orange)"/>
+    </g>
+    <circle cx="53" cy="44" r="1" fill="#ffffff" opacity="0.6"/><circle cx="60" cy="43" r="1" fill="#ffffff" opacity="0.6"/><circle cx="66" cy="44.5" r="1" fill="#ffffff" opacity="0.6"/>
+  </g>
+  <g>
+    <rect x="74" y="44" width="24" height="14" rx="2" fill="url(#market_stall_crateA)" stroke="#3a2c1e" stroke-width="1.3"/>
+    <g stroke="#3a2c1e" stroke-width="0.6" opacity="0.45"><line x1="82" y1="45" x2="82" y2="57"/><line x1="90" y1="45" x2="90" y2="57"/></g>
+    <g stroke="#3a2c1e" stroke-width="0.7">
+      <circle cx="79" cy="46" r="3.3" fill="url(#market_stall_green)"/><circle cx="86" cy="45" r="3.3" fill="url(#market_stall_grape)"/><circle cx="93" cy="46" r="3.3" fill="url(#market_stall_green)"/>
+      <circle cx="82.5" cy="49.5" r="3.3" fill="url(#market_stall_grape)"/><circle cx="89.5" cy="49.5" r="3.3" fill="url(#market_stall_green)"/>
+    </g>
+    <circle cx="78" cy="45" r="1" fill="#ffffff" opacity="0.6"/><circle cx="85" cy="44" r="1" fill="#ffffff" opacity="0.6"/><circle cx="92" cy="45" r="1" fill="#ffffff" opacity="0.6"/>
+  </g>
+</svg>

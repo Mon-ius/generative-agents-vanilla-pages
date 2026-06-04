@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="104" height="48" viewBox="0 0 104 48">
+  <defs>
+    <linearGradient id="bench_back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9794a"/><stop offset="1" stop-color="#7c5430"/>
+    </linearGradient>
+    <linearGradient id="bench_seat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b88d4f"/><stop offset="1" stop-color="#9c6b3f"/>
+    </linearGradient>
+    <linearGradient id="bench_iron" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a939b"/><stop offset="1" stop-color="#4a4f55"/>
+    </linearGradient>
+    <filter id="bench_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.16" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.85 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="9" y="9" width="88" height="34" rx="4" fill="#3a2c1e" opacity="0.18"/>
+  <path d="M13 8 q-6 0 -6 7 q0 5 6 5" fill="none" stroke="url(#bench_iron)" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M91 8 q6 0 6 7 q0 5 -6 5" fill="none" stroke="url(#bench_iron)" stroke-width="3.2" stroke-linecap="round"/>
+  <rect x="12" y="34" width="6" height="11" rx="2" fill="url(#bench_iron)" stroke="#23262a" stroke-width="1.2"/>
+  <rect x="86" y="34" width="6" height="11" rx="2" fill="url(#bench_iron)" stroke="#23262a" stroke-width="1.2"/>
+  <rect x="11" y="6" width="82" height="15" rx="3" fill="url(#bench_back)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="11" y="6" width="82" height="15" rx="3" fill="#5b3d22" filter="url(#bench_grain)" opacity="0.3"/>
+  <line x1="13" y1="11" x2="91" y2="11" stroke="#3a2c1e" stroke-width="0.9" opacity="0.5"/>
+  <line x1="13" y1="16" x2="91" y2="16" stroke="#3a2c1e" stroke-width="0.9" opacity="0.5"/>
+  <rect x="13" y="7.5" width="78" height="2.4" rx="1.2" fill="#d8b483" opacity="0.4"/>
+  <rect x="9" y="22" width="86" height="17" rx="3.5" fill="url(#bench_seat)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="9" y="22" width="86" height="17" rx="3.5" fill="#5b3d22" filter="url(#bench_grain)" opacity="0.32"/>
+  <line x1="12" y1="27.5" x2="92" y2="27.5" stroke="#3a2c1e" stroke-width="0.9" opacity="0.5"/>
+  <line x1="12" y1="33" x2="92" y2="33" stroke="#3a2c1e" stroke-width="0.9" opacity="0.5"/>
+  <rect x="12" y="23.5" width="80" height="2.6" rx="1.3" fill="#e0c08c" opacity="0.4"/>
+  <path d="M9 14 q-3 0 -3 4 q0 4 3 4" fill="none" stroke="url(#bench_iron)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M95 14 q3 0 3 4 q0 4 -3 4" fill="none" stroke="url(#bench_iron)" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="13" cy="18" r="1.6" fill="#23262a"/>
+  <circle cx="91" cy="18" r="1.6" fill="#23262a"/>
+</svg>

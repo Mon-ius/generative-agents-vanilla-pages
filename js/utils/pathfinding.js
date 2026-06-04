@@ -64,7 +64,7 @@ function footprintFor(loc, cell) {
 }
 
 function isOpenType(type) {
-  return type === "park" || type === "square";
+  return type === "park" || type === "square" || type === "plaza" || type === "green";
 }
 
 // Resolve movement options from a caller hint or the (optional) CONFIG.movement.

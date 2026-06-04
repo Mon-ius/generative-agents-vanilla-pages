@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="fountain_stone" cx="0.42" cy="0.36" r="0.72">
+      <stop offset="0" stop-color="#dad3c1"/><stop offset="0.55" stop-color="#cfc6b2"/><stop offset="1" stop-color="#b6ac95"/>
+    </radialGradient>
+    <radialGradient id="fountain_rim" cx="0.42" cy="0.36" r="0.75">
+      <stop offset="0" stop-color="#e3ddcc"/><stop offset="0.6" stop-color="#cfc6b2"/><stop offset="1" stop-color="#9a9486"/>
+    </radialGradient>
+    <radialGradient id="fountain_water" cx="0.44" cy="0.38" r="0.7">
+      <stop offset="0" stop-color="#7fb8d6"/><stop offset="0.5" stop-color="#4f7bb0"/><stop offset="1" stop-color="#355f93"/>
+    </radialGradient>
+    <radialGradient id="fountain_pillar" cx="0.4" cy="0.34" r="0.8">
+      <stop offset="0" stop-color="#e0d9c8"/><stop offset="0.6" stop-color="#cfc6b2"/><stop offset="1" stop-color="#a39c88"/>
+    </radialGradient>
+    <radialGradient id="fountain_top" cx="0.42" cy="0.36" r="0.8">
+      <stop offset="0" stop-color="#9fd0e6"/><stop offset="0.6" stop-color="#6aa3c8"/><stop offset="1" stop-color="#4576a6"/>
+    </radialGradient>
+    <filter id="fountain_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.16 0.22" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.75 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+    <filter id="fountain_moss" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05 0.06" numOctaves="2" seed="4" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.31  0 0 0 0 0.42  0 0 0 0 0.22  0 0 0 0.7 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="3.2" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="64" cy="112" rx="58" ry="11" fill="#2a3a22" opacity="0.2"/>
+  <ellipse cx="64" cy="66" rx="60" ry="58" fill="#3a2c1e" opacity="0.9"/>
+  <ellipse cx="64" cy="64" rx="59" ry="57" fill="url(#fountain_rim)" stroke="#3a2c1e" stroke-width="1.6"/>
+  <ellipse cx="64" cy="64" rx="59" ry="57" fill="#7a766c" filter="url(#fountain_grain)" opacity="0.34"/>
+  <ellipse cx="64" cy="62" rx="59" ry="57" fill="#5a6b3a" filter="url(#fountain_moss)" opacity="0.5"/>
+  <ellipse cx="50" cy="40" rx="36" ry="26" fill="#fbf7ef" opacity="0.12"/>
+  <ellipse cx="64" cy="64" rx="49" ry="47" fill="url(#fountain_stone)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <ellipse cx="50" cy="44" rx="34" ry="28" fill="none" stroke="#e7e1d0" stroke-width="1.4" opacity="0.55"/>
+  <ellipse cx="64" cy="64" rx="49" ry="47" fill="#7a766c" filter="url(#fountain_grain)" opacity="0.26"/>
+  <ellipse cx="64" cy="65" rx="42" ry="40" fill="url(#fountain_water)" stroke="#2f5183" stroke-width="1.5"/>
+  <ellipse cx="64" cy="65" rx="42" ry="40" fill="none" stroke="#355f93" stroke-width="3" opacity="0.4"/>
+  <ellipse cx="64" cy="65" rx="34" ry="32" fill="none" stroke="#8fc4df" stroke-width="2" opacity="0.55"/>
+  <ellipse cx="64" cy="65" rx="26" ry="24.5" fill="none" stroke="#6da6cd" stroke-width="2" opacity="0.5"/>
+  <ellipse cx="64" cy="65" rx="18" ry="17" fill="none" stroke="#a7d6ec" stroke-width="1.8" opacity="0.6"/>
+  <ellipse cx="52" cy="50" rx="16" ry="9" fill="#dff0f7" opacity="0.28"/>
+  <g fill="#ffffff">
+    <circle cx="44" cy="54" r="1.8" opacity="0.9"/>
+    <circle cx="82" cy="48" r="1.4" opacity="0.8"/>
+    <circle cx="90" cy="74" r="1.6" opacity="0.85"/>
+    <circle cx="40" cy="78" r="1.3" opacity="0.75"/>
+    <circle cx="70" cy="86" r="1.5" opacity="0.8"/>
+    <circle cx="58" cy="40" r="1.2" opacity="0.7"/>
+  </g>
+  <ellipse cx="64" cy="66" rx="20" ry="18.5" fill="#3a2c1e" opacity="0.85"/>
+  <ellipse cx="64" cy="64" rx="19" ry="17.5" fill="url(#fountain_pillar)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <ellipse cx="64" cy="64" rx="19" ry="17.5" fill="#7a766c" filter="url(#fountain_grain)" opacity="0.3"/>
+  <ellipse cx="58" cy="56" rx="11" ry="7" fill="#fbf7ef" opacity="0.3"/>
+  <ellipse cx="64" cy="58" rx="13" ry="11" fill="#3a2c1e" opacity="0.8"/>
+  <ellipse cx="64" cy="56" rx="12" ry="10.5" fill="url(#fountain_pillar)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <ellipse cx="64" cy="55" rx="9" ry="7.5" fill="url(#fountain_top)" stroke="#2f5183" stroke-width="1.1"/>
+  <ellipse cx="64" cy="53" rx="5.5" ry="4.6" fill="none" stroke="#bfe4f3" stroke-width="1.4" opacity="0.7"/>
+  <circle cx="64" cy="53" r="2.4" fill="#dff0f7" opacity="0.9"/>
+  <ellipse cx="61" cy="51" rx="3.5" ry="2.2" fill="#ffffff" opacity="0.5"/>
+</svg>

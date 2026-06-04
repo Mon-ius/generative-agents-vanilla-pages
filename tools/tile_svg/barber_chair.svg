@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="72" viewBox="0 0 56 72">
+  <defs>
+    <linearGradient id="barber_chair_leather" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c75c54"/><stop offset="1" stop-color="#9c3f3a"/>
+    </linearGradient>
+    <linearGradient id="barber_chair_back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bd534b"/><stop offset="1" stop-color="#8e3833"/>
+    </linearGradient>
+    <radialGradient id="barber_chair_base" cx="0.42" cy="0.36" r="0.72">
+      <stop offset="0" stop-color="#dde3e7"/><stop offset="0.6" stop-color="#b8c0c6"/><stop offset="1" stop-color="#8a939b"/>
+    </radialGradient>
+    <linearGradient id="barber_chair_chrome" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9aa3aa"/><stop offset="0.5" stop-color="#e3e8eb"/><stop offset="1" stop-color="#8a939b"/>
+    </linearGradient>
+    <linearGradient id="barber_chair_post" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8a939b"/><stop offset="0.45" stop-color="#dde3e7"/><stop offset="1" stop-color="#9aa3aa"/>
+    </linearGradient>
+    <filter id="barber_chair_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.06 0.16" numOctaves="3" seed="7" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.8 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.7" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <ellipse cx="28" cy="66" rx="20" ry="4" fill="#3a2c1e" opacity="0.22"/>
+  <ellipse cx="28" cy="63" rx="18" ry="6.5" fill="url(#barber_chair_base)" stroke="#3a2c1e" stroke-width="1.4"/>
+  <ellipse cx="28" cy="61.5" rx="12" ry="3.8" fill="#cfd6da" opacity="0.55"/>
+  <ellipse cx="23" cy="60.5" rx="5" ry="1.8" fill="#ffffff" opacity="0.4"/>
+  <rect x="25" y="48" width="6" height="14" rx="2.5" fill="url(#barber_chair_post)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <rect x="20" y="55" width="16" height="4.5" rx="2.2" fill="url(#barber_chair_chrome)" stroke="#3a2c1e" stroke-width="1.1"/>
+  <rect x="22" y="55.6" width="12" height="1.4" rx="0.7" fill="#ffffff" opacity="0.45"/>
+  <path d="M9 30 q-1 8 4 14" fill="none" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/>
+  <path d="M9 30 q-1 8 4 14" fill="none" stroke="#3a2c1e" stroke-width="0.7" stroke-linecap="round"/>
+  <path d="M47 30 q1 8 -4 14" fill="none" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/>
+  <path d="M47 30 q1 8 -4 14" fill="none" stroke="#3a2c1e" stroke-width="0.7" stroke-linecap="round"/>
+  <rect x="6" y="44" width="44" height="11" rx="5" fill="url(#barber_chair_leather)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="6" y="44" width="44" height="11" rx="5" fill="#7c2f2a" filter="url(#barber_chair_grain)" opacity="0.18"/>
+  <ellipse cx="9" cy="44" rx="5.5" ry="4.5" fill="url(#barber_chair_chrome)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <ellipse cx="47" cy="44" rx="5.5" ry="4.5" fill="url(#barber_chair_chrome)" stroke="#3a2c1e" stroke-width="1.2"/>
+  <ellipse cx="8" cy="43" rx="2.2" ry="1.6" fill="#ffffff" opacity="0.5"/>
+  <ellipse cx="46" cy="43" rx="2.2" ry="1.6" fill="#ffffff" opacity="0.5"/>
+  <rect x="12" y="8" width="32" height="40" rx="11" fill="url(#barber_chair_back)" stroke="#3a2c1e" stroke-width="1.6"/>
+  <rect x="12" y="8" width="32" height="40" rx="11" fill="#7c2f2a" filter="url(#barber_chair_grain)" opacity="0.2"/>
+  <path d="M28 12 L28 44 M19 14 Q19 26 22 44 M37 14 Q37 26 34 44 M16 24 L40 24 M16 34 L40 34" fill="none" stroke="#7c2722" stroke-width="0.9" opacity="0.55"/>
+  <circle cx="19" cy="16" r="1.5" fill="#7c2722" opacity="0.7"/><circle cx="37" cy="16" r="1.5" fill="#7c2722" opacity="0.7"/>
+  <circle cx="22" cy="30" r="1.5" fill="#7c2722" opacity="0.7"/><circle cx="34" cy="30" r="1.5" fill="#7c2722" opacity="0.7"/>
+  <circle cx="20" cy="42" r="1.5" fill="#7c2722" opacity="0.7"/><circle cx="36" cy="42" r="1.5" fill="#7c2722" opacity="0.7"/>
+  <path d="M16 12 Q14 26 17 42" fill="none" stroke="#e08b80" stroke-width="2" opacity="0.4" stroke-linecap="round"/>
+  <rect x="9" y="40" width="38" height="9" rx="4.5" fill="url(#barber_chair_leather)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="9" y="40" width="38" height="9" rx="4.5" fill="#7c2f2a" filter="url(#barber_chair_grain)" opacity="0.18"/>
+  <path d="M13 43 q15 -2 30 0" fill="none" stroke="#e08b80" stroke-width="1.2" opacity="0.5"/>
+</svg>

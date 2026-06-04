@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="88" viewBox="0 0 80 88">
+  <defs>
+    <linearGradient id="vault_frame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#aab2b9"/><stop offset="1" stop-color="#79828a"/></linearGradient>
+    <radialGradient id="vault_disc" cx="0.42" cy="0.36" r="0.72"><stop offset="0" stop-color="#cfd5da"/><stop offset="0.55" stop-color="#b8c0c6"/><stop offset="1" stop-color="#8a939b"/></radialGradient>
+    <radialGradient id="vault_ring" cx="0.42" cy="0.36" r="0.7"><stop offset="0" stop-color="#c3cbd1"/><stop offset="1" stop-color="#7e878f"/></radialGradient>
+    <radialGradient id="vault_hub" cx="0.4" cy="0.34" r="0.75"><stop offset="0" stop-color="#dde2e6"/><stop offset="1" stop-color="#909aa1"/></radialGradient>
+    <filter id="vault_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.22 0.34" numOctaves="3" seed="14" stitchTiles="stitch" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.6 0 0 0 0" result="a"/>
+      <feComponentTransfer in="a" result="m"><feFuncA type="gamma" amplitude="1" exponent="1.8" offset="0"/></feComponentTransfer>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
+    </filter>
+  </defs>
+  <rect x="6" y="8" width="68" height="72" rx="6" fill="url(#vault_frame)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <rect x="6" y="8" width="68" height="72" rx="6" fill="#6a747c" filter="url(#vault_grain)" opacity="0.3"/>
+  <path d="M10 12 q30 -2 60 0" fill="none" stroke="#d8dde1" stroke-width="1.2" opacity="0.7"/>
+  <circle cx="40" cy="44" r="33" fill="url(#vault_ring)" stroke="#3a2c1e" stroke-width="1.5"/>
+  <g fill="#697279" stroke="#4a525a" stroke-width="0.8">
+    <circle cx="40" cy="13" r="2.4"/><circle cx="59" cy="21" r="2.4"/><circle cx="71" cy="44" r="2.4"/><circle cx="59" cy="67" r="2.4"/><circle cx="40" cy="75" r="2.4"/><circle cx="21" cy="67" r="2.4"/><circle cx="9" cy="44" r="2.4"/><circle cx="21" cy="21" r="2.4"/>
+  </g>
+  <circle cx="40" cy="44" r="27" fill="url(#vault_disc)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <circle cx="40" cy="44" r="27" fill="#69737b" filter="url(#vault_grain)" opacity="0.28"/>
+  <circle cx="40" cy="44" r="22" fill="none" stroke="#7e878f" stroke-width="1.1" opacity="0.8"/>
+  <circle cx="40" cy="44" r="17" fill="none" stroke="#7e878f" stroke-width="1" opacity="0.7"/>
+  <path d="M22 36 q18 -9 36 0" fill="none" stroke="#e2e7ea" stroke-width="1.3" opacity="0.65"/>
+  <g stroke="#5a636a" stroke-width="3.4" stroke-linecap="round">
+    <line x1="40" y1="44" x2="40" y2="22"/><line x1="40" y1="44" x2="59" y2="55"/><line x1="40" y1="44" x2="21" y2="55"/>
+  </g>
+  <g stroke="#aeb6bc" stroke-width="1.2" stroke-linecap="round" opacity="0.8">
+    <line x1="40" y1="44" x2="40" y2="23"/><line x1="40" y1="44" x2="58" y2="54"/><line x1="40" y1="44" x2="22" y2="54"/>
+  </g>
+  <circle cx="40" cy="22" r="3.2" fill="#8a939b" stroke="#3a2c1e" stroke-width="1"/>
+  <circle cx="59" cy="55" r="3.2" fill="#8a939b" stroke="#3a2c1e" stroke-width="1"/>
+  <circle cx="21" cy="55" r="3.2" fill="#8a939b" stroke="#3a2c1e" stroke-width="1"/>
+  <circle cx="40" cy="44" r="8" fill="url(#vault_hub)" stroke="#3a2c1e" stroke-width="1.3"/>
+  <circle cx="38" cy="42" r="2.6" fill="#eef1f3" opacity="0.85"/>
+</svg>
