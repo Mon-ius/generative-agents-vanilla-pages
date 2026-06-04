@@ -1129,16 +1129,17 @@ function furnish(g, S, kind, c, rng) {
   const centrepiece = () => diningSet(g, S, MX, B - 18, rng);
   switch (kind) {
     // ---- small rooms in the top band: fixtures hug the back (top) wall ----
-    case "bedroom":
-      put(g, pick(beds, rng), L, T);                 // bed | nightstand | dresser, left→right
-      if (c.w > 42) put(g, S.nightstand, L + 26, T);
-      if (c.w > 58) put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 19, T);
-      else if (S.dresser) put(g, S.dresser, R - 19, B - 16);
+    case "bedroom": {
+      put(g, pick(beds, rng), L, T);                 // bed on the back wall, top-left
+      if (c.w > 42) put(g, S.nightstand, L + 26, T); // nightstand beside the bed
+      const wide = c.w > 58;
+      if (wide) put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 19, T); // wardrobe/dresser, top-right
       if (S.rug && c.h > 44) put(g, pick([S.rug, S.rug_blue, S.rug_green].filter(Boolean), rng), L + 6, B - 24); // floor rug
-      if (S.lamp) put(g, S.lamp, R - 17, B - 20);                 // corner floor lamp
-      if (S.painting && c.w > 52) put(g, S.painting, MX - 2, T);  // wall art on the back wall
-      if (S.bookshelf && c.w > 76) put(g, S.bookshelf, R - 19, B - 17);
+      if (S.lamp && c.h > 46) put(g, S.lamp, R - 17, B - 20);     // corner floor lamp (only with bottom-band room)
+      if (!wide && S.dresser) put(g, S.dresser, L + 2, B - 16);  // narrow plan: dresser bottom-LEFT, clear of the lamp
+      if (S.painting && c.w > 80) put(g, S.painting, MX + 4, T);  // wall art, right of the nightstand
       break;
+    }
     case "bath":
       put(g, S.toilet, L, T);
       put(g, S.vanity || S.sink, R - 18, T);
@@ -1152,9 +1153,12 @@ function furnish(g, S, kind, c, rng) {
       put(g, S.bookshelf, R - 19, T);
       break;
     case "storage":
-      put(g, S.washer, L, T);
-      put(g, S.dresser, L + 20, T);
-      if (S.fridge) put(g, S.fridge, R - 18, T);
+      put(g, S.washer, L, T);                          // washer on the back wall
+      if (c.w > 40) put(g, S.dresser, L + 20, T);      // dresser beside it (only if it fits)
+      if (S.fridge) {                                  // fridge top-right; bottom-right when the top wall is too narrow
+        if (c.w > 60) put(g, S.fridge, R - 18, T);
+        else if (c.h > 30) put(g, S.fridge, R - 18, B - 26);
+      }
       break;
     case "ward":
       put(g, pick(beds, rng), L, T);
@@ -1173,7 +1177,7 @@ function furnish(g, S, kind, c, rng) {
       if (S.tv) put(g, S.tv, L + 42, T);
       put(g, S.bookshelf, R - 19, T);
       centrepiece();
-      if (S.piano && c.w > 116) put(g, S.piano, R - 22, B - 22); // upright piano in the far corner
+      if (S.piano && c.w > 116) put(g, S.piano, R - 32, B - 22); // upright piano in the far corner (inside the right wall)
       if (S.plant) put(g, S.plant, L, B - 18);                   // potted plant by the door
       if (S.lamp && c.w > 96) put(g, S.lamp, L + 4, T + 20);     // reading lamp beside the sofa
       break;
@@ -1241,8 +1245,8 @@ function furnish(g, S, kind, c, rng) {
       break;
     case "bank":                                    // teller line + a writing desk
       put(g, S.teller || S.counter, MX - 15, T);
-      put(g, S.desk, L + 4, B - 16);
-      put(g, pick(chairs, rng), L + 6, B - 4);
+      put(g, S.desk, L + 4, B - 18);                // writing desk, bottom-left
+      put(g, pick(chairs, rng), L + 24, B - 16);    // chair beside the desk, inside the room
       if (S.register) put(g, S.register, R - 18, B - 16);
       if (S.plant) put(g, S.plant, L, T);
       break;
