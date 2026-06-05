@@ -13,29 +13,32 @@
 // becomes a 48×48 movement grid). A finer grid lets agents path *around*
 // building footprints and through door gaps instead of teleporting.
 //
-// Each location, by type, contributes to walkability exactly as townArt draws
-// it — we recompute the SAME footprint geometry here from the location's x/y so
-// the grid matches the picture without importing the renderer:
+// Each building cell is modelled as a WALLED unit with door/tunnel gaps — the
+// SAME wall topology the renderer draws (townArt.spriteComplex), recomputed here
+// from the locations' x/y + `complex` so the grid matches the picture without
+// importing the renderer. At sub = 4 a logical cell is a 4×4 block of sub-tiles:
 //
-//   * Buildings (home/cafe/shop/library/school/health/civic/studio/anything
-//     that is not a park or square): the footprint rectangle {bx,by,bw,bh} is
-//     an obstacle (blocked), EXCEPT the single door sub-tile at the bottom-
-//     centre `door` — that one stays walkable so an agent can reach the spot
-//     `spotFor` places it on (just outside the door) and "enter".
-//   * Parks and squares: their footprints stay fully walkable (open plots /
-//     plazas you can stand anywhere inside).
-//   * Street center lines: the row/column midlines that townArt paints as paths
-//     are kept walkable. At the default sub = 2 a building footprint
-//     (~0.86·CELL wide, centred) occupies exactly its own cell's 2×2 sub-tiles
-//     and never reaches a neighbour, so the open grass/road between cells stays
-//     connected for free — no special-casing needed. At finer subdivisions
-//     (sub ≥ 3) a footprint could otherwise straddle a midline sub-tile, so we
-//     explicitly keep the center stripe of each cell open to preserve the road
-//     network.
+//   * Interior (the centre 2×2 sub-tiles): OPEN — an agent stands inside its
+//     room (computeDoorSpots → the cell centre). Walking through is dear (the
+//     building movement cost) so routes still prefer the road, but the room is
+//     reachable so agents genuinely enter and move between rooms.
+//   * Perimeter sub-tiles: WALLS (blocked) — an agent can never cross a wall —
+//     EXCEPT the centred gap on an edge that townTopology classifies as:
+//       - a DOOR (1): the unit's outer wall faces the reachable street/grass
+//         network (the MAIN open component); the gap is the front door.
+//       - a TUNNEL (2): the wall is shared with another unit of the SAME complex;
+//         the gap is the internal doorway connecting the two rooms.
+//     Edges facing anything else (a different complex, an enclosed pocket) stay
+//     solid wall. The gap spans the centre `gapIndices(sub)` sub-tiles of the
+//     edge (sub-tiles {1,2} at sub = 4 → the central 88px), so door and tunnel
+//     openings line up exactly with the doorways townArt cuts in the walls.
+//   * Parks / squares / plazas / greens / streets: fully OPEN plots (stand
+//     anywhere); streets are the cheap highway that ties the town together.
 //
-// Anything outside a footprint is open grass — walkable. The result is a grid
-// where corridors (streets + door approaches) connect all destinations, and
-// building interiors are solid blocks with one walkable door cell.
+// The result: building interiors are reachable rooms joined to their siblings by
+// tunnels and to the street by one front door, while every other wall is solid —
+// agents enter through the door, move room-to-room through the tunnels, and never
+// clip through a wall.
 //
 // ---------------------------------------------------------------------------
 // COST WEIGHTING (why agents follow the road)
@@ -44,12 +47,11 @@
 // per logical cell from the location's type: streets are the cheap highway,
 // building interiors are dear, parks/plazas/greens (and bare grass) sit between.
 // A* sums these costs instead of counting steps, so the cheapest route from one
-// building to another runs OUT to the nearest paved street, ALONG the avenues,
-// then back in to the destination door — instead of drifting in a straight
-// diagonal across grass and rooftops. The sim's routing grid leaves interiors
-// unblocked (so packed apartment rooms stay reachable); the cost just makes
-// walking through them expensive, which reads as "use the road" without ever
-// trapping a destination.
+// building to another runs OUT through its door to the nearest paved street,
+// ALONG the avenues, then back in through the destination's door — instead of
+// drifting in a straight diagonal across grass and rooftops. Because interiors
+// cost the most and a building's only openings are its own door + tunnels, A*
+// never threads THROUGH a building as a shortcut, yet always reaches the room.
 //
 // Determinism: A* uses a Manhattan heuristic, 4-neighbour movement, and breaks
 // every tie by the linear cell index (gy*w + gx). No Math.random, no Date, no
@@ -59,8 +61,10 @@
 // module never imports the DOM-touching townArt module. If a caller knows the
 // real CELL (e.g. from computeLayout) it can pass it through `opts.cell`.
 export const DEFAULT_CELL = 176;
-export const DEFAULT_SUB = 2;
-export const DEFAULT_MAX_ASTAR_NODES = 4000;
+// sub = 4 so a building cell (4×4 sub-tiles) has a perimeter wall ring AND an
+// interior (the centre 2×2) — the resolution the wall/door/tunnel model needs.
+export const DEFAULT_SUB = 4;
+export const DEFAULT_MAX_ASTAR_NODES = 12000;
 
 // Per-cell A* step cost (cost to ENTER a sub-tile of that type). Streets are the
 // cheap highway; buildings are dear so routes don't cut through them; open ground
@@ -69,11 +73,13 @@ export const DEFAULT_STREET_COST = 1;
 export const DEFAULT_OPEN_COST = 4;
 export const DEFAULT_BUILDING_COST = 12;
 
-// SOLID buildings (default ON): the routing grid blocks each building's WHOLE
-// logical cell, so agents can never walk through a wall — they route around the
-// blocks on the street/grass network and stop at a door spot just outside. (The
-// older weighted-only mode, where interiors stay walkable but expensive, is kept
-// for `opts.solid === false`.) See computeDoorSpots for where agents actually stand.
+// SOLID buildings (default ON): the routing grid walls each building cell's
+// perimeter (so agents can never walk through a wall) but leaves the interior
+// open with a centred gap on every DOOR edge (facing the street) and TUNNEL edge
+// (shared with a sibling unit) — see rasterizeSolid + townTopology. Agents enter
+// through the door, move room-to-room through the tunnels, and stand inside (the
+// cell centre, computeDoorSpots). The older weighted-only mode, where interiors
+// stay walkable but expensive and nothing is walled, is kept for `opts.solid === false`.
 export const DEFAULT_SOLID = true;
 
 // Open-grass border ring (in logical cells) padded around the town on every side.
@@ -145,30 +151,194 @@ export function buildGridFromEnvironment(environment, opts = {}) {
   return buildGridFromLocations(extractLocations(environment), opts);
 }
 
-// Build the same grid shape from a precomputed layout (layout.rects footprints
-// + layout.cols/rows). computeLayout can call this and attach the result as
-// layout.collisionGrid so renderers and the sim share an identical grid.
+// Build the same grid shape from a precomputed layout (layout.rects carry each
+// location, or fall back to deriving from locations). computeLayout calls this
+// and attaches the result as layout.collisionGrid so renderers and the sim share
+// an identical grid.
 export function buildGrid(layout, opts = {}) {
   if (!layout) return emptyGrid(opts);
-  // Prefer layout.rects (already-computed footprints) for an exact match;
-  // fall back to deriving from locations if rects are absent.
+  const merged = { ...opts, cell: num(opts.cell, num(layout.CELL, DEFAULT_CELL)) };
+  const o = resolveOpts(merged);
+  // SOLID (default): the wall/door/tunnel rasterization needs real locations
+  // (x/y/type/complex), which layout.rects carry on each `.loc`.
+  if (o.solid) {
+    const locs = layout.rects && typeof layout.rects.forEach === "function"
+      ? rectLocs(layout.rects) : extractLocations(layout);
+    return buildGridFromLocations(locs, merged);
+  }
+  // LEGACY weighted/footprint path (opts.solid === false): rasterize the drawn
+  // footprint rectangles directly for an exact pixel match.
   if (layout.rects && typeof layout.rects.forEach === "function") {
-    const cell = num(opts.cell, num(layout.CELL, DEFAULT_CELL));
-    const merged = { ...opts, cell };
-    const o = resolveOpts(merged);
     const cols = num(layout.cols, deriveCols(rectLocs(layout.rects)));
     const rows = num(layout.rows, deriveRows(rectLocs(layout.rects)));
     return rasterize(rectsToFootprints(layout.rects), cols, rows, o);
   }
-  return buildGridFromLocations(extractLocations(layout), { ...opts, cell: num(opts.cell, num(layout.CELL, DEFAULT_CELL)) });
+  return buildGridFromLocations(extractLocations(layout), merged);
 }
 
 function buildGridFromLocations(locations, opts) {
   const o = resolveOpts(opts);
-  const cols = deriveCols(locations);
-  const rows = deriveRows(locations);
-  const footprints = locations.map((loc) => ({ type: loc.type, ...footprintFor(loc, o.cell) }));
+  const locs = extractLocations(locations);
+  // SOLID (default): walled units with door + tunnel gaps (the real sim grid).
+  if (o.solid) {
+    const topo = townTopology(locs, o);
+    return rasterizeSolid(locs, topo, o);
+  }
+  // LEGACY weighted-only fallback.
+  const cols = deriveCols(locs);
+  const rows = deriveRows(locs);
+  const footprints = locs.map((loc) => ({ type: loc.type, ...footprintFor(loc, o.cell) }));
   return rasterize(footprints, cols, rows, o);
+}
+
+// ---------------------------------------------------------------------------
+// Town wall topology — the SINGLE source of truth for where walls / doors /
+// tunnels sit, shared by the routing rasterizer (rasterizeSolid) and the
+// renderer (townArt via computeWallTopology). Fully deterministic.
+// ---------------------------------------------------------------------------
+//
+// Cell-level model:
+//   * the town is padded by `pad` rings of open grass (the boundless exterior);
+//   * the MAIN network is the largest 4-connected open component (it always
+//     holds that exterior ring + the streets), so a "door" only ever faces a
+//     cell an agent can actually reach;
+//   * for each building cell, classify() labels its four edges {N,E,S,W}:
+//       0 = WALL    (faces a different complex, an enclosed pocket, or a
+//                    non-main open cell — stays solid)
+//       1 = DOOR    (faces the MAIN network — the unit's front door; one per
+//                    unit, preferring South then E, W, N to match the render)
+//       2 = TUNNEL  (faces another unit of the SAME complex — an internal doorway)
+function townTopology(locations, o) {
+  const locs = extractLocations(locations);
+  const CELL = o.cell;
+  let cols = 0, rows = 0;
+  for (const l of locs) { if (l.x + 1 > cols) cols = l.x + 1; if (l.y + 1 > rows) rows = l.y + 1; }
+  const pad = Math.max(1, o.pad); // need >=1 grass ring so edge units reach the exterior
+
+  const at = new Map();
+  for (const l of locs) at.set(l.x + "," + l.y, l);
+  const isBuildingCell = (cx, cy) => {
+    if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) return false; // exterior = grass
+    const l = at.get(cx + "," + cy);
+    return l ? !isOpenType(l.type) : false;                          // empty cell = grass
+  };
+
+  // Largest open component over the padded grid = the MAIN reachable network.
+  const X0 = -pad, Y0 = -pad, X1 = cols - 1 + pad, Y1 = rows - 1 + pad;
+  const GW = X1 - X0 + 1, GH = Y1 - Y0 + 1;
+  const cidx = (cx, cy) => (cy - Y0) * GW + (cx - X0);
+  const inBounds = (cx, cy) => cx >= X0 && cy >= Y0 && cx <= X1 && cy <= Y1;
+  const openCell = (cx, cy) => inBounds(cx, cy) && !isBuildingCell(cx, cy);
+  const NB = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+  const comp = new Int32Array(GW * GH).fill(-1);
+  const sizes = [];
+  let nc = 0;
+  for (let cy = Y0; cy <= Y1; cy++) for (let cx = X0; cx <= X1; cx++) {
+    if (!openCell(cx, cy) || comp[cidx(cx, cy)] !== -1) continue;
+    let size = 0; const stack = [[cx, cy]]; comp[cidx(cx, cy)] = nc;
+    while (stack.length) {
+      const [ax, ay] = stack.pop(); size++;
+      for (const [dx, dy] of NB) {
+        const nx = ax + dx, ny = ay + dy;
+        if (!openCell(nx, ny) || comp[cidx(nx, ny)] !== -1) continue;
+        comp[cidx(nx, ny)] = nc; stack.push([nx, ny]);
+      }
+    }
+    sizes[nc] = size; nc++;
+  }
+  let main = 0; for (let i = 1; i < sizes.length; i++) if (sizes[i] > sizes[main]) main = i;
+  const onMain = (cx, cy) => openCell(cx, cy) && comp[cidx(cx, cy)] === main;
+
+  const byComplex = new Map();
+  for (const l of locs) {
+    if (isOpenType(l.type)) continue;
+    const k = l.complex || ("solo_" + l.id);
+    if (!byComplex.has(k)) byComplex.set(k, []);
+    byComplex.get(k).push(l);
+  }
+
+  // South-first door preference matches the rendered south entry decks.
+  const DIRS = [["N", 0, -1], ["E", 1, 0], ["S", 0, 1], ["W", -1, 0]];
+  const DOOR_PREF = ["S", "E", "W", "N"];
+  const classify = (l) => {
+    const members = byComplex.get(l.complex || ("solo_" + l.id)) || [l];
+    const mset = new Set(members.map((m) => m.x + "," + m.y));
+    const cl = { N: 0, E: 0, S: 0, W: 0 };
+    const mainDirs = [];
+    for (const [d, dx, dy] of DIRS) {
+      const nx = l.x + dx, ny = l.y + dy;
+      if (mset.has(nx + "," + ny)) cl[d] = 2;          // same-complex sibling -> tunnel
+      else if (onMain(nx, ny)) mainDirs.push(d);       // faces the reachable street -> door candidate
+    }
+    if (mainDirs.length) { const pick = DOOR_PREF.find((d) => mainDirs.includes(d)); cl[pick] = 1; }
+    return cl;
+  };
+
+  return { cols, rows, cell: CELL, pad, at, isBuildingCell, onMain, classify, byComplex };
+}
+
+// Centre sub-tile indices of an edge that form a door/tunnel GAP: every index
+// except one wall tile at each end ({1..sub-2}). sub=4 -> {1,2} (central 88px);
+// sub=3 -> {1}; sub<3 -> {} (no interior to model, so the cell is fully walled).
+function gapIndices(sub) {
+  const g = new Set();
+  for (let i = 1; i <= sub - 2; i++) g.add(i);
+  return g;
+}
+
+// Rasterize the SOLID wall/door/tunnel grid (the real sim routing grid). Each
+// building cell becomes a sub×sub block: a blocked perimeter ring with centred
+// gaps on its door/tunnel edges, and an OPEN interior; outdoor plots stay fully
+// open. Movement cost is painted per whole cell by type (streets cheap, buildings
+// dear) so routes prefer the road even though interiors are reachable. Framed by
+// `pad` grass cells, stored as the sub-tile origin offset (ox/oy) like rasterize.
+function rasterizeSolid(locations, topo, o) {
+  const locs = extractLocations(locations);
+  const { cell, sub, maxNodes, costs, pad } = o;
+  const cols = topo.cols, rows = topo.rows;
+  const ox = pad * sub, oy = pad * sub;
+  const w = Math.max(1, (cols + 2 * pad) * sub);
+  const h = Math.max(1, (rows + 2 * pad) * sub);
+  const blocked = new Uint8Array(w * h);
+  const cost = new Uint16Array(w * h).fill(costs.grass);
+  const gap = gapIndices(sub);
+  const wallModel = sub >= 3 && gap.size > 0; // need an interior ring to model walls
+
+  // Deterministic build order (result is order-independent; cheap to guarantee).
+  const sorted = locs.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  for (const l of sorted) {
+    const sx0 = l.x * sub + ox, sy0 = l.y * sub + oy;
+    const c = costForType(l.type, costs);
+    for (let j = 0; j < sub; j++) for (let i = 0; i < sub; i++) {
+      const gx = sx0 + i, gy = sy0 + j;
+      if (gx < w && gy < h) cost[gy * w + gx] = c;
+    }
+    if (isOpenType(l.type)) continue; // parks/squares/streets stay fully walkable
+
+    const cl = topo.classify(l);
+    for (let j = 0; j < sub; j++) for (let i = 0; i < sub; i++) {
+      const gx = sx0 + i, gy = sy0 + j;
+      if (gx >= w || gy >= h) continue;
+      let open;
+      if (!wallModel) {
+        open = false; // sub<3: no interior possible -> whole cell solid (Phase-1 behaviour)
+      } else {
+        const perim = i === 0 || i === sub - 1 || j === 0 || j === sub - 1;
+        if (!perim) {
+          open = true; // interior room
+        } else {
+          open = false;
+          if (j === 0 && cl.N !== 0 && gap.has(i)) open = true;        // North door/tunnel gap
+          if (j === sub - 1 && cl.S !== 0 && gap.has(i)) open = true;  // South
+          if (i === 0 && cl.W !== 0 && gap.has(j)) open = true;        // West
+          if (i === sub - 1 && cl.E !== 0 && gap.has(j)) open = true;  // East
+        }
+      }
+      if (!open) blocked[gy * w + gx] = 1;
+    }
+  }
+
+  return { w, h, cell, sub, maxNodes, blocked, cost, ox, oy, pad };
 }
 
 // Turn a list of {type, bx, by, bw, bh, door} footprints into a blocked grid
@@ -300,126 +470,42 @@ export function cellForLocation(grid, loc) {
 }
 
 // ---------------------------------------------------------------------------
-// Door spots — where agents actually stand (THE single source of truth)
+// Stand spots — where agents actually stand (THE single source of truth)
 // ---------------------------------------------------------------------------
 //
-// With solid buildings, an agent can't stand inside a unit, so for every
-// location we resolve a world-space "door spot" on the OPEN walkable network
-// just outside the building, plus the outward direction (dx, dy) the renderer
-// fans the crowd along. Both Simulation (route target) and townArt.spotFor
-// (rendered standing position) consume this, so the picture and the cognition
-// agree on one spot.
-//
-// Reachability rule (validated against the real town): block building cells, pad
-// the town with one ring of open grass (the boundless exterior), and take the
-// largest open component as the MAIN network. A building's door spot is:
-//   * the cell just outside it on the MAIN network (preferring the south side,
-//     to match the rendered south door), if it has one; else
-//   * the door spot of the nearest sibling cell in its COMPLEX that does — so an
-//     interior apartment's residents exit at their building's real front door.
-// Every complex touches the main network, so every location resolves to a spot
-// that A* can actually reach without ever crossing a wall.
-//
-// Outdoor plots (parks/plazas/greens/streets) are already open ground, so the
-// spot is the plot centre. Fully deterministic: locations are processed in id
-// order with fixed neighbour ordering and a largest-component (lowest-index) tie
-// break — no RNG, no Date.
+// Buildings now have walkable interiors (rasterizeSolid), so an agent stands
+// INSIDE its room: the spot is simply the cell CENTRE — an open interior sub-tile
+// (the centre 2×2), reachable through the unit's door + the complex's tunnels.
+// Outdoor plots stand in the plot centre likewise. dx/dy = 0 marks "no outward
+// direction" so townArt.spotFor fans the crowd in a tight circle inside the room
+// rather than out across a threshold. Both Simulation (route target) and
+// townArt.spotFor consume this, so the picture and the cognition agree on one
+// spot. Kept named computeDoorSpots for its many call sites. Fully deterministic.
 export function computeDoorSpots(locations, opts = {}) {
   const out = new Map();
   const locs = extractLocations(locations);
   if (!locs.length) return out;
-  const o = resolveOpts(opts);
-  const CELL = o.cell;
-  const pad = Math.max(1, o.pad); // need >=1 ring so edge buildings reach the exterior
-
-  let cols = 0, rows = 0;
-  for (const l of locs) { if (l.x + 1 > cols) cols = l.x + 1; if (l.y + 1 > rows) rows = l.y + 1; }
-
-  const at = new Map();
-  for (const l of locs) at.set(l.x + "," + l.y, l);
-  const X0 = -pad, Y0 = -pad, X1 = cols - 1 + pad, Y1 = rows - 1 + pad;
-  const GW = X1 - X0 + 1, GH = Y1 - Y0 + 1;
-  const cidx = (cx, cy) => (cy - Y0) * GW + (cx - X0);
-  const inBounds = (cx, cy) => cx >= X0 && cy >= Y0 && cx <= X1 && cy <= Y1;
-  const isBuildingCell = (cx, cy) => {
-    if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) return false; // exterior = grass
-    const l = at.get(cx + "," + cy);
-    return l ? !isOpenType(l.type) : false;                          // empty cell = grass
-  };
-  const openCell = (cx, cy) => inBounds(cx, cy) && !isBuildingCell(cx, cy);
-
-  // 4-neighbour components of open cells; main = largest (holds the exterior ring).
-  const NB = [[0, -1], [-1, 0], [1, 0], [0, 1]];
-  const comp = new Int32Array(GW * GH).fill(-1);
-  const sizes = [];
-  let nc = 0;
-  for (let cy = Y0; cy <= Y1; cy++) for (let cx = X0; cx <= X1; cx++) {
-    if (!openCell(cx, cy) || comp[cidx(cx, cy)] !== -1) continue;
-    let size = 0; const stack = [[cx, cy]]; comp[cidx(cx, cy)] = nc;
-    while (stack.length) {
-      const [ax, ay] = stack.pop(); size++;
-      for (const [dx, dy] of NB) {
-        const nx = ax + dx, ny = ay + dy;
-        if (!openCell(nx, ny) || comp[cidx(nx, ny)] !== -1) continue;
-        comp[cidx(nx, ny)] = nc; stack.push([nx, ny]);
-      }
-    }
-    sizes[nc] = size; nc++;
-  }
-  let main = 0; for (let i = 1; i < sizes.length; i++) if (sizes[i] > sizes[main]) main = i;
-  const onMain = (cx, cy) => openCell(cx, cy) && comp[cidx(cx, cy)] === main;
-
-  // Prefer the SOUTH door (matches the rendered south entry), then E, W, N.
-  const DOOR_PREF = [[0, 1], [1, 0], [-1, 0], [0, -1]];
-  const doorDir = (cx, cy) => {
-    for (const [dx, dy] of DOOR_PREF) if (onMain(cx + dx, cy + dy)) return { dx, dy };
-    return null;
-  };
-  const spotWorld = (bx, by, dx, dy) => {
-    const bcx = bx * CELL + CELL / 2, bcy = by * CELL + CELL / 2;
-    const OUT = 0.68; // cell-fraction from building centre out onto the street/grass
-    return { x: bcx + dx * CELL * OUT, y: bcy + dy * CELL * OUT, dx, dy };
-  };
-
-  const buildings = locs.filter((l) => !isOpenType(l.type));
-  const byComplex = new Map();
-  for (const l of buildings) {
-    const k = l.complex || ("solo_" + l.id);
-    if (!byComplex.has(k)) byComplex.set(k, []);
-    byComplex.get(k).push(l);
-  }
-
-  for (const l of buildings.slice().sort((a, b) => (a.id < b.id ? -1 : 1))) {
-    const direct = doorDir(l.x, l.y);
-    if (direct) { out.set(l.id, spotWorld(l.x, l.y, direct.dx, direct.dy)); continue; }
-    // Interior unit: BFS over its complex's cells to the nearest member with a door.
-    const members = byComplex.get(l.complex || ("solo_" + l.id)) || [l];
-    const memberSet = new Set(members.map((m) => m.x + "," + m.y));
-    const seen = new Set([l.x + "," + l.y]);
-    let frontier = [[l.x, l.y]];
-    let chosen = null;
-    while (frontier.length && !chosen) {
-      frontier.sort((p, q) => (p[1] - q[1]) || (p[0] - q[0]));
-      const next = [];
-      for (const [mx, my] of frontier) {
-        const d = doorDir(mx, my);
-        if (d) { chosen = spotWorld(mx, my, d.dx, d.dy); break; }
-        for (const [dx, dy] of NB) {
-          const nx = mx + dx, ny = my + dy, kk = nx + "," + ny;
-          if (memberSet.has(kk) && !seen.has(kk)) { seen.add(kk); next.push([nx, ny]); }
-        }
-      }
-      frontier = next;
-    }
-    out.set(l.id, chosen || { x: l.x * CELL + CELL / 2, y: l.y * CELL + CELL / 2, dx: 0, dy: 1 });
-  }
-
-  // Outdoor plots: stand in the plot itself.
+  const CELL = resolveOpts(opts).cell;
   for (const l of locs) {
-    if (!isOpenType(l.type)) continue;
-    out.set(l.id, { x: l.x * CELL + CELL / 2, y: l.y * CELL + CELL / 2, dx: 0, dy: 1 });
+    out.set(l.id, { x: l.x * CELL + CELL / 2, y: l.y * CELL + CELL / 2, dx: 0, dy: 0 });
   }
+  return out;
+}
 
+// Wall topology for the RENDERER: locationCellKey "x,y" -> { N, E, S, W } with
+// each edge in {0 wall, 1 door, 2 tunnel}. townArt cuts a centred gap in every
+// door/tunnel edge so the drawn walls line up exactly with the walkable gaps the
+// routing grid (rasterizeSolid) punches from the SAME townTopology — keeping the
+// render and the pathing in lockstep. Only building cells appear in the map.
+export function computeWallTopology(locations, opts = {}) {
+  const out = new Map();
+  const locs = extractLocations(locations);
+  if (!locs.length) return out;
+  const topo = townTopology(locs, resolveOpts(opts));
+  for (const l of locs) {
+    if (isOpenType(l.type)) continue;
+    out.set(l.x + "," + l.y, topo.classify(l));
+  }
   return out;
 }
 

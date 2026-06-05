@@ -10,7 +10,7 @@
 
 import { seededRandom } from "../utils/random.js";
 import { CONFIG } from "../config.js";
-import { buildGrid, computeDoorSpots } from "../utils/pathfinding.js";
+import { buildGrid, computeDoorSpots, computeWallTopology } from "../utils/pathfinding.js";
 
 // Logical px per grid cell, sourced from CONFIG so the world size is tunable in
 // one place. A defensive fallback keeps headless/standalone use working even if
@@ -102,9 +102,13 @@ export function computeLayout(sim) {
   // footprints exactly. buildGrid is DOM-free, so this stays headless-safe.
   layout.collisionGrid = buildGrid(layout);
   layout.complexes = groupComplexes(layout);
-  // Door spots: where agents stand (just outside each building on the walkable
-  // network). THE single source of truth shared with the sim — see spotFor.
+  // Stand spots: where agents stand — now INSIDE their room (the cell centre).
+  // THE single source of truth shared with the sim — see spotFor.
   layout.doorSpots = computeDoorSpots(locs, { cell: CELL, movement: CONFIG.movement });
+  // Wall topology: per building cell, which edges are wall / door / tunnel. Drives
+  // the doorway gaps spriteComplex/spriteBuilding cut so the drawn walls match the
+  // routing grid's gaps exactly (render ↔ routing lockstep). See pathfinding.js.
+  layout.wallTopology = computeWallTopology(locs, { cell: CELL, movement: CONFIG.movement });
 
   return layout;
 }
@@ -124,43 +128,44 @@ export function spotFor(layout, locId, index, count) {
   const cy = ds ? ds.y : (r ? r.door.y : layout.H / 2);
   if (count <= 1) return { x: cx, y: cy };
 
-  let odx = ds ? ds.dx : 0, ody = ds ? ds.dy : 1;
-  if (!odx && !ody) ody = 1;                                  // never a zero vector
-  const outAngle = Math.atan2(ody, odx);                     // fan centre = outward dir
-  // Keep the crowd within ~half a cell of the door so it never drifts back onto
-  // the building or onto a neighbour.
-  const maxRadius = CELL * 0.42;
-  const ringGap = 15;            // radial spacing between rings
-  const minSpacing = 14;         // target arc spacing between neighbours (~sprite width)
-  const baseRadius = 14;         // first ring sits just outside the door
-  // Fan across an arc centred on the outward direction; it widens on outer rings
-  // up to a near-full semicircle but always faces away from the building.
-  const fanHalfFor = (ringIdx) => Math.min(Math.PI * 0.85, 0.9 + ringIdx * 0.35);
+  const odx = ds ? ds.dx : 0, ody = ds ? ds.dy : 0;
+  // Interior spot (dx/dy = 0): agents stand INSIDE the room, so cluster them in a
+  // tight FULL circle within the open interior (the centre 2×2 sub-tiles ≈ 88px,
+  // so keep the radius < ~0.24·CELL to stay off the walls). A spot with an outward
+  // direction instead fans a half-arc that way (kept for any directional caller).
+  const interior = !odx && !ody;
+  const minSpacing = 14;               // target arc spacing between neighbours (~sprite width)
 
-  // Per-ring capacity sized from the arc length at that radius so neighbour
-  // spacing stays ~minSpacing regardless of ring. Walk rings until `index` lands.
+  if (interior) {
+    // Concentric FULL rings inside the room: ring 0 = the centre occupant, then
+    // evenly-spaced rings out to ~0.22·CELL so the crowd never reaches the walls.
+    const ringGap = 13, maxRadius = CELL * 0.22;
+    const cap = (ringIdx) => ringIdx === 0 ? 1 : Math.max(4, Math.round(2 * Math.PI * ringIdx * ringGap / minSpacing));
+    let i = index, ring = 0;
+    while (i >= cap(ring)) { i -= cap(ring); ring += 1; }
+    if (ring === 0) return { x: cx, y: cy };
+    const radius = Math.min(maxRadius, ring * ringGap);
+    const slots = cap(ring);
+    const angle = (i / slots) * 2 * Math.PI;       // even, no endpoint overlap
+    return { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius * 0.7 };
+  }
+
+  // Directional spot: fan a half-arc outward (kept for any caller that supplies dx/dy).
+  const outAngle = Math.atan2(ody, odx);
+  const maxRadius = CELL * 0.42, ringGap = 15, baseRadius = 14;
+  const fanHalfFor = (ringIdx) => Math.min(Math.PI * 0.85, 0.9 + ringIdx * 0.35);
   const ringCapacity = (ringIdx) => {
     const radius = baseRadius + ringIdx * ringGap;
     const arcLen = 2 * fanHalfFor(ringIdx) * radius;
     return Math.max(ringIdx === 0 ? 3 : 5, Math.round(arcLen / minSpacing) + 1);
   };
-
-  let i = index;
-  let ring = 0;
-  let cap = ringCapacity(0);
-  while (i >= cap) {
-    i -= cap;
-    ring += 1;
-    cap = ringCapacity(ring);
-  }
-
+  let i = index, ring = 0, cap = ringCapacity(0);
+  while (i >= cap) { i -= cap; ring += 1; cap = ringCapacity(ring); }
   const radius = Math.min(maxRadius, baseRadius + ring * ringGap);
   const slots = cap;
   const fanHalf = fanHalfFor(ring);
-  // Even placement across the fan; a lone occupant on a ring sits centred (outward).
   const t = slots <= 1 ? 0.5 : i / (slots - 1);
   const angle = outAngle - fanHalf + t * (2 * fanHalf);
-
   return {
     x: cx + Math.cos(angle) * radius,
     y: cy + Math.sin(angle) * radius * 0.7, // slight vertical squash for top-down feel
@@ -711,7 +716,7 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
   const complexes = (layout.complexes || [])
     .filter((cp) => rectsIntersect(wr, cp.x - MARGIN, cp.y - MARGIN, cp.w + MARGIN * 2, cp.h + MARGIN * 2))
     .sort((a, b) => (a.y + a.h) - (b.y + b.h));
-  for (const cp of complexes) spriteComplex(g, S, cp, lightsOn);
+  for (const cp of complexes) spriteComplex(g, S, cp, lightsOn, layout.wallTopology);
   // parks, plazas & greens (outdoor) drawn standalone, on top; street furniture
   // (lamps) drawn last so it sits above the pavement and any overhang.
   for (const rc of rects.values()) {
@@ -902,14 +907,29 @@ function groupComplexes(layout) {
   return complexes;
 }
 
+// Draw one wall edge — a CELL-long run of 16px wall tiles — punching a centred
+// doorway GAP when the edge is a door/tunnel. The gap spans the central 50% of
+// the edge (cell-fraction 0.25–0.75) so it lines up EXACTLY with the routing
+// grid's gapIndices(4) = sub-tiles {1,2} (px 44–132). Horizontal edges run along
+// x at fixed y (16px thick); vertical edges run along y at fixed x.
+function wallEdge(g, img, horizontal, ex, ey, len, open) {
+  if (!img) return;
+  if (!open) { if (horizontal) clipTile(g, img, ex, ey, len, 16); else clipTile(g, img, ex, ey, 16, len); return; }
+  const g0 = len * 0.25, g1 = len * 0.75;                 // centred gap window
+  if (horizontal) { clipTile(g, img, ex, ey, g0, 16); clipTile(g, img, ex + g1, ey, len - g1, 16); }
+  else { clipTile(g, img, ex, ey, 16, g0); clipTile(g, img, ex, ey + g1, 16, len - g1); }
+}
+
 // Draw an apartment complex as ONE shell (matching the top-down cutaway reference):
 // every cell is a full-bleed unit, units share SINGLE-thickness walls on the cell
-// boundaries (no corridor, no gap), each unit is subdivided into rooms with one
-// doorway per adjacent pair, and every ground-floor unit gets its own south entry
-// door + deck. A lone member just renders as a normal standalone building.
-function spriteComplex(g, S, complex, lightsOn) {
+// boundaries, each unit is subdivided into rooms, and the wall topology (`topo`,
+// shared with the routing grid) cuts a centred DOOR gap in each unit's street-
+// facing shell wall and a TUNNEL gap in every wall shared with a sibling unit — so
+// agents enter through the door and move room-to-room through the tunnels exactly
+// where the picture shows an opening. A lone member renders as a standalone building.
+function spriteComplex(g, S, complex, lightsOn, topo) {
   const { members, x, y, w, h } = complex;
-  if (members.length <= 1) { if (members[0]) spriteBuilding(g, S, members[0], lightsOn); return; }
+  if (members.length <= 1) { if (members[0]) spriteBuilding(g, S, members[0], lightsOn, { topo }); return; }
 
   // grid of full cells inside the shell (cells are contiguous → a solid block)
   const WT = 16;                                          // perimeter wall thickness (one tile)
@@ -949,19 +969,25 @@ function spriteComplex(g, S, complex, lightsOn) {
     }
   }
 
-  // --- ONE shared wall grid, clipped to the shell, drawn once per boundary ----
+  // --- walls: per-unit edges with topology-driven door/tunnel gaps -----------
+  // Each member draws its four walls. An edge shared with a SIBLING unit is an
+  // internal wall centred on the boundary with a TUNNEL gap; a shell edge sits
+  // flush at the outer face and is solid unless it is this unit's DOOR. Internal
+  // walls are drawn by BOTH neighbours at the same pixels (idempotent), so the
+  // shell reads as one block with single-thickness shared walls + clean doorways.
   const WL = S.wall2 || S.wall, WI = S.wall || WL;
+  const topoOf = (cx, cy) => (topo && topo.get(cx + "," + cy)) || { N: 0, E: 0, S: 0, W: 0 };
   if (WL) {
     g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
-    for (let xx = x; xx < x + w; xx += 16) g.drawImage(WL, xx, y, 16, 16);                                   // top
-    for (let yy = y; yy < y + h; yy += 16) { g.drawImage(WL, x, yy, 16, 16); g.drawImage(WL, x + w - 16, yy, 16, 16); } // left + right
-    for (let ci = 1; ci < cols; ci++) { const vx = x + ci * CELL - 8; for (let yy = y; yy < y + h; yy += 16) g.drawImage(WI, vx, yy, 16, 16); } // internal vertical (unit/unit)
-    for (let ri = 1; ri < rows; ri++) { const hy = y + ri * CELL - 8; for (let xx = x; xx < x + w; xx += 16) g.drawImage(WI, xx, hy, 16, 16); } // internal horizontal (floor/floor)
-    // bottom perimeter — a 28px south door gap under each ground-floor unit (solid under gaps)
-    for (let gx = gx0; gx < gx0 + cols; gx++) {
-      const ux = gx * CELL, cxu = ux + CELL / 2, isUnit = occ.has(gx + "," + maxGy);
-      const dL = isUnit ? cxu - 14 : Infinity, dR = isUnit ? cxu + 14 : -Infinity;
-      for (let xx = ux; xx < ux + CELL; xx += 16) if (xx + 16 <= dL || xx >= dR) g.drawImage(WL, xx, y + h - 16, 16, 16);
+    for (const m of members) {
+      const cx = m.loc.x, cy = m.loc.y, ux = cx * CELL, uy = cy * CELL;
+      const cl = topoOf(cx, cy);
+      const inN = occ.has(cx + "," + (cy - 1)), inS = occ.has(cx + "," + (cy + 1));
+      const inW = occ.has((cx - 1) + "," + cy), inE = occ.has((cx + 1) + "," + cy);
+      wallEdge(g, inN ? WI : WL, true, ux, inN ? uy - 8 : uy, CELL, cl.N !== 0);                 // N
+      wallEdge(g, inS ? WI : WL, true, ux, inS ? uy + CELL - 8 : uy + CELL - 16, CELL, cl.S !== 0); // S
+      wallEdge(g, inW ? WI : WL, false, inW ? ux - 8 : ux, uy, CELL, cl.W !== 0);                // W
+      wallEdge(g, inE ? WI : WL, false, inE ? ux + CELL - 8 : ux + CELL - 16, uy, CELL, cl.E !== 0); // E
     }
     if (S.window) for (let wx = x + 30; wx < x + w - 30; wx += 80) g.drawImage(S.window, wx, y + 2, 16, 12); // windows on the front (top) wall
     g.restore();
@@ -971,12 +997,18 @@ function spriteComplex(g, S, complex, lightsOn) {
   g.strokeStyle = "#3a352e"; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   wallCap(g, { bx: x, bw: w, by: y });                               // flat light-grey wall cap (top-down cutaway, no roof)
   if (lightsOn) eaveLight(g, { bx: x, bw: w, by: y });
-  for (let gx = gx0; gx < gx0 + cols; gx++) {
-    if (!occ.has(gx + "," + maxGy)) continue;                        // deck/stairs/mat per ground-floor unit
-    const cxu = gx * CELL + CELL / 2;
-    if (S.deck) clipTile(g, S.deck, cxu - 22, y + h - 1, 44, 18);
-    if (S.stairs) g.drawImage(S.stairs, cxu - 14, y + h - 3, 28, 16);
-    if (S.doormat) g.drawImage(S.doormat, cxu - 8, y + h - 19, 16, 8);
+  // entry fixtures on each unit's DOOR side (deck/stairs only for SOUTH doors,
+  // whose art faces south; a doormat marks the threshold of any door).
+  for (const m of members) {
+    const cx = m.loc.x, cy = m.loc.y, ux = cx * CELL, uy = cy * CELL, cxu = ux + CELL / 2, cyu = uy + CELL / 2;
+    const cl = topoOf(cx, cy);
+    if (cl.S === 1) {
+      if (S.deck) clipTile(g, S.deck, cxu - 22, uy + CELL - 1, 44, 18);
+      if (S.stairs) g.drawImage(S.stairs, cxu - 14, uy + CELL - 3, 28, 16);
+      if (S.doormat) g.drawImage(S.doormat, cxu - 8, uy + CELL - 19, 16, 8);
+    } else if (cl.N === 1) { if (S.doormat) g.drawImage(S.doormat, cxu - 8, uy + 11, 16, 8); }
+    else if (cl.E === 1) { if (S.doormat) g.drawImage(S.doormat, ux + CELL - 19, cyu - 4, 16, 8); }
+    else if (cl.W === 1) { if (S.doormat) g.drawImage(S.doormat, ux + 3, cyu - 4, 16, 8); }
   }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
 
@@ -1002,12 +1034,15 @@ function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
   g.beginPath();
   g.rect(bx, by, bw, bh);
   g.clip();
-  // perimeter walls with a bottom door gap
+  // perimeter walls with a doorway gap on this unit's DOOR side — topology-driven
+  // (matches the routing grid's gap), defaulting to a south door without topology.
   if (S.wall) {
-    for (let x = bx; x < bx + bw; x += 16) g.drawImage(S.wall, x, by, 16, 16);
-    for (let y = by; y < by + bh; y += 16) { g.drawImage(S.wall, bx, y, 16, 16); g.drawImage(S.wall, bx + bw - 16, y, 16, 16); }
-    const doorL = cx - 13, doorR = cx + 13;
-    for (let x = bx; x < bx + bw; x += 16) if (x + 16 <= doorL || x >= doorR) g.drawImage(S.wall, x, by + bh - 16, 16, 16);
+    const cl = (opts.topo && opts.topo.get(rc.loc.x + "," + rc.loc.y)) || { N: 0, E: 0, S: 1, W: 0 };
+    const dir = cl.S === 1 ? "S" : cl.E === 1 ? "E" : cl.W === 1 ? "W" : cl.N === 1 ? "N" : "S";
+    wallEdge(g, S.wall, true, bx, by, bw, dir === "N");                 // top
+    wallEdge(g, S.wall, true, bx, by + bh - 16, bw, dir === "S");       // bottom
+    wallEdge(g, S.wall, false, bx, by, bh, dir === "W");                // left
+    wallEdge(g, S.wall, false, bx + bw - 16, by, bh, dir === "E");      // right
   }
   // multi-room interior laid out from the building type's blueprint
   drawRooms(g, S, rc.loc.type, bx + 16, by + 16, bw - 32, bh - 30, rng);
