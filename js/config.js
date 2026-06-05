@@ -65,6 +65,12 @@ export const CONFIG = {
     subdivisions: 2,
     walkSpeedPixelsPerFrame: 2.4,
     maxAStarNodes: 4000,
+    // Per-cell A* step cost so routes follow the paved streets instead of cutting
+    // straight across: roads are the cheap highway, building interiors are dear,
+    // open ground (parks/plazas/greens/grass) sits between. See utils/pathfinding.js.
+    streetCost: 1,
+    openCost: 4,
+    buildingCost: 12,
   },
 
   // ----- Character sprites -----

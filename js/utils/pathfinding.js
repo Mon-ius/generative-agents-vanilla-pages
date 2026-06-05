@@ -37,6 +37,20 @@
 // where corridors (streets + door approaches) connect all destinations, and
 // building interiors are solid blocks with one walkable door cell.
 //
+// ---------------------------------------------------------------------------
+// COST WEIGHTING (why agents follow the road)
+// ---------------------------------------------------------------------------
+// Every sub-tile also carries a *movement cost* (cost to step onto it), painted
+// per logical cell from the location's type: streets are the cheap highway,
+// building interiors are dear, parks/plazas/greens (and bare grass) sit between.
+// A* sums these costs instead of counting steps, so the cheapest route from one
+// building to another runs OUT to the nearest paved street, ALONG the avenues,
+// then back in to the destination door — instead of drifting in a straight
+// diagonal across grass and rooftops. The sim's routing grid leaves interiors
+// unblocked (so packed apartment rooms stay reachable); the cost just makes
+// walking through them expensive, which reads as "use the road" without ever
+// trapping a destination.
+//
 // Determinism: A* uses a Manhattan heuristic, 4-neighbour movement, and breaks
 // every tie by the linear cell index (gy*w + gx). No Math.random, no Date, no
 // iteration over unordered structures — identical inputs yield identical paths.
@@ -47,6 +61,13 @@
 export const DEFAULT_CELL = 176;
 export const DEFAULT_SUB = 2;
 export const DEFAULT_MAX_ASTAR_NODES = 4000;
+
+// Per-cell A* step cost (cost to ENTER a sub-tile of that type). Streets are the
+// cheap highway; buildings are dear so routes don't cut through them; open ground
+// (parks/plazas/greens/grass) sits between. Tunable via CONFIG.movement.*Cost.
+export const DEFAULT_STREET_COST = 1;
+export const DEFAULT_OPEN_COST = 4;
+export const DEFAULT_BUILDING_COST = 12;
 
 // Footprint geometry — IDENTICAL to ui/townArt.js computeLayout(). Keep these
 // in lockstep so the collision grid matches what is drawn.
@@ -68,13 +89,26 @@ function isOpenType(type) {
     type === "street" || type === "road";
 }
 
+// Movement cost for a cell of this type — see DEFAULT_*_COST above. Streets first
+// (they are also "open"), then the open plots, then everything else = building.
+function costForType(type, costs) {
+  if (type === "street" || type === "road") return costs.street;
+  if (isOpenType(type)) return costs.open; // park / square / plaza / green
+  return costs.building;                   // any building footprint (or grass override below)
+}
+
 // Resolve movement options from a caller hint or the (optional) CONFIG.movement.
 function resolveOpts(opts = {}) {
   const m = opts.movement || {};
   const cell = num(opts.cell, num(m.cell, DEFAULT_CELL));
   const sub = Math.max(1, Math.floor(num(opts.sub, num(m.subdivisions, DEFAULT_SUB))));
   const maxNodes = Math.max(1, Math.floor(num(opts.maxAStarNodes, num(m.maxAStarNodes, DEFAULT_MAX_ASTAR_NODES))));
-  return { cell, sub, maxNodes };
+  const street = Math.max(1, Math.floor(num(opts.streetCost, num(m.streetCost, DEFAULT_STREET_COST))));
+  const open = Math.max(1, Math.floor(num(opts.openCost, num(m.openCost, DEFAULT_OPEN_COST))));
+  const building = Math.max(1, Math.floor(num(opts.buildingCost, num(m.buildingCost, DEFAULT_BUILDING_COST))));
+  // Unmapped sub-tiles (bare grass / outside the town) default to open-ground cost.
+  const costs = { street, open, building, grass: open };
+  return { cell, sub, maxNodes, costs };
 }
 
 function num(v, fallback) {
@@ -121,19 +155,28 @@ function buildGridFromLocations(locations, opts) {
   return rasterize(footprints, cols, rows, o);
 }
 
-// Turn a list of {type, bx, by, bw, bh, door} footprints into a blocked grid.
+// Turn a list of {type, bx, by, bw, bh, door} footprints into a blocked grid
+// plus a per-sub-tile movement-cost grid (see COST WEIGHTING above).
 function rasterize(footprints, cols, rows, o) {
-  const { cell, sub, maxNodes } = o;
+  const { cell, sub, maxNodes, costs } = o;
   const w = Math.max(1, cols * sub);
   const h = Math.max(1, rows * sub);
   const subPx = cell / sub;
   const blocked = new Uint8Array(w * h);
+  // Default = open ground; each location overwrites its own cell below so the
+  // road network reads cheap and building interiors dear.
+  const cost = new Uint16Array(w * h).fill(costs.grass);
 
   // Sort footprints by location index for a deterministic build order
   // (the result is order-independent, but determinism is cheap to guarantee).
   const fps = footprints.slice().sort((a, b) => fpKey(a) - fpKey(b));
 
   for (const fp of fps) {
+    // Paint the location's whole logical cell with its type's movement cost.
+    // Keyed off the cell CENTRE so it works even when the footprint rect is
+    // zero-size (the sim's routing grid leaves interiors unblocked but weighted).
+    paintCellCost(cost, w, h, cols, rows, cell, sub, fp, costForType(fp.type, costs));
+
     if (isOpenType(fp.type)) continue; // parks/squares stay walkable
     // Sub-tile range covered by this footprint.
     const gx0 = clamp(Math.floor(fp.bx / subPx), 0, w - 1);
@@ -165,7 +208,21 @@ function rasterize(footprints, cols, rows, o) {
     }
   }
 
-  return { w, h, cell, sub, maxNodes, blocked };
+  return { w, h, cell, sub, maxNodes, blocked, cost };
+}
+
+// Fill every sub-tile of a footprint's logical cell with cost `c`. Keyed off the
+// cell CENTRE (cx, cy) so it works for zero-size footprints (the routing grid),
+// not just rectangles. Out-of-range cells are clamped and never overflow.
+function paintCellCost(cost, w, h, cols, rows, cell, sub, fp, c) {
+  const cellX = clamp(Math.floor(fp.cx / cell), 0, cols - 1);
+  const cellY = clamp(Math.floor(fp.cy / cell), 0, rows - 1);
+  const sx0 = cellX * sub, sy0 = cellY * sub;
+  for (let sy = sy0; sy < sy0 + sub && sy < h; sy++) {
+    for (let sx = sx0; sx < sx0 + sub && sx < w; sx++) {
+      cost[sy * w + sx] = c;
+    }
+  }
 }
 
 // A sub-tile lies on a street stripe when its sub-index within the logical cell
@@ -179,7 +236,7 @@ function onStreetMidline(gx, gy, sub) {
 
 function emptyGrid(opts) {
   const o = resolveOpts(opts);
-  return { w: 1, h: 1, cell: o.cell, sub: o.sub, maxNodes: o.maxNodes, blocked: new Uint8Array(1) };
+  return { w: 1, h: 1, cell: o.cell, sub: o.sub, maxNodes: o.maxNodes, blocked: new Uint8Array(1), cost: new Uint16Array(1).fill(1) };
 }
 
 // ---------------------------------------------------------------------------
@@ -268,7 +325,10 @@ export function aStar(grid, start, goal) {
       const nIdx = ny * w + nx;
       if (grid.blocked[nIdx]) continue;
       if (closed[nIdx]) continue;
-      const tentative = baseG + 1;
+      // Weighted step: cost to ENTER the neighbour (streets cheap, buildings dear).
+      // Falls back to uniform cost for grids built before cost weighting existed.
+      const stepCost = grid.cost ? grid.cost[nIdx] : 1;
+      const tentative = baseG + stepCost;
       if (tentative < gScore[nIdx]) {
         gScore[nIdx] = tentative;
         cameFrom[nIdx] = current;
