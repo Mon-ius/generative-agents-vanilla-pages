@@ -43,7 +43,12 @@ python3 -m http.server 8000   # any static server works; then open http://localh
 ```bash
 node test/smoke.node.mjs    # or: npm run smoke   — 21 checks, exits non-zero on failure
 node tools/check-all.mjs    # or: npm run check   — node --check every js/**/*.js (skips js/vendor)
+node tools/audit_rooms.mjs  # dev-only room-furniture overlap gate; per-type table, exits 0 when clean
 ```
+The smoke harness is a **single fast file with no per-test filter** — it runs all 21 checks and
+prints a labeled `✓`/`✗` line each; to isolate one, read its label in the output (or temporarily
+comment the others). No npm script for the room auditor — run it directly after any `townArt.js`
+furniture/`BLUEPRINTS` change.
 ```js
 window.runSmokeTest()       // in the browser console; MUTATES the live sim (steps/selects/saves/resets)
 ```
