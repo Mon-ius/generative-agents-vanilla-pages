@@ -43,7 +43,9 @@ python3 -m http.server 8000   # any static server works; then open http://localh
 ```bash
 node test/smoke.node.mjs    # or: npm run smoke   — 21 checks, exits non-zero on failure
 node tools/check-all.mjs    # or: npm run check   — node --check every js/**/*.js (skips js/vendor)
-node tools/audit_rooms.mjs  # dev-only room-furniture overlap gate; per-type table, exits 0 when clean
+node tools/audit_rooms.mjs  # room-furniture overlap audit; per-type table. Report-only — ALWAYS exits 0:
+                            # read the printed "TOTAL unintended furniture overlaps / out-of-room spills"
+                            # line, not the exit code (unlike smoke/check, which exit non-zero on failure)
 ```
 The smoke harness is a **single fast file with no per-test filter** — it runs all 21 checks and
 prints a labeled `✓`/`✗` line each; to isolate one, read its label in the output (or temporarily
@@ -64,8 +66,12 @@ the site also works from a project subpath.
 ## Architecture: strict core ↔ UI split via an EventBus
 
 The single most important invariant: **the simulation core never touches the DOM, and the
-UI never contains simulation logic.** They communicate only through `sim.bus` (EventBus).
-This keeps the core runnable headless (it's why `test/smoke.node.mjs` can boot and step it).
+UI never contains simulation logic.** This keeps the core runnable headless (it's why
+`test/smoke.node.mjs` can boot and step it). The glue is **one-directional**: the core
+notifies the UI through `sim.bus` (EventBus) — all six emits originate inside `Simulation`;
+no UI module ever calls `bus.emit`. The UI drives the core by calling its public methods
+(`sim.step()`, `sim.selectAgent(id)`, `sim.save()/load()/reset()`) — which then emit — and
+reads sim state directly (`sim.agents`, `sim.time`, …) rather than from event payloads.
 
 - **Core** (DOM-free): `js/config.js`, `js/utils/*`, `js/simulation/*`, `js/agents/*`, `js/data/*`.
 - **UI** (DOM/canvas/WebGL): `js/ui/*`, `js/main.js`.
@@ -76,13 +82,22 @@ This keeps the core runnable headless (it's why `test/smoke.node.mjs` can boot a
 mounts the research panels (each guarded by `getElementById` so a headless import is safe),
 and selects the map renderer.
 
-**EventBus contract** — the cross-cutting glue. `sim.bus.emit(type, payload)` /
-`sim.bus.on(type, cb)`. The complete closed set of event types is:
-`init`, `tick`, `timeline`, `select`, `reset`, `load`. Every UI module subscribes to these;
-the map views additionally watch `timeline` entries with `type === "conversation"` to pop 💬
-speech bubbles. `Renderer.renderAll()` rebuilds **all** panels from scratch on every event
-(no diffing — fine at 24 agents / ~5 panels). Tab visibility is pure HTML/CSS; hidden panels
-are still re-rendered.
+**EventBus contract** — `sim.bus.emit(type, payload)` / `sim.bus.on(type, cb)`. The complete
+closed set of event types is: `init`, `tick`, `timeline`, `select`, `reset`, `load`.
+`Renderer` owns **only the DOM side panels** (status/legend/agent/memory/timeline/debug):
+`renderAll()` rebuilds them all from scratch on `init`/`tick`/`select`/`reset`/`load` (no
+diffing — fine at 24 agents / ~5 panels). It does **not** subscribe to `timeline` — a
+mid-step `timeline` emit repaints nothing until the `tick` at the end of the same step; only
+the map views watch `timeline` (entries with `type === "conversation"` pop 💬 speech
+bubbles). The **map views live outside that cycle**: `MapView` runs its own
+`requestAnimationFrame` loop and `PixiMapView` its own Pixi ticker, each reading sim state
+directly **every frame** (that's how path-walking animates between ticks); they use the bus
+only to sync on `tick`, rebuild on `reset`/`load`, focus on `select`, and pop bubbles on
+`timeline`. Panel-tab visibility is a small WAI-ARIA controller (`js/ui/Tabs.js`) toggling
+each panel's `hidden` attribute — purely presentational; hidden panels are still
+re-rendered. Separately, **`main.js` auto-pauses the playback loop when the browser tab is
+hidden** (`visibilitychange`, stashing `app._wasRunning`) and resumes on return — long
+background runs silently stop.
 
 ## The simulation tick (`Simulation.step()`)
 
@@ -90,7 +105,7 @@ Each `step()` advances the clock by `CONFIG.minutesPerTick` and runs a **fixed, 
 five-phase cycle** over `this.agents` (iteration order is stable for reproducibility):
 
 1. **World events** due at `minutesIntoDay` fire once; present agents get an `event` memory + a generated reaction.
-2. **Plan → move**: `Planner.updateStatuses()` returns the active block; if it's elsewhere the agent's `currentLocationId` is set **immediately** (`moveTo()` — cognition/co-location stays bit-deterministic) AND `agent.setDestination()` computes an A* waypoint `path` (`js/utils/pathfinding.js`) that **only the renderers animate** along. Movement is "logical-instant for cognition, animated for rendering" — a deliberate determinism choice; multi-tick travel was rejected. **Solid buildings + tunnels** (`CONFIG.movement.solidBuildings`, `subdivisions:8`): each building cell is a walled unit on the sub-tile grid — a thin blocked perimeter ring with an **open interior** (the centre 6×6) and a **narrow** centred gap on its one **door** edge (facing the street) and on every **tunnel** edge (shared with a sibling unit of the same `complex`). The gap is only `GAP_SUBTILES` (=2 of 8) wide, so **walls cover ~75% of every edge** and rooms read as real rooms with limited doorways. Agents route the street network, **enter through the door**, move **room-to-room through the tunnels**, and **stand inside** (`computeDoorSpots` → the cell centre) — never crossing a wall. The wall/door/tunnel layout is one shared `townTopology`: the routing grid (`rasterizeSolid`) and the renderer (`computeWallTopology` → `townArt.spriteComplex`, which cuts the gaps at the identical cell-fraction from `gapSpan()`, ≈0.375–0.625) are driven from it, so picture and pathing stay in lockstep. A `gridPad` ring of open grass frames the town so corner complexes stay reachable.
+2. **Plan → move**: `Planner.updateStatuses()` returns the active block; if it's elsewhere the agent's `currentLocationId` is set **immediately** (`moveTo()` — cognition/co-location stays bit-deterministic) AND `agent.setDestination()` computes an A* waypoint `path` (`js/utils/pathfinding.js`) that **only the renderers animate** along. Movement is "logical-instant for cognition, animated for rendering" — a deliberate determinism choice; multi-tick travel was rejected. **Solid buildings + tunnels** (`CONFIG.movement.solidBuildings`, `subdivisions:8`): each building cell is a walled unit on the sub-tile grid — a thin blocked perimeter ring with an **open interior** (the centre 6×6) and a **narrow** centred gap on its one **door** edge and on every **tunnel** edge (shared with a sibling unit of the same `complex`). The gap is only `GAP_SUBTILES` (=2 of 8) wide, so **walls cover ~75% of every edge** and rooms read as real rooms with limited doorways. The **door edge is chosen by `townTopology`'s `classify`**: the edge facing the largest 4-connected open component (exterior `gridPad` grass + streets + courtyards), preferring S, then E, W, N — so a door can legitimately open onto a courtyard green/plaza rather than a street, and a building cut off from that main network gets **no door at all**. Agents route the street network, **enter through the door**, move **room-to-room through the tunnels**, and **stand inside** (`computeDoorSpots` → the cell centre) — never crossing a wall. **A\* is weighted-cost, not step-count**: every sub-tile carries a cost painted from its location type — street 1, open ground 4, building interior 12 (`CONFIG.movement.streetCost`/`openCost`/`buildingCost`, applied via `costForType`) — which is what actually makes residents follow the paved avenues instead of cutting across parks; walls only enforce door-only entry. The wall/door/tunnel layout is one shared `townTopology`: the routing grid (`rasterizeSolid`) and the renderer (`computeWallTopology` → `townArt.spriteComplex`, which cuts the gaps at the identical cell-fraction from `gapSpan()`, ≈0.375–0.625) are driven from it, so picture and pathing stay in lockstep. A `gridPad` ring of open grass frames the town so corner complexes stay reachable. Two routing gotchas: `Simulation` **caches** the collision grid + door spots (`_grid`/`_doorSpots` — lazily built, cleared only on `init()`/`reset()`/`loadState()`), so runtime `CONFIG.movement.*`/location changes don't affect routing until a Reset ("the engine re-reads CONFIG each tick" does **not** apply here); and the comments around `_getDoorSpots`/`_doorWorld` in `Simulation.js` still describe the **old stand-OUTSIDE-the-building model** — trust `pathfinding.js` (and this file) over them.
 3. **Observe**: each agent may record its location (gated `rng() < 0.5`) and records every co-located agent. `Environment.indexAgents()` is refreshed after the move for O(agents) co-location lookups.
 4. **Converse**: per location with ≥2 co-located agents, **one group** of up to `CONFIG.conversation.maxGroupSize` (=4) forms (`ConversationEngine.checkGroupConverse`/`converseGroup`); each participant gets a `conversation` memory (`relatedAgentIds` = the others), every ordered pair's relationship updates, and **one** timeline entry carries `participantIds` + `locationId`. Size-2 behaves like the old pair path.
 5. **Reflect**: agents whose accumulated importance crossed the threshold synthesize an insight.
@@ -120,10 +135,15 @@ all cognition is delegated to focused modules, and **all text generation goes th
 - **Relationships**: `RelationshipGraph.update(id, deltas)` **adds** clamped deltas (it does
   not set) — `affinity`/`trust` ∈ [-100,100], `familiarity` ∈ [0,100]. Conversation tone
   (warm/neutral/tense, derived from existing affinity) drives the deltas.
-- **`GenerationProvider`** has four methods: `generatePlan`, `generateReflection`,
-  `generateConversation`, `generateReaction`. `LocalGenerationProvider` (the only one wired
-  in) is deterministic and template-based. `LLMGenerationProvider` is a stub that **throws on
-  purpose** to prevent shipping an API key in client code.
+- **`GenerationProvider`** — the abstract base declares four throwing stubs (`generatePlan`,
+  `generateReflection`, `generateConversation`, `generateReaction`), but a complete provider
+  needs a **fifth method the base class does not declare**:
+  `generateGroupConversation(agents, context)`, which `ConversationEngine.converseGroup`
+  calls for every 3–4-person group (size 2 reuses `generateConversation`). With
+  `maxGroupSize` = 4 this path fires routinely — a custom provider implementing only the
+  four stubs throws a `TypeError` mid-run. `LocalGenerationProvider` (the only one wired in)
+  is deterministic, template-based, and implements all five. `LLMGenerationProvider` is a
+  stub that **throws on purpose** to prevent shipping an API key in client code.
 
 ## Determinism & persistence
 
@@ -160,15 +180,19 @@ modules, so they stay in lockstep:
 - **Building art — top-down cutaway (no roofs).** Buildings render as **apartment complexes**:
   `groupComplexes(layout)` buckets `rects` by each location's **`complex` id** (assigned by
   `tools/pack_locations.mjs`, preserved through `Location` — *if that field is ever dropped again,
-  the renderer falls back to a coarse grid key and lumps unrelated buildings into giant sparse
-  pseudo-complexes flooded with bare corridor floor*; complex-less buildings get a unique `solo_<id>`
-  key → standalone). `spriteComplex` draws each member's walled unit and the shared shell, cutting a
-  narrow centred **door** gap in each unit's street-facing shell wall and a **tunnel** gap in every wall
+  every building silently falls back to a unique `solo_<id>` key and renders standalone: complex
+  grouping is lost with no error. Stale comments in `townArt.js`/`Location.js` still describe an
+  old coarse-grid fallback that lumped unrelated buildings into sparse pseudo-complexes — that
+  fallback was removed; don't believe them*). `spriteComplex` draws each member's walled unit and
+  the shared shell, cutting a narrow centred **door** gap in each unit's door-edge shell wall (the
+  edge `classify` picks — see the tick section) and a **tunnel** gap in every wall
   shared with a sibling unit — gaps positioned at the narrow cell-fraction from the shared
   `pathfinding.gapSpan()` (≈0.375–0.625 at `sub=8` → a ~44px doorway, so the **wall covers ~75% of every
   edge**) to line up *exactly* with the walkable openings the routing grid punches from the same
-  `pathfinding.computeWallTopology` (render ↔ routing lockstep — see the tick's *Plan → move* note; `wallEdge`
-  and `rasterizeSolid` both read `gapSpan`); empty cells in the bounding box get a rug+plant
+  `pathfinding.computeWallTopology` (render ↔ routing lockstep — see the tick's *Plan → move* note:
+  `wallEdge` reads `gapSpan`, which is derived from the same `gapIndices`/`GAP_SUBTILES` that
+  `rasterizeSolid` punches its openings from — **change the gap via `GAP_SUBTILES`, never by editing
+  `gapSpan` alone**); empty cells in the bounding box get a rug+plant
   landing. **`wallCap()` caps every shell with a flat light-grey wall top
   (the cutaway look) — there is NO colored shingle roof in the sprite path** (`shingleRoof`/`ROOF`
   survive only in the procedural `drawBuilding` fallback). Each unit's interior comes from a per-type
@@ -176,13 +200,16 @@ modules, so they stay in lockstep:
   fills each room by `kind` — baths get the **salmon diamond** floor (`floor_pink`), private rooms
   the **cream carpet** (`floor_tile`), common rooms **warm orange planks** (`floor_wood`). The
   reference's signature **`diningSet()`** (a table ringed by red/yellow chairs on a rug) anchors
-  every common room.
+  the `living`/`library`/`meeting`/`studio`/`diner` rooms (and unknown kinds); community public
+  rooms (cafe, chapel, theater, bank, salon, florist, pharmacy, museum, post, …) get bespoke
+  furniture instead — bar + stools, pews, seat rows, teller line, display cases.
 - **Streets & outdoor plots.** The packer emits real `street`-type cells between the city blocks;
   `paveStreet` fills the **whole cell** edge-to-edge with the cobble tile (`S.gravel`) so a run of
   street cells reads as one seamless road, drawn **as ground** (before trees/buildings) so eaves
   and canopies overhang it. `streetFurniture` adds lamps to a deterministic subset on top.
-  Parks/squares/greens/plazas still render via `spritePark`/`spritePlaza`/`spriteGreen` over their
-  ~0.92-cell footprint (a grass verge shows at their edges). The procedural fallback mirrors this
+  Parks/squares/greens/plazas still render via `spritePark`/`spritePlaza`/`spriteGreen` over a
+  ~0.84×0.74-cell footprint (the `DEFAULT_BLUEPRINT` `foot` — outdoor types have no blueprint of
+  their own; a grass verge shows at their edges). The procedural fallback mirrors this
   with `drawStreet`/`drawPark`/`drawPlaza` (the old global path-band grid was removed — streets are
   explicit cells now).
 - **`townChunks.js`** — the world is too big for one texture (> WebGL limits), so
@@ -193,7 +220,8 @@ modules, so they stay in lockstep:
   applies it to the world container via `scale`/`position`; canvas via `ctx.setTransform`):
   **drag-pan + wheel/pinch-zoom + inertia + double-tap-zoom**, `worldToScreen`/`screenToWorld`,
   `visibleWorldRect()` (the culling source), `centerOn(wx,wy)`, `toJSON/applyState` (persisted to
-  `settings.camera`). Node-safe — the pure math constructs/runs with no DOM (tests use it). The
+  `settings.camera`). Node-safe — the pure math constructs/runs with no DOM (though no test
+  currently imports it). The
   world is **boundless** (`CONFIG.camera.infinite`): there are **no map edges** — the town floats
   in infinite grass, so the zoom-out floor is an **absolute** `minScale` (`CONFIG.camera.minZoom`),
   **not** fit-to-world; `canPan()` is always true; and `_clampTarget()` only *soft*-limits roaming
@@ -228,12 +256,23 @@ modules, so they stay in lockstep:
   walls (`wall`/`wall2`), salmon diamond bath floor (`floor_pink`), cream bedroom carpet
   (`floor_tile`), warm orange planks (`floor_wood`), plus the furniture (beds w/ white pillow +
   colored blanket, red/yellow chairs, toilet/sink, fridge, bookshelf, piano, bar/stool, board, …).
-  If the atlas/manifest is missing (or headless), `loadSprites` → `{}` and townArt falls back to
-  its **procedural** drawing.
+  Furniture sprites are authored at **`ART_SS` = 4×** their on-screen size: `townArt`'s `put()`
+  helper draws them at `img.width/ART_SS` (plus a contact shadow), while ground/wall tiles draw
+  into fixed 16px boxes — `ART_SS` must stay in sync with `SS` in `pack_tiles.mjs`, and **all
+  furniture placement must go through `put()`** (a raw `drawImage` renders 4× too big). The
+  sprite path also needs a critical mass: `drawTownInto` takes the tilemap path only when the
+  sprites map has **≥6 entries** — a missing atlas (`loadSprites` → `{}`) *or any partial/mock
+  sprite map* silently renders the full **procedural** fallback instead.
 
 High-DPI: Pixi `resolution = CONFIG.rendering.resolutionScale` (devicePixelRatio, capped 2) +
 `autoDensity`; canvas backs the store at `cssPx*dpr`. **All art is original SVG** (no third-party
 packs); the two atlases are the only image assets.
+
+Day/night: both renderers tint the world with `townArt.ambient(minutesIntoDay)` — a keyframed
+dawn/dusk/night overlay (clear at noon; MapView fills a world rect, PixiMapView tints an overlay
+quad). Chunk bakes themselves are always daytime (`lightsOn` is plumbed through `townChunks` but
+no renderer passes it). A screenshot at simulated evening/night is heavily orange/blue-tinted —
+check the sim clock before judging palette.
 
 ## Configuration & extending
 
@@ -241,14 +280,20 @@ packs); the two atlases are the only image assets.
   (`gridWidth/Height`, `cellPixels`), `CONFIG.rendering` (`resolutionScale`, `chunkCells`,
   `chunkCacheMax`, `maxBakePx`), `CONFIG.camera` (`infinite`, `minZoom`, `maxZoom`, `zoomStep`, `easing`),
   `CONFIG.movement` (`pathfindingEnabled`, `subdivisions`, `walkSpeedPixelsPerFrame`,
-  `maxAStarNodes`), `CONFIG.characters` (`useSpritesheets`, `fps`, `frameScale`), plus
+  `maxAStarNodes`, plus the A* route-preference costs `streetCost`/`openCost`/`buildingCost` —
+  see the tick section), `CONFIG.characters` (`useSpritesheets`, `fps`, `frameScale`), plus
   `conversation.maxGroupSize` and `ui` (`timelineVisible`/`memoryVisible`/`timelineMax`). `js/ui/ParamControls.js` mutates retrieval/
   reflection live for in-browser ablation; the engine re-reads `CONFIG` each tick. Caveat:
   `TimeManager` **caches** `minutesPerTick`, so the Minutes/tick slider also writes
-  `sim.time.minutesPerTick` — keep that dual-write.
-- **Add an agent/location**: append to `js/data/seedAgents.js` / `seedLocations.js` (exact
+  `sim.time.minutesPerTick` — keep that dual-write. (Same pattern: `Simulation` caches
+  `_grid`/`_doorSpots`, so movement/location changes need a Reset — see the tick section.)
+- **Add an agent/location/event**: append to `js/data/seedAgents.js` / `seedLocations.js` (exact
   field names: `homeLocationId`, `workLocationId`, `currentLocationId`; every referenced id
-  must exist in `seedLocations.js` or init breaks), then **Reset** to rebuild. Location
+  must exist in `seedLocations.js` or init breaks), then **Reset** to rebuild. **World events**
+  are the third seed file, `js/data/seedEvents.js`: fields `id`, `time` (minutes-into-day,
+  0–1439), `locationId` (must exist in `seedLocations.js`), `title`, `description`,
+  `importance`, `tags`; each fires once per day, `Environment.resetEvents()` re-arms them at
+  rollover, and `Environment.addEvent()` injects more at runtime. Location
   `type`/`tags` (`cafe`, `park`, `shop`, `library`, `square`, …) drive plan-block resolution.
   Each building location also carries a packed `x`/`y` and a `complex` id (grouped into one
   cutaway shell by the renderer) — both assigned by `node tools/pack_locations.mjs`; re-run it
@@ -269,7 +314,9 @@ packs); the two atlases are the only image assets.
   `paveStreet`+`streetFurniture`+`drawStreet`). New furniture **sprites** follow the
   usual pipeline: add to `SPRITES` in `pack_tiles.mjs`, author `tools/tile_svg/<name>.svg`
   (base×4, single root `<svg>`, ids prefixed), then `validate_tiles` → `pack_tiles --manifest` →
-  `svg2png`.
+  `svg2png` (exact command lines under *Art direction*; note `validate_tiles` is repo-safe but
+  importing `pack_tiles.mjs` writes the atlas SVG to `/tmp/tile_atlas.svg` as a top-level side
+  effect).
 - **Wire a real LLM**: there is no runtime/env switch — implement `LLMGenerationProvider` and
   change the `provider:` arg in `main.js` (where `new LocalGenerationProvider()` is passed to
   `new Simulation(...)`). Route the API through a backend proxy; never embed a key client-side.
@@ -280,9 +327,12 @@ The building art targets a **top-down RPG cutaway** look: apartment shells with 
 away to reveal walled units — light-grey plaster walls (no colored roofs), salmon diamond-tile
 baths, cream-carpet bedrooms, warm-orange wood-plank common rooms, detailed furniture, and a
 red/yellow dining set per common room. Iterate with the verify loop: edit a tile SVG (or the
-`townArt.js` placement) → `node tools/pack_tiles.mjs && node tools/svg2png.mjs` (rebuild the
-atlas; tile-art changes only) → serve → `node tools/screenshot.mjs <url> <out.png> --eval <frame js>`
-to capture the live town and eyeball it against the reference.
+`townArt.js` placement) → `node tools/pack_tiles.mjs /tmp/tile_atlas.svg && node tools/svg2png.mjs
+/tmp/tile_atlas.svg assets/sprites/atlas.png` (rebuild the atlas — tile-art changes only; add
+`--manifest` to `pack_tiles` when sprite regions/sizes change; both tools need their positional
+args — bare `svg2png` exits 2 with a usage error) → serve →
+`node tools/screenshot.mjs <url> <out.png> --eval <frame js>` to capture the live town and eyeball
+it against the reference (mind the day/night ambient tint — see *Rendering*).
 
 `ART_BIBLE.md` documents the older palette, sprite grid, and room layouts. Note it describes a
 procedural generator/`tools/` workflow that is **not present in this deploy repo**, and it predates
