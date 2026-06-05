@@ -10,7 +10,7 @@
 
 import { seededRandom } from "../utils/random.js";
 import { CONFIG } from "../config.js";
-import { buildGrid, computeDoorSpots, computeWallTopology } from "../utils/pathfinding.js";
+import { buildGrid, computeDoorSpots, computeWallTopology, gapSpan } from "../utils/pathfinding.js";
 
 // Logical px per grid cell, sourced from CONFIG so the world size is tunable in
 // one place. A defensive fallback keeps headless/standalone use working even if
@@ -130,7 +130,7 @@ export function spotFor(layout, locId, index, count) {
 
   const odx = ds ? ds.dx : 0, ody = ds ? ds.dy : 0;
   // Interior spot (dx/dy = 0): agents stand INSIDE the room, so cluster them in a
-  // tight FULL circle within the open interior (the centre 2×2 sub-tiles ≈ 88px,
+  // tight FULL circle within the open interior (the centre 6×6 sub-tiles ≈ 132px,
   // so keep the radius < ~0.24·CELL to stay off the walls). A spot with an outward
   // direction instead fans a half-arc that way (kept for any directional caller).
   const interior = !odx && !ody;
@@ -907,15 +907,20 @@ function groupComplexes(layout) {
   return complexes;
 }
 
-// Draw one wall edge — a CELL-long run of 16px wall tiles — punching a centred
-// doorway GAP when the edge is a door/tunnel. The gap spans the central 50% of
-// the edge (cell-fraction 0.25–0.75) so it lines up EXACTLY with the routing
-// grid's gapIndices(4) = sub-tiles {1,2} (px 44–132). Horizontal edges run along
-// x at fixed y (16px thick); vertical edges run along y at fixed x.
+// Door/tunnel gap window (cell-fraction) — the SAME narrow opening the routing
+// grid punches (pathfinding.gapSpan, derived from gapIndices), so a drawn doorway
+// lines up EXACTLY with the walkable gap A* threads (render ↔ routing lockstep).
+// sub=8 → {0.375, 0.625}: a 44px doorway, so the wall covers ~75% of the edge.
+const WALL_GAP = gapSpan((CONFIG.movement && CONFIG.movement.subdivisions) || 8) || { lo: 0.25, hi: 0.75 };
+
+// Draw one wall edge — a CELL-long run of 16px wall tiles — punching the narrow
+// centred doorway GAP (WALL_GAP) when the edge is a door/tunnel; otherwise the
+// edge is a solid wall covering its whole length. Horizontal edges run along x at
+// fixed y (16px thick); vertical edges run along y at fixed x.
 function wallEdge(g, img, horizontal, ex, ey, len, open) {
   if (!img) return;
   if (!open) { if (horizontal) clipTile(g, img, ex, ey, len, 16); else clipTile(g, img, ex, ey, 16, len); return; }
-  const g0 = len * 0.25, g1 = len * 0.75;                 // centred gap window
+  const g0 = len * WALL_GAP.lo, g1 = len * WALL_GAP.hi;   // narrow centred gap window
   if (horizontal) { clipTile(g, img, ex, ey, g0, 16); clipTile(g, img, ex + g1, ey, len - g1, 16); }
   else { clipTile(g, img, ex, ey, 16, g0); clipTile(g, img, ex, ey + g1, 16, len - g1); }
 }

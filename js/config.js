@@ -62,13 +62,16 @@ export const CONFIG = {
   // ----- Movement / pathfinding -----
   movement: {
     pathfindingEnabled: true,
-    // sub = 4 so every building cell has a perimeter WALL ring + an interior
-    // (the centre 2×2 sub-tiles) — the resolution needed to model walls with
-    // door/tunnel gaps (agents enter rooms + move between them). See pathfinding.js.
-    subdivisions: 4,
+    // sub = 8 so every building cell has a THIN perimeter WALL ring + a roomy
+    // interior (the centre 6×6 sub-tiles), and each door/tunnel is a NARROW
+    // centred gap (2 of 8 tiles ≈ 44px) — walls cover ~75% of every edge while
+    // a limited doorway stays walkable. The resolution the wall/door/tunnel model
+    // needs to look like a real building. See pathfinding.js.
+    subdivisions: 8,
     walkSpeedPixelsPerFrame: 2.4,
-    // Finer grid (≈76×76) → longer routes; bumped so cross-town A* never bails early.
-    maxAStarNodes: 12000,
+    // Finer grid (≈152×152) → longer routes that explore more nodes; bumped so
+    // cross-town A* never bails before it reaches a far door.
+    maxAStarNodes: 60000,
     // Per-cell A* step cost so routes follow the paved streets instead of cutting
     // straight across: roads are the cheap highway, building interiors are dear,
     // open ground (parks/plazas/greens/grass) sits between. See utils/pathfinding.js.
@@ -76,8 +79,8 @@ export const CONFIG = {
     openCost: 4,
     buildingCost: 12,
     // Solid buildings: the routing grid walls each building cell's perimeter but
-    // leaves the interior open with a centred gap on every DOOR edge (facing the
-    // street) and TUNNEL edge (shared with a sibling unit). Agents walk the
+    // leaves a narrow centred gap on its one DOOR edge (facing the street) and on
+    // every TUNNEL edge (shared with a sibling unit). Agents walk the
     // street/grass network, enter through the door, move room-to-room through the
     // tunnels, and stand inside — never crossing a wall. The town is framed by one
     // ring of open grass (gridPad) so corner/edge complexes stay reachable.

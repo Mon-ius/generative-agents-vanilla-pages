@@ -9,29 +9,31 @@
 // ---------------------------------------------------------------------------
 // The world is a coarse logical grid of locations on integer (x, y) cells, each
 // CELL px wide (see ui/townArt.js `CELL`). For movement we subdivide every
-// logical cell into `sub × sub` sub-tiles (default sub = 2, so a 24×24 town
-// becomes a 48×48 movement grid). A finer grid lets agents path *around*
-// building footprints and through door gaps instead of teleporting.
+// logical cell into `sub × sub` sub-tiles (default sub = 8, so each cell is an
+// 8×8 block). A finer grid lets agents path *around* building footprints and
+// through narrow door gaps instead of teleporting — and is the resolution the
+// "mostly-wall, thin-doorway" model below needs.
 //
 // Each building cell is modelled as a WALLED unit with door/tunnel gaps — the
 // SAME wall topology the renderer draws (townArt.spriteComplex), recomputed here
 // from the locations' x/y + `complex` so the grid matches the picture without
-// importing the renderer. At sub = 4 a logical cell is a 4×4 block of sub-tiles:
+// importing the renderer. At sub = 8 a logical cell is an 8×8 block of sub-tiles:
 //
-//   * Interior (the centre 2×2 sub-tiles): OPEN — an agent stands inside its
+//   * Interior (the centre 6×6 sub-tiles): OPEN — an agent stands inside its
 //     room (computeDoorSpots → the cell centre). Walking through is dear (the
 //     building movement cost) so routes still prefer the road, but the room is
 //     reachable so agents genuinely enter and move between rooms.
 //   * Perimeter sub-tiles: WALLS (blocked) — an agent can never cross a wall —
-//     EXCEPT the centred gap on an edge that townTopology classifies as:
+//     EXCEPT a NARROW centred gap on an edge that townTopology classifies as:
 //       - a DOOR (1): the unit's outer wall faces the reachable street/grass
 //         network (the MAIN open component); the gap is the front door.
 //       - a TUNNEL (2): the wall is shared with another unit of the SAME complex;
 //         the gap is the internal doorway connecting the two rooms.
 //     Edges facing anything else (a different complex, an enclosed pocket) stay
-//     solid wall. The gap spans the centre `gapIndices(sub)` sub-tiles of the
-//     edge (sub-tiles {1,2} at sub = 4 → the central 88px), so door and tunnel
-//     openings line up exactly with the doorways townArt cuts in the walls.
+//     solid wall. The gap is just the central `gapIndices(sub)` = GAP_SUBTILES
+//     sub-tiles of the edge (sub-tiles {3,4} at sub = 8 → a 44px doorway), so the
+//     WALL covers ~75% of every edge and door/tunnel openings line up exactly
+//     with the thin doorways townArt cuts in the walls (gapSpan() — same source).
 //   * Parks / squares / plazas / greens / streets: fully OPEN plots (stand
 //     anywhere); streets are the cheap highway that ties the town together.
 //
@@ -61,10 +63,14 @@
 // module never imports the DOM-touching townArt module. If a caller knows the
 // real CELL (e.g. from computeLayout) it can pass it through `opts.cell`.
 export const DEFAULT_CELL = 176;
-// sub = 4 so a building cell (4×4 sub-tiles) has a perimeter wall ring AND an
-// interior (the centre 2×2) — the resolution the wall/door/tunnel model needs.
-export const DEFAULT_SUB = 4;
-export const DEFAULT_MAX_ASTAR_NODES = 12000;
+// sub = 8 so a building cell (8×8 sub-tiles) has a thin perimeter wall ring + a
+// roomy interior (the centre 6×6), and a door/tunnel can be a NARROW centred gap
+// (2 of 8 tiles) instead of half the wall — the resolution the "walls cover
+// almost the whole edge, leave a limited doorway" model needs.
+export const DEFAULT_SUB = 8;
+// Finer grid (≈152×152) → longer routes that explore more nodes, so the bound is
+// raised to keep cross-town A* from bailing before it reaches a far door.
+export const DEFAULT_MAX_ASTAR_NODES = 60000;
 
 // Per-cell A* step cost (cost to ENTER a sub-tile of that type). Streets are the
 // cheap highway; buildings are dear so routes don't cut through them; open ground
@@ -277,13 +283,34 @@ function townTopology(locations, o) {
   return { cols, rows, cell: CELL, pad, at, isBuildingCell, onMain, classify, byComplex };
 }
 
-// Centre sub-tile indices of an edge that form a door/tunnel GAP: every index
-// except one wall tile at each end ({1..sub-2}). sub=4 -> {1,2} (central 88px);
-// sub=3 -> {1}; sub<3 -> {} (no interior to model, so the cell is fully walled).
+// Door/tunnel opening width, in sub-tiles. Kept NARROW — a real doorway, not
+// half the wall — so a building's walls cover almost the whole edge. At sub = 8
+// a 2-tile gap is a 44px doorway through the 176px wall (≈25% open / 75% wall).
+export const GAP_SUBTILES = 2;
+
+// Centre sub-tile indices of an edge that form a door/tunnel GAP: a NARROW,
+// centred opening of GAP_SUBTILES tiles (the rest of the edge stays solid wall).
+// Clamped to leave ≥1 wall tile at each end. sub=8 -> {3,4} (px 66–110, a 44px
+// doorway); sub=4 -> {1,2}; sub<3 -> {} (no interior, so the cell is fully walled).
 function gapIndices(sub) {
   const g = new Set();
-  for (let i = 1; i <= sub - 2; i++) g.add(i);
+  const width = Math.min(GAP_SUBTILES, sub - 2); // keep at least one wall tile each end
+  if (width < 1) return g;
+  const start = Math.floor((sub - width) / 2);   // centre the opening on the edge
+  for (let i = 0; i < width; i++) g.add(start + i);
   return g;
+}
+
+// Fraction span [lo, hi] (0..1) of the centred door/tunnel gap along an edge —
+// exactly the opening rasterizeSolid punches. Exported so the renderer (townArt
+// wallEdge) cuts its doorway at the IDENTICAL cell-fractions and the picture stays
+// in lockstep with the routing grid. Returns null when sub < 3 (no gap modelled).
+export function gapSpan(sub) {
+  const idx = [...gapIndices(Math.max(1, Math.floor(sub)))];
+  if (!idx.length) return null;
+  let lo = idx[0], hi = idx[0];
+  for (const i of idx) { if (i < lo) lo = i; if (i > hi) hi = i; }
+  return { lo: lo / sub, hi: (hi + 1) / sub };
 }
 
 // Rasterize the SOLID wall/door/tunnel grid (the real sim routing grid). Each
@@ -475,7 +502,7 @@ export function cellForLocation(grid, loc) {
 //
 // Buildings now have walkable interiors (rasterizeSolid), so an agent stands
 // INSIDE its room: the spot is simply the cell CENTRE — an open interior sub-tile
-// (the centre 2×2), reachable through the unit's door + the complex's tunnels.
+// (the centre 6×6), reachable through the unit's door + the complex's tunnels.
 // Outdoor plots stand in the plot centre likewise. dx/dy = 0 marks "no outward
 // direction" so townArt.spotFor fans the crowd in a tight circle inside the room
 // rather than out across a threshold. Both Simulation (route target) and
