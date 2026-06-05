@@ -69,16 +69,29 @@ export const DEFAULT_STREET_COST = 1;
 export const DEFAULT_OPEN_COST = 4;
 export const DEFAULT_BUILDING_COST = 12;
 
+// SOLID buildings (default ON): the routing grid blocks each building's WHOLE
+// logical cell, so agents can never walk through a wall — they route around the
+// blocks on the street/grass network and stop at a door spot just outside. (The
+// older weighted-only mode, where interiors stay walkable but expensive, is kept
+// for `opts.solid === false`.) See computeDoorSpots for where agents actually stand.
+export const DEFAULT_SOLID = true;
+
+// Open-grass border ring (in logical cells) padded around the town on every side.
+// The world is boundless (infinite grass beyond the town edge), and that exterior
+// ring is what connects corner/edge complexes + the street grid into ONE walkable
+// network. Without it, solid buildings would wall off the four corner complexes.
+// The grid stores this as a sub-tile origin offset (grid.ox/oy) so world<->grid
+// mapping stays exact; A*/BFS just see a slightly larger open-framed grid.
+export const DEFAULT_PAD = 1;
+
 // Footprint geometry — IDENTICAL to ui/townArt.js computeLayout(). Keep these
 // in lockstep so the collision grid matches what is drawn.
 function footprintFor(loc, cell) {
   const cx = loc.x * cell + cell / 2;
   const cy = loc.y * cell + cell / 2;
-  // Rooms are now packed into apartment complexes with NO grass lanes between them,
-  // so blocking whole cells would wall interior units off (no route in/out). Since
-  // movement is logical-instant and the A* path is purely cosmetic (the renderer
-  // just animates along it), the movement grid is kept open — agents take a direct
-  // route to their room. A zero-size footprint blocks nothing.
+  // In SOLID mode (the sim routing grid, opts.solid) rasterize blocks each
+  // building's whole cell from cx/cy, so this rect is unused there; the bw/bh
+  // here only feed the legacy footprint+door-carve path (render fallback).
   const bw = 0, bh = 0;
   const bx = Math.round(cx), by = Math.round(cy);
   return { cx, cy, bx, by, bw, bh, door: { x: cx, y: cy } };
@@ -108,7 +121,10 @@ function resolveOpts(opts = {}) {
   const building = Math.max(1, Math.floor(num(opts.buildingCost, num(m.buildingCost, DEFAULT_BUILDING_COST))));
   // Unmapped sub-tiles (bare grass / outside the town) default to open-ground cost.
   const costs = { street, open, building, grass: open };
-  return { cell, sub, maxNodes, costs };
+  const solidHint = opts.solid !== undefined ? opts.solid : m.solidBuildings;
+  const solid = solidHint === undefined ? DEFAULT_SOLID : !!solidHint;
+  const pad = Math.max(0, Math.floor(num(opts.pad, num(m.gridPad, DEFAULT_PAD))));
+  return { cell, sub, maxNodes, costs, solid, pad };
 }
 
 function num(v, fallback) {
@@ -157,14 +173,20 @@ function buildGridFromLocations(locations, opts) {
 
 // Turn a list of {type, bx, by, bw, bh, door} footprints into a blocked grid
 // plus a per-sub-tile movement-cost grid (see COST WEIGHTING above).
+//
+// The grid is framed by `pad` logical cells of open grass on every side (the
+// boundless world's exterior). That padding is stored as the sub-tile origin
+// offset (ox/oy): world px (x, y) maps to grid sub-tile (floor(x/subPx)+ox, …),
+// so callers keep passing plain world coordinates and never see the offset.
 function rasterize(footprints, cols, rows, o) {
-  const { cell, sub, maxNodes, costs } = o;
-  const w = Math.max(1, cols * sub);
-  const h = Math.max(1, rows * sub);
+  const { cell, sub, maxNodes, costs, solid, pad } = o;
+  const ox = pad * sub, oy = pad * sub;                 // sub-tile origin offset
+  const w = Math.max(1, (cols + 2 * pad) * sub);
+  const h = Math.max(1, (rows + 2 * pad) * sub);
   const subPx = cell / sub;
   const blocked = new Uint8Array(w * h);
-  // Default = open ground; each location overwrites its own cell below so the
-  // road network reads cheap and building interiors dear.
+  // Default = open ground (the grass border inherits this); each location
+  // overwrites its own cell below so the road network reads cheap.
   const cost = new Uint16Array(w * h).fill(costs.grass);
 
   // Sort footprints by location index for a deterministic build order
@@ -175,31 +197,38 @@ function rasterize(footprints, cols, rows, o) {
     // Paint the location's whole logical cell with its type's movement cost.
     // Keyed off the cell CENTRE so it works even when the footprint rect is
     // zero-size (the sim's routing grid leaves interiors unblocked but weighted).
-    paintCellCost(cost, w, h, cols, rows, cell, sub, fp, costForType(fp.type, costs));
+    paintCellCost(cost, w, h, cols, rows, cell, sub, ox, oy, fp, costForType(fp.type, costs));
 
-    if (isOpenType(fp.type)) continue; // parks/squares stay walkable
-    // Sub-tile range covered by this footprint.
-    const gx0 = clamp(Math.floor(fp.bx / subPx), 0, w - 1);
-    const gy0 = clamp(Math.floor(fp.by / subPx), 0, h - 1);
-    const gx1 = clamp(Math.floor((fp.bx + fp.bw - 1) / subPx), 0, w - 1);
-    const gy1 = clamp(Math.floor((fp.by + fp.bh - 1) / subPx), 0, h - 1);
-    // The door sub-tile we must leave open.
-    const doorGx = clamp(Math.floor(fp.door.x / subPx), 0, w - 1);
-    const doorGy = clamp(Math.floor(fp.door.y / subPx), 0, h - 1);
+    if (isOpenType(fp.type)) continue; // parks/squares/streets stay walkable
+
+    if (solid) {
+      // SOLID: block the building's WHOLE logical cell (all sub × sub tiles).
+      // No door is carved — agents stop OUTSIDE at a computeDoorSpots() spot, so
+      // they never need an interior tile, and walls are genuinely impassable.
+      const cellX = clamp(Math.floor(fp.cx / cell), 0, cols - 1);
+      const cellY = clamp(Math.floor(fp.cy / cell), 0, rows - 1);
+      const sx0 = cellX * sub + ox, sy0 = cellY * sub + oy;
+      for (let sy = sy0; sy < sy0 + sub && sy < h; sy++) {
+        for (let sx = sx0; sx < sx0 + sub && sx < w; sx++) blocked[sy * w + sx] = 1;
+      }
+      continue;
+    }
+
+    // LEGACY (solid === false): footprint rect is an obstacle with a door tile +
+    // a carved channel down to the open road. Kept for the weighted-only mode.
+    const gx0 = clamp(Math.floor(fp.bx / subPx) + ox, 0, w - 1);
+    const gy0 = clamp(Math.floor(fp.by / subPx) + oy, 0, h - 1);
+    const gx1 = clamp(Math.floor((fp.bx + fp.bw - 1) / subPx) + ox, 0, w - 1);
+    const gy1 = clamp(Math.floor((fp.by + fp.bh - 1) / subPx) + oy, 0, h - 1);
+    const doorGx = clamp(Math.floor(fp.door.x / subPx) + ox, 0, w - 1);
+    const doorGy = clamp(Math.floor(fp.door.y / subPx) + oy, 0, h - 1);
     for (let gy = gy0; gy <= gy1; gy++) {
       for (let gx = gx0; gx <= gx1; gx++) {
         if (gx === doorGx && gy === doorGy) continue;     // door stays walkable
-        if (sub >= 3 && onStreetMidline(gx, gy, sub)) continue; // keep the road open
+        if (sub >= 3 && onStreetMidline(gx - ox, gy - oy, sub)) continue; // keep the road open
         blocked[gy * w + gx] = 1;
       }
     }
-    // Carve a one-tile doorway channel so the door connects to the open road
-    // outside (matches townArt's bottom door gap + the path leading to it).
-    // The door is at the building's bottom-centre, so the exit runs DOWN its
-    // column to the first sub-tile past the footprint. If the building sits on
-    // the grid's bottom edge (no room below), exit UPWARD instead so the door
-    // still reaches open space. Without this the inner-corner door of a dense
-    // footprint could be walled in at coarse subdivisions.
     blocked[doorGy * w + doorGx] = 0;
     if (gy1 + 1 <= h - 1) {
       for (let gy = doorGy; gy <= gy1 + 1; gy++) blocked[gy * w + doorGx] = 0;
@@ -208,16 +237,17 @@ function rasterize(footprints, cols, rows, o) {
     }
   }
 
-  return { w, h, cell, sub, maxNodes, blocked, cost };
+  return { w, h, cell, sub, maxNodes, blocked, cost, ox, oy, pad };
 }
 
 // Fill every sub-tile of a footprint's logical cell with cost `c`. Keyed off the
 // cell CENTRE (cx, cy) so it works for zero-size footprints (the routing grid),
-// not just rectangles. Out-of-range cells are clamped and never overflow.
-function paintCellCost(cost, w, h, cols, rows, cell, sub, fp, c) {
+// not just rectangles. Honours the grass-border offset (ox/oy); clamped, never
+// overflows.
+function paintCellCost(cost, w, h, cols, rows, cell, sub, ox, oy, fp, c) {
   const cellX = clamp(Math.floor(fp.cx / cell), 0, cols - 1);
   const cellY = clamp(Math.floor(fp.cy / cell), 0, rows - 1);
-  const sx0 = cellX * sub, sy0 = cellY * sub;
+  const sx0 = cellX * sub + ox, sy0 = cellY * sub + oy;
   for (let sy = sy0; sy < sy0 + sub && sy < h; sy++) {
     for (let sx = sx0; sx < sx0 + sub && sx < w; sx++) {
       cost[sy * w + sx] = c;
@@ -236,25 +266,29 @@ function onStreetMidline(gx, gy, sub) {
 
 function emptyGrid(opts) {
   const o = resolveOpts(opts);
-  return { w: 1, h: 1, cell: o.cell, sub: o.sub, maxNodes: o.maxNodes, blocked: new Uint8Array(1), cost: new Uint16Array(1).fill(1) };
+  return { w: 1, h: 1, cell: o.cell, sub: o.sub, maxNodes: o.maxNodes, blocked: new Uint8Array(1), cost: new Uint16Array(1).fill(1), ox: 0, oy: 0, pad: 0 };
 }
 
 // ---------------------------------------------------------------------------
 // Coordinate helpers
 // ---------------------------------------------------------------------------
 
-// World px -> grid sub-tile (clamped into range).
+// World px -> grid sub-tile (clamped into range). Adds the grass-border origin
+// offset (grid.ox/oy) so the padded exterior maps correctly.
 export function worldToGrid(grid, x, y) {
   const subPx = grid.cell / grid.sub;
-  const gx = clamp(Math.floor(x / subPx), 0, grid.w - 1);
-  const gy = clamp(Math.floor(y / subPx), 0, grid.h - 1);
+  const ox = grid.ox || 0, oy = grid.oy || 0;
+  const gx = clamp(Math.floor(x / subPx) + ox, 0, grid.w - 1);
+  const gy = clamp(Math.floor(y / subPx) + oy, 0, grid.h - 1);
   return { gx, gy };
 }
 
-// Grid sub-tile -> world px at the sub-tile CENTER.
+// Grid sub-tile -> world px at the sub-tile CENTER (inverse of worldToGrid,
+// removing the grass-border origin offset).
 export function gridToWorld(grid, gx, gy) {
   const subPx = grid.cell / grid.sub;
-  return { x: (gx + 0.5) * subPx, y: (gy + 0.5) * subPx };
+  const ox = grid.ox || 0, oy = grid.oy || 0;
+  return { x: (gx - ox + 0.5) * subPx, y: (gy - oy + 0.5) * subPx };
 }
 
 // A small helper to get a sub-tile cell from a location (its door approach,
@@ -263,6 +297,130 @@ export function cellForLocation(grid, loc) {
   if (!loc) return { gx: 0, gy: 0 };
   const fp = footprintFor(loc, grid.cell);
   return worldToGrid(grid, fp.door.x, fp.door.y);
+}
+
+// ---------------------------------------------------------------------------
+// Door spots — where agents actually stand (THE single source of truth)
+// ---------------------------------------------------------------------------
+//
+// With solid buildings, an agent can't stand inside a unit, so for every
+// location we resolve a world-space "door spot" on the OPEN walkable network
+// just outside the building, plus the outward direction (dx, dy) the renderer
+// fans the crowd along. Both Simulation (route target) and townArt.spotFor
+// (rendered standing position) consume this, so the picture and the cognition
+// agree on one spot.
+//
+// Reachability rule (validated against the real town): block building cells, pad
+// the town with one ring of open grass (the boundless exterior), and take the
+// largest open component as the MAIN network. A building's door spot is:
+//   * the cell just outside it on the MAIN network (preferring the south side,
+//     to match the rendered south door), if it has one; else
+//   * the door spot of the nearest sibling cell in its COMPLEX that does — so an
+//     interior apartment's residents exit at their building's real front door.
+// Every complex touches the main network, so every location resolves to a spot
+// that A* can actually reach without ever crossing a wall.
+//
+// Outdoor plots (parks/plazas/greens/streets) are already open ground, so the
+// spot is the plot centre. Fully deterministic: locations are processed in id
+// order with fixed neighbour ordering and a largest-component (lowest-index) tie
+// break — no RNG, no Date.
+export function computeDoorSpots(locations, opts = {}) {
+  const out = new Map();
+  const locs = extractLocations(locations);
+  if (!locs.length) return out;
+  const o = resolveOpts(opts);
+  const CELL = o.cell;
+  const pad = Math.max(1, o.pad); // need >=1 ring so edge buildings reach the exterior
+
+  let cols = 0, rows = 0;
+  for (const l of locs) { if (l.x + 1 > cols) cols = l.x + 1; if (l.y + 1 > rows) rows = l.y + 1; }
+
+  const at = new Map();
+  for (const l of locs) at.set(l.x + "," + l.y, l);
+  const X0 = -pad, Y0 = -pad, X1 = cols - 1 + pad, Y1 = rows - 1 + pad;
+  const GW = X1 - X0 + 1, GH = Y1 - Y0 + 1;
+  const cidx = (cx, cy) => (cy - Y0) * GW + (cx - X0);
+  const inBounds = (cx, cy) => cx >= X0 && cy >= Y0 && cx <= X1 && cy <= Y1;
+  const isBuildingCell = (cx, cy) => {
+    if (cx < 0 || cy < 0 || cx >= cols || cy >= rows) return false; // exterior = grass
+    const l = at.get(cx + "," + cy);
+    return l ? !isOpenType(l.type) : false;                          // empty cell = grass
+  };
+  const openCell = (cx, cy) => inBounds(cx, cy) && !isBuildingCell(cx, cy);
+
+  // 4-neighbour components of open cells; main = largest (holds the exterior ring).
+  const NB = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+  const comp = new Int32Array(GW * GH).fill(-1);
+  const sizes = [];
+  let nc = 0;
+  for (let cy = Y0; cy <= Y1; cy++) for (let cx = X0; cx <= X1; cx++) {
+    if (!openCell(cx, cy) || comp[cidx(cx, cy)] !== -1) continue;
+    let size = 0; const stack = [[cx, cy]]; comp[cidx(cx, cy)] = nc;
+    while (stack.length) {
+      const [ax, ay] = stack.pop(); size++;
+      for (const [dx, dy] of NB) {
+        const nx = ax + dx, ny = ay + dy;
+        if (!openCell(nx, ny) || comp[cidx(nx, ny)] !== -1) continue;
+        comp[cidx(nx, ny)] = nc; stack.push([nx, ny]);
+      }
+    }
+    sizes[nc] = size; nc++;
+  }
+  let main = 0; for (let i = 1; i < sizes.length; i++) if (sizes[i] > sizes[main]) main = i;
+  const onMain = (cx, cy) => openCell(cx, cy) && comp[cidx(cx, cy)] === main;
+
+  // Prefer the SOUTH door (matches the rendered south entry), then E, W, N.
+  const DOOR_PREF = [[0, 1], [1, 0], [-1, 0], [0, -1]];
+  const doorDir = (cx, cy) => {
+    for (const [dx, dy] of DOOR_PREF) if (onMain(cx + dx, cy + dy)) return { dx, dy };
+    return null;
+  };
+  const spotWorld = (bx, by, dx, dy) => {
+    const bcx = bx * CELL + CELL / 2, bcy = by * CELL + CELL / 2;
+    const OUT = 0.68; // cell-fraction from building centre out onto the street/grass
+    return { x: bcx + dx * CELL * OUT, y: bcy + dy * CELL * OUT, dx, dy };
+  };
+
+  const buildings = locs.filter((l) => !isOpenType(l.type));
+  const byComplex = new Map();
+  for (const l of buildings) {
+    const k = l.complex || ("solo_" + l.id);
+    if (!byComplex.has(k)) byComplex.set(k, []);
+    byComplex.get(k).push(l);
+  }
+
+  for (const l of buildings.slice().sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    const direct = doorDir(l.x, l.y);
+    if (direct) { out.set(l.id, spotWorld(l.x, l.y, direct.dx, direct.dy)); continue; }
+    // Interior unit: BFS over its complex's cells to the nearest member with a door.
+    const members = byComplex.get(l.complex || ("solo_" + l.id)) || [l];
+    const memberSet = new Set(members.map((m) => m.x + "," + m.y));
+    const seen = new Set([l.x + "," + l.y]);
+    let frontier = [[l.x, l.y]];
+    let chosen = null;
+    while (frontier.length && !chosen) {
+      frontier.sort((p, q) => (p[1] - q[1]) || (p[0] - q[0]));
+      const next = [];
+      for (const [mx, my] of frontier) {
+        const d = doorDir(mx, my);
+        if (d) { chosen = spotWorld(mx, my, d.dx, d.dy); break; }
+        for (const [dx, dy] of NB) {
+          const nx = mx + dx, ny = my + dy, kk = nx + "," + ny;
+          if (memberSet.has(kk) && !seen.has(kk)) { seen.add(kk); next.push([nx, ny]); }
+        }
+      }
+      frontier = next;
+    }
+    out.set(l.id, chosen || { x: l.x * CELL + CELL / 2, y: l.y * CELL + CELL / 2, dx: 0, dy: 1 });
+  }
+
+  // Outdoor plots: stand in the plot itself.
+  for (const l of locs) {
+    if (!isOpenType(l.type)) continue;
+    out.set(l.id, { x: l.x * CELL + CELL / 2, y: l.y * CELL + CELL / 2, dx: 0, dy: 1 });
+  }
+
+  return out;
 }
 
 // ---------------------------------------------------------------------------

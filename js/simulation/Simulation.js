@@ -55,6 +55,7 @@ export class Simulation {
     this.tickCount = 0;
     this._timelineCounter = 0;
     this._grid = null; // lazily (re)built collision grid for movement/pathing
+    this._doorSpots = null; // lazily (re)built door-spot map (where agents stand)
     this.selectedAgentId = this.agents.length ? this.agents[0].id : null;
     for (const agent of this.agents) this._planAgentDay(agent);
     this.bus.emit("init", { sim: this });
@@ -95,18 +96,29 @@ export class Simulation {
     return this._grid;
   }
 
-  // Compute the world-space "door spot" for a location, inline, using the SAME
-  // footprint geometry pathfinding/townArt use. Simulation must stay DOM-free,
-  // so we do NOT import townArt — we recompute from loc.x/loc.y here.
+  // Lazily build (and cache) the door-spot map: locationId -> {x, y, dx, dy}, the
+  // world spot just OUTSIDE each building on the open network where agents stand
+  // (solid buildings have no walkable interior). Shared with the renderer via the
+  // same pathfinding.computeDoorSpots, so the picture and cognition agree.
+  _getDoorSpots() {
+    if (!this._doorSpots) {
+      this._doorSpots = pathfinding.computeDoorSpots(this.environment, {
+        movement: CONFIG.movement,
+        cell: CONFIG.world ? CONFIG.world.cellPixels : undefined,
+      });
+    }
+    return this._doorSpots;
+  }
+
+  // World-space "door spot" for a location — the spot just outside the building
+  // (or the centre of an open plot) that A* can reach without crossing a wall.
+  // Simulation stays DOM-free: computeDoorSpots needs only loc x/y/type/complex.
   _doorWorld(loc) {
     if (!loc || typeof loc.x !== "number" || typeof loc.y !== "number") return null;
+    const s = this._getDoorSpots().get(loc.id);
+    if (s) return { x: s.x, y: s.y };
     const CELL = (CONFIG.world && CONFIG.world.cellPixels) || 176;
-    const cx = loc.x * CELL + CELL / 2;
-    const cy = loc.y * CELL + CELL / 2;
-    const bw = Math.round(CELL * 0.86);
-    const bh = Math.round(CELL * 0.74);
-    const by = Math.round(cy - bh / 2 - 8);
-    return { x: cx, y: by + bh + 12 };
+    return { x: loc.x * CELL + CELL / 2, y: loc.y * CELL + CELL / 2 };
   }
 
   // ---- the main loop -------------------------------------------------------
@@ -361,6 +373,7 @@ export class Simulation {
     this.time = TimeManager.fromJSON(state.time);
     this.environment = Environment.fromJSON(state.environment);
     this._grid = null; // rebuild lazily for the loaded world
+    this._doorSpots = null; // rebuild lazily for the loaded world
     this.agents = (state.agents || []).map((a) => Agent.fromJSON(a));
     this.timeline = state.timeline || [];
     this.tickCount = state.tickCount || 0;

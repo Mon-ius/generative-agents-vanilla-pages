@@ -71,6 +71,12 @@ export const CONFIG = {
     streetCost: 1,
     openCost: 4,
     buildingCost: 12,
+    // Solid buildings: the routing grid blocks each building's whole cell, so
+    // agents walk AROUND blocks on the street/grass network and stop at a door
+    // spot just outside — they never cross a wall. The town is framed by one ring
+    // of open grass (gridPad) so corner/edge complexes stay reachable.
+    solidBuildings: true,
+    gridPad: 1,
   },
 
   // ----- Character sprites -----

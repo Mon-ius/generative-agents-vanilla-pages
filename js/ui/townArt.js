@@ -10,7 +10,7 @@
 
 import { seededRandom } from "../utils/random.js";
 import { CONFIG } from "../config.js";
-import { buildGrid } from "../utils/pathfinding.js";
+import { buildGrid, computeDoorSpots } from "../utils/pathfinding.js";
 
 // Logical px per grid cell, sourced from CONFIG so the world size is tunable in
 // one place. A defensive fallback keeps headless/standalone use working even if
@@ -102,31 +102,39 @@ export function computeLayout(sim) {
   // footprints exactly. buildGrid is DOM-free, so this stays headless-safe.
   layout.collisionGrid = buildGrid(layout);
   layout.complexes = groupComplexes(layout);
+  // Door spots: where agents stand (just outside each building on the walkable
+  // network). THE single source of truth shared with the sim — see spotFor.
+  layout.doorSpots = computeDoorSpots(locs, { cell: CELL, movement: CONFIG.movement });
 
   return layout;
 }
 
-// Place agent `index` of `count` standing around a location's door. For small
-// crowds we fan out along a single arc; for larger crowds (up to ~capacity) we
-// stack concentric rings below/around the door so 20+ agents never pile onto the
-// same pixel. Deterministic: depends only on (index, count) — no RNG.
+// Place agent `index` of `count` standing at a location's door spot — the world
+// point just OUTSIDE the building on the walkable network (shared with the sim
+// via layout.doorSpots, so the route's end and the rendered crowd coincide). For
+// small crowds we fan out along a single arc facing AWAY from the building (the
+// door spot's outward direction); larger crowds stack concentric rings so 20+
+// agents never pile onto one pixel. Deterministic: depends only on (index, count).
 export function spotFor(layout, locId, index, count) {
+  const ds = layout.doorSpots && layout.doorSpots.get(locId);
   const r = layout.rects.get(locId);
-  if (!r) return { x: layout.W / 2, y: layout.H / 2 };
-  if (count <= 1) return { x: r.door.x, y: r.door.y };
+  // Anchor + outward direction: prefer the shared door spot, fall back to the
+  // rendered door (outward = straight down) for anything without one.
+  const cx = ds ? ds.x : (r ? r.door.x : layout.W / 2);
+  const cy = ds ? ds.y : (r ? r.door.y : layout.H / 2);
+  if (count <= 1) return { x: cx, y: cy };
 
-  const cx = r.door.x;
-  const cy = r.door.y;
-  // Keep the crowd within the cell footprint around the door (avoid spilling
-  // onto neighbours): clamp the outermost ring to a fraction of the cell.
+  let odx = ds ? ds.dx : 0, ody = ds ? ds.dy : 1;
+  if (!odx && !ody) ody = 1;                                  // never a zero vector
+  const outAngle = Math.atan2(ody, odx);                     // fan centre = outward dir
+  // Keep the crowd within ~half a cell of the door so it never drifts back onto
+  // the building or onto a neighbour.
   const maxRadius = CELL * 0.42;
   const ringGap = 15;            // radial spacing between rings
   const minSpacing = 14;         // target arc spacing between neighbours (~sprite width)
   const baseRadius = 14;         // first ring sits just outside the door
-  // Fan agents across a downward arc (toward the open road below the door) so the
-  // building is never occluded; the arc widens on outer rings up to a near-full
-  // semicircle, but always faces down.
-  const down = Math.PI / 2;      // straight down in screen space (+y)
+  // Fan across an arc centred on the outward direction; it widens on outer rings
+  // up to a near-full semicircle but always faces away from the building.
   const fanHalfFor = (ringIdx) => Math.min(Math.PI * 0.85, 0.9 + ringIdx * 0.35);
 
   // Per-ring capacity sized from the arc length at that radius so neighbour
@@ -149,9 +157,9 @@ export function spotFor(layout, locId, index, count) {
   const radius = Math.min(maxRadius, baseRadius + ring * ringGap);
   const slots = cap;
   const fanHalf = fanHalfFor(ring);
-  // Even placement across the fan; a lone occupant on a ring sits centred (down).
+  // Even placement across the fan; a lone occupant on a ring sits centred (outward).
   const t = slots <= 1 ? 0.5 : i / (slots - 1);
-  const angle = down - fanHalf + t * (2 * fanHalf);
+  const angle = outAngle - fanHalf + t * (2 * fanHalf);
 
   return {
     x: cx + Math.cos(angle) * radius,
