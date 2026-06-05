@@ -925,6 +925,27 @@ function wallEdge(g, img, horizontal, ex, ey, len, open) {
   else { clipTile(g, img, ex, ey, 16, g0); clipTile(g, img, ex, ey + g1, 16, len - g1); }
 }
 
+// A complex may not perfectly tile its bounding rectangle; the leftover GAP cells
+// used to render as a bare wood floor with a lone rug+plant, which reads as a broken
+// empty room. Instead furnish each gap as the block's SHARED LOUNGE: a reading nook
+// along the back wall, a central seating set on a rug, and greenery in the corners —
+// so the apartment complex looks fully inhabited. Deterministic per cell; clipped to
+// the cell so nothing spills into the neighbouring units.
+function gapLounge(g, S, ux, uy) {
+  const rng = seededRandom("gap-" + ux + "-" + uy);
+  clipTile(g, S.floor_wood, ux, uy, CELL, CELL);                    // shared common-room floor
+  g.save(); g.beginPath(); g.rect(ux, uy, CELL, CELL); g.clip();
+  const L = ux + 18, T = uy + 18, R = ux + CELL - 16, B = uy + CELL - 16, MX = ux + CELL / 2, MY = uy + CELL / 2;
+  if (S.sofa) put(g, S.sofa, L, T);                                 // back wall: reading nook
+  if (S.plant) put(g, S.plant, MX - 7, T);
+  if (S.bookshelf) put(g, S.bookshelf, R - 19, T);
+  diningSet(g, S, MX, MY + 2, rng);                                 // central shared seating on a rug
+  if (S.bush) put(g, S.bush, L, MY + 4);                            // greenery hugging the side walls
+  if (S.plant) put(g, S.plant, R - 16, MY);
+  if (S.bench) put(g, S.bench, MX - 13, B - 12);                    // a bench along the front
+  g.restore();
+}
+
 // Draw an apartment complex as ONE shell (matching the top-down cutaway reference):
 // every cell is a full-bleed unit, units share SINGLE-thickness walls on the cell
 // boundaries, each unit is subdivided into rooms, and the wall topology (`topo`,
@@ -963,14 +984,11 @@ function spriteComplex(g, S, complex, lightsOn, topo) {
   }
 
   // dress any GAP cells (a complex may not perfectly fill its bounding rectangle)
+  // as the block's furnished shared lounge — never a bare empty wood floor
   if (members.length < cols * rows) {
     for (let gy = gy0; gy <= maxGy; gy++) for (let gx = gx0; gx < gx0 + cols; gx++) {
       if (occ.has(gx + "," + gy)) continue;
-      const ux = gx * CELL, uy = gy * CELL;
-      clipTile(g, S.floor_wood, ux, uy, CELL, CELL);
-      const px = ux + CELL / 2, py = uy + CELL / 2;
-      if (S.rug) put(g, S.rug, px - 18, py - 10);
-      if (S.plant) put(g, S.plant, px - 8, py - 18);
+      gapLounge(g, S, gx * CELL, gy * CELL);
     }
   }
 
