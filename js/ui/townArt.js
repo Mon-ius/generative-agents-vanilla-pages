@@ -1020,18 +1020,18 @@ function spriteComplex(g, S, complex, lightsOn, topo) {
   g.strokeStyle = "#3a352e"; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   wallCap(g, { bx: x, bw: w, by: y });                               // flat light-grey wall cap (top-down cutaway, no roof)
   if (lightsOn) eaveLight(g, { bx: x, bw: w, by: y });
-  // entry fixtures on each unit's DOOR side (deck/stairs only for SOUTH doors,
-  // whose art faces south; a doormat marks the threshold of any door).
+  // entry fixtures on each unit's DOOR side. Only SOUTH doors get a deck+stairs
+  // (their art faces south, onto the open ground the door opens toward). No
+  // threshold doormat: it draws unclipped on top of furniture, and at E/W/N doors
+  // it lands on the wall-hugging shelves/cabinets (the reported meds_shelf overlay);
+  // the wall gap itself already marks every doorway.
   for (const m of members) {
-    const cx = m.loc.x, cy = m.loc.y, ux = cx * CELL, uy = cy * CELL, cxu = ux + CELL / 2, cyu = uy + CELL / 2;
+    const cx = m.loc.x, cy = m.loc.y, ux = cx * CELL, uy = cy * CELL, cxu = ux + CELL / 2;
     const cl = topoOf(cx, cy);
     if (cl.S === 1) {
       if (S.deck) clipTile(g, S.deck, cxu - 22, uy + CELL - 1, 44, 18);
       if (S.stairs) g.drawImage(S.stairs, cxu - 14, uy + CELL - 3, 28, 16);
-      if (S.doormat) g.drawImage(S.doormat, cxu - 8, uy + CELL - 19, 16, 8);
-    } else if (cl.N === 1) { if (S.doormat) g.drawImage(S.doormat, cxu - 8, uy + 11, 16, 8); }
-    else if (cl.E === 1) { if (S.doormat) g.drawImage(S.doormat, ux + CELL - 19, cyu - 4, 16, 8); }
-    else if (cl.W === 1) { if (S.doormat) g.drawImage(S.doormat, ux + 3, cyu - 4, 16, 8); }
+    }
   }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
 
