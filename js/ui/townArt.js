@@ -814,13 +814,18 @@ function diningSet(g, S, cx, cy, rng, opts = {}) {
 // name is dynamic so this is procedural (board + text drawn together; both renderers bake
 // it identically). Auto-fits the font (9→7px) then ellipsis-truncates, and sizes the plank
 // to the fitted text so it reads as a sign. Args: (mountX, baseY) is the wall point the
-// plank rests against, maxW the plank width budget.
-function nameSign(g, name, mountX, baseY, maxW) {
+// plank rests against, maxW the plank width budget. opts.fascia mounts the plank FLAT on
+// the wall band (no hanger peg/links above it — used for the per-complex building sign on
+// the south face, where anything above the plank would poke into the room interior).
+function nameSign(g, name, mountX, baseY, maxW, opts = {}) {
   const clean = (name.replace(/^(The|Town|Community|Corner|Willow|Cedar)\s+/i, "") || name).trim();
 
   // auto-fit: shrink the font to a 7px floor, then ellipsis-truncate
   const padX = 8;
-  const cap = Math.max(46, Math.min(maxW, 132));    // plank width budget
+  const cap = Math.max(24, Math.min(maxW, 132));    // plank width budget — always
+  // respects the caller's maxW (a 46px floor here used to push the plank past a
+  // narrow budget into door gaps/walls at non-default subdivisions); the 24px
+  // hard floor only guards degenerate inputs.
   const fontAt = (px) => "700 " + px + "px ui-monospace, Menlo, monospace";
   let font = 9, text = clean;
   g.font = fontAt(font);
@@ -845,14 +850,17 @@ function nameSign(g, name, mountX, baseY, maxW) {
   g.fillStyle = "rgba(0,0,0,0.20)";
   roundRect(g, bx + 1.5, topY + 2, boardW, boardH, r); g.fill();
 
-  // (2) two iron hanger links + a wall peg ABOVE the plank (kept within the wall band)
-  const peg = topY - 4;
-  g.strokeStyle = "#2b2118"; g.lineWidth = 1.5;
-  g.beginPath();
-  g.moveTo(mountX, peg); g.lineTo(bx + 6, topY + 1);
-  g.moveTo(mountX, peg); g.lineTo(bx + boardW - 6, topY + 1);
-  g.stroke();
-  g.fillStyle = "#3a2e22"; g.beginPath(); g.arc(mountX, peg, 1.7, 0, Math.PI * 2); g.fill();  // peg on the wall
+  // (2) two iron hanger links + a wall peg ABOVE the plank (kept within the wall band;
+  // skipped for fascia mounts, which bolt flat to the wall instead of hanging)
+  if (!opts.fascia) {
+    const peg = topY - 4;
+    g.strokeStyle = "#2b2118"; g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(mountX, peg); g.lineTo(bx + 6, topY + 1);
+    g.moveTo(mountX, peg); g.lineTo(bx + boardW - 6, topY + 1);
+    g.stroke();
+    g.fillStyle = "#3a2e22"; g.beginPath(); g.arc(mountX, peg, 1.7, 0, Math.PI * 2); g.fill();  // peg on the wall
+  }
 
   // (3) the wood plank: warm fill + lit top bevel / shaded bottom edge
   g.fillStyle = C.wood; roundRect(g, bx, topY, boardW, boardH, r); g.fill();
@@ -880,6 +888,29 @@ function nameSign(g, name, mountX, baseY, maxW) {
 
   g.restore();
   g.textAlign = "left";                              // reset for the rest of the draw
+}
+
+// ONE sign per BUILDING, not per room: a multi-unit complex gets a single fascia
+// plank with a building-level name derived from its type ("Maple Apartments",
+// "Creek Market Hall", …) — the per-unit names stay in the side panels/legend.
+// The prefix is deterministic per complex id and deliberately avoids the
+// Willow/Cedar/The/… prefixes nameSign strips for fitting. A 1-member complex IS
+// its building, so it keeps the member's own name (spriteBuilding handles it).
+const SIGN_LABELS = {
+  home: "Apartments", market: "Market Hall", cafe: "Café Row", shop: "Shopping Row",
+  clinic: "Health Centre", bakery: "Bakery Row", school: "School Campus", civic: "Civic Centre",
+  garden: "Gardens", dock: "Harbourfront", gallery: "Arts Centre", gym: "Athletics Hall",
+  studio: "Studio Lofts", office: "Office Hall", bar: "Tavern Row", workshop: "Workshops",
+  library: "Library Hall", chapel: "Chapels", theater: "Theatre Block", bank: "Bank House",
+  salon: "Salon Row", florist: "Flower Market", pharmacy: "Apothecary Row",
+  museum: "Museum Hall", post: "Post House", diner: "Diner Row",
+};
+const SIGN_PREFIXES = ["Creek", "Maple", "Harbour", "Garden", "Rosewood", "Linden", "Aspen"];
+function buildingName(members) {
+  const loc = members[0].loc;
+  const label = SIGN_LABELS[loc.type] || loc.type.charAt(0).toUpperCase() + loc.type.slice(1) + " Hall";
+  const prefix = SIGN_PREFIXES[Math.floor(seededRandom("sign-" + (loc.complex || loc.id))() * SIGN_PREFIXES.length)];
+  return prefix + " " + label;
 }
 
 // Group buildings into apartment COMPLEXES by super-block, so a cluster of homes/
@@ -1035,13 +1066,37 @@ function spriteComplex(g, S, complex, lightsOn, topo) {
   }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
 
-  // per-unit hanging shop-signs, drawn LAST so the shared wall grid + windows never clip
-  // them — each plank sits over its unit's top wall band, resting on the interior top
-  // (uy + WT for the top row, uy + 8 for shared internal walls) so it clears all furniture.
-  for (const rc of members) {
-    const interiorTop = rc.loc.y * CELL + (rc.loc.y - gy0 === 0 ? WT : 8);
-    nameSign(g, rc.loc.name, rc.loc.x * CELL + CELL / 2, interiorTop, Math.min(150, CELL - WT * 2 - 4));
+  // ONE building sign per complex (not one per room): a fascia plank mounted on the
+  // south (entrance) face's wall band, drawn LAST so walls/windows never clip it.
+  // The plank sits fully INSIDE the bottom wall band [y+h-16, y+h], so it can never
+  // cover room furniture, courtyard decor, or a neighbouring cell. Mount position
+  // dodges the door gaps (all widths derived from WALL_GAP so they track
+  // CONFIG.movement.subdivisions): prefer a bottom-row unit WITHOUT a south door;
+  // else the shared boundary between two adjacent bottom units (a plank up to
+  // 2·lo·CELL just clears both door gaps, which start ±lo·CELL out — 132px/±66px
+  // at sub=8); else the clear strip RIGHT of the lone unit's door (the matching
+  // left strip would collide with the complex mailbox at x+6 whenever the lone
+  // unit sits in the leftmost column — true of all 7 shipped lone-branch complexes).
+  const ctrX = x + w / 2;
+  const bottomRow = members.filter((m) => m.loc.y === maxGy)
+    .sort((p, q) => Math.abs(p.loc.x * CELL + CELL / 2 - ctrX) - Math.abs(q.loc.x * CELL + CELL / 2 - ctrX));
+  const quiet = bottomRow.find((m) => topoOf(m.loc.x, m.loc.y).S !== 1);
+  let signX, signW = 2 * CELL * WALL_GAP.lo;                         // 132 at sub=8
+  if (quiet) signX = quiet.loc.x * CELL + CELL / 2;
+  else {
+    const xs = bottomRow.map((m) => m.loc.x).sort((p, q) => p - q);
+    let boundary = null;
+    for (let i = 0; i + 1 < xs.length; i++) if (xs[i + 1] === xs[i] + 1) { boundary = (xs[i] + 1) * CELL; break; }
+    if (boundary != null) signX = boundary;
+    else {                                  // lone bottom unit with a south door
+      const ux = bottomRow[0].loc.x * CELL;
+      const gapR = ux + CELL * WALL_GAP.hi;                          // door gap's right edge
+      const wallL = ux + CELL - WT;                                  // right wall's inner edge
+      signX = (gapR + wallL) / 2;
+      signW = wallL - gapR - 4;                                      // 46 at sub=8
+    }
   }
+  nameSign(g, buildingName(members), signX, y + h - 2, signW, { fascia: true });
 }
 
 function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
