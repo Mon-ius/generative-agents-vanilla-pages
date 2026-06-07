@@ -12,7 +12,7 @@
 // module graph the Node tests load, and (b) any load/WebGL failure rejects
 // init() cleanly, letting main.js fall back to the canvas MapView.
 
-import { computeLayout, spotFor, activityEmoji, ambient, routeFrom } from "./townArt.js";
+import { computeLayout, spotFor, activityEmoji, ambient, routeFrom, isSleeping } from "./townArt.js";
 import { chunkWorldRect, visibleChunks, makeChunkCanvas } from "./townChunks.js";
 import { Camera } from "./camera.js";
 import { CONFIG } from "../config.js";
@@ -418,10 +418,18 @@ export class PixiMapView {
   _onTimeline(e) {
     if (!e || e.type !== "conversation" || typeof performance === "undefined") return;
     const until = performance.now() + SAY_MS;
-    const ids = (e.participantIds && e.participantIds.length ? e.participantIds : e.agentIds) || [];
+    const all = (e.participantIds && e.participantIds.length ? e.participantIds : e.agentIds) || [];
+    // The sim happily converses co-homed pairs at 03:00 (phase 4 has no sleep
+    // gate — long-standing behavior); don't pop 💬 over a blanketed, lying
+    // avatar. Suppress sleeping participants' bubbles (display-only).
+    const ids = all.filter((id) => {
+      const ag = this.sim.agents.find((x) => x.id === id);
+      return !(ag && isSleeping(ag));
+    });
     for (const id of ids) this.say.set(id, { until });
     // One shared bubble near the group's centroid (uses the location door spot,
-    // resolved at draw time from live agent positions for accuracy).
+    // resolved at draw time from live agent positions for accuracy) — only when
+    // at least one participant is visibly awake.
     if (ids.length) {
       this.groupSay.set(e.locationId || ids.join("|"), { until, ids: ids.slice() });
     }
@@ -440,7 +448,12 @@ export class PixiMapView {
       group.forEach((a, i) => {
         const e = this.entries.get(a.id);
         if (!e) return;
-        const finalSpot = spotFor(this.layout, locId, i, group.length);
+        // A sleeping resident's target is their assigned BED, not the crowd fan
+        // (bed centres live inside the same open room interior, so the walk to /
+        // from bed is wall-legal; visitors and 3rd+ residents have no bed here
+        // and keep the fan spot).
+        const bed = isSleeping(a) && this.layout.bedAssign ? this.layout.bedAssign.get(a.id) : null;
+        const finalSpot = bed ? { x: bed.x, y: bed.y } : spotFor(this.layout, locId, i, group.length);
         const locationChanged = e.lastLoc !== a.currentLocationId || snap;
         if (locationChanged) {
           // Prefer the agent's planned A* world path; else a direct hop.
@@ -464,6 +477,11 @@ export class PixiMapView {
           // ALWAYS override the final waypoint with crowd placement so co-located
           // agents fan out around the door rather than stacking.
           wps[wps.length - 1] = { x: finalSpot.x, y: finalSpot.y };
+          // Heading straight to bed (e.g. a save loaded mid-sleep): pass the
+          // DRAWN bedroom doorway (via = [fan-side, bed-side]) so the last leg
+          // doesn't ghost through the art-only interior wall (it isn't in the
+          // collision grid).
+          if (bed && bed.via) wps.splice(wps.length - 1, 0, ...bed.via.map((v) => ({ x: v.x, y: v.y })));
           e.waypoints = wps;
           e.wpIndex = 0;
           e.lastLoc = a.currentLocationId;
@@ -474,9 +492,29 @@ export class PixiMapView {
           }
         } else {
           // Same location: keep walking, but refresh the settle target for crowd
-          // re-balancing (when the last waypoint is the destination spot).
+          // re-balancing (when the last waypoint is the destination spot). A
+          // SETTLED avatar whose target moved materially starts walking again —
+          // that's how a resident already home at 22:00 gets up and walks to bed
+          // (and off it at 06:00). The hop is collision-legal either way (fan
+          // spots ≤0.22·CELL and beds share the open interior), but the bedroom
+          // and the fan spot sit in DIFFERENT drawn rooms, so route the to-bed /
+          // off-bed hop through the drawn doorway (bed.via) — a straight line
+          // would ghost through the art-only interior wall on screen.
           if (e.waypoints && e.waypoints.length) {
             e.waypoints[e.waypoints.length - 1] = { x: finalSpot.x, y: finalSpot.y };
+            if (e.wpIndex >= e.waypoints.length &&
+                Math.hypot(finalSpot.x - e.pos.x, finalSpot.y - e.pos.y) > 2) {
+              const assigned = this.layout.bedAssign ? this.layout.bedAssign.get(a.id) : null;
+              const offBed = !bed && assigned && assigned.locId === locId &&
+                Math.hypot(assigned.x - e.pos.x, assigned.y - e.pos.y) < 6;
+              // via = [fan-side, bed-side]; walk it as-is toward the bed,
+              // reversed when getting up.
+              const via = (bed && bed.via) || (offBed && assigned.via && assigned.via.slice().reverse()) || null;
+              e.waypoints = via
+                ? [...via.map((v) => ({ x: v.x, y: v.y })), { x: finalSpot.x, y: finalSpot.y }]
+                : [{ x: finalSpot.x, y: finalSpot.y }];
+              e.wpIndex = 0;
+            }
           } else {
             e.waypoints = [{ x: finalSpot.x, y: finalSpot.y }];
             e.wpIndex = 0;
@@ -547,7 +585,10 @@ export class PixiMapView {
         }
       }
       p.dir = dir;
-      p.bob = reduce ? 0 : moving ? Math.sin(this._t * 0.4) * 2 : Math.sin(this._t * 0.08 + p.x) * 0.8;
+      // Lying = asleep AND settled on the bed (mid-walk to bed still walks upright).
+      const lying = !moving && isSleeping(a) &&
+        (!e.waypoints || e.wpIndex >= e.waypoints.length);
+      p.bob = reduce || lying ? 0 : moving ? Math.sin(this._t * 0.4) * 2 : Math.sin(this._t * 0.08 + p.x) * 0.8;
 
       // Cull off-screen agents.
       const visible =
@@ -557,7 +598,7 @@ export class PixiMapView {
       if (!visible) continue;
 
       // Animate + position the avatar.
-      e.av.update({ dir, moving, dtFrames: 1 });
+      e.av.update({ dir, moving, dtFrames: 1, lying });
       if (e.built && e.built.refresh) e.built.refresh();
       e.c.x = p.x;
       e.c.y = p.y - p.bob;

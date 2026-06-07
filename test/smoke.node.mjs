@@ -121,6 +121,64 @@ try {
   ok("re-route room → room is wall-legal (exits via doors)", legal(r2), r2 ? r2.length + " pts" : "null");
 } catch (e) { ok("renderer re-route works", false, e.message); }
 
+console.log("\nSleep (beds + >=8h at home):");
+try {
+  // Every agent's daily plan must sleep >= 480 min (8h) AT HOME — the contract
+  // the DAY_TEMPLATE sleep blocks (00:00–06:00 + 22:00–24:00) implement.
+  let shortSleepers = 0;
+  for (const a of sim.agents) {
+    let mins = 0;
+    for (const b of a.currentPlan || []) {
+      if (/sleep/i.test(b.activity || "") && b.locationId === a.homeLocationId) mins += b.endTime - b.startTime;
+    }
+    if (mins < 480) shortSleepers++;
+  }
+  ok("every agent plans >= 480 min sleep at home", shortSleepers === 0, shortSleepers ? shortSleepers + " short" : "");
+
+  // Every resident gets a bed, INSIDE their home's cell — sleeping avatars lie
+  // on layout.bedAssign spots, so a missing/stray spot strands them visibly.
+  const CELLPX2 = CONFIG.world.cellPixels;
+  let unassigned = 0, strays = 0, walled = 0;
+  for (const a of sim.agents) {
+    const bed = layout.bedAssign && layout.bedAssign.get(a.id);
+    if (!bed) { unassigned++; continue; }
+    const home = sim.environment.getLocation(a.homeLocationId);
+    const inCell = bed.locId === a.homeLocationId &&
+      bed.x >= home.x * CELLPX2 && bed.x < (home.x + 1) * CELLPX2 &&
+      bed.y >= home.y * CELLPX2 && bed.y < (home.y + 1) * CELLPX2;
+    if (!inCell) strays++;
+    // …and on an OPEN routing sub-tile (never inside the cell's wall ring).
+    const lg2 = layout.collisionGrid;
+    const gp = PF.worldToGrid(lg2, bed.x, bed.y);
+    if (lg2.blocked[gp.gy * lg2.w + gp.gx]) walled++;
+  }
+  ok("every resident has a bed in their home cell", unassigned === 0 && strays === 0,
+    (unassigned ? unassigned + " unassigned " : "") + (strays ? strays + " stray" : ""));
+  ok("all bed spots sit on open routing tiles", walled === 0, walled ? walled + " in walls" : "");
+
+  // Co-homed residents (double-occupancy homes) must get DISTINCT beds.
+  const byHome = new Map();
+  for (const a of sim.agents) {
+    const bed = layout.bedAssign && layout.bedAssign.get(a.id);
+    if (!bed) continue;
+    if (!byHome.has(a.homeLocationId)) byHome.set(a.homeLocationId, []);
+    byHome.get(a.homeLocationId).push(bed);
+  }
+  let shared = 0, doubles = 0;
+  for (const beds of byHome.values()) {
+    if (beds.length < 2) continue;
+    doubles++;
+    const keys = new Set(beds.map((b) => b.x + "," + b.y));
+    if (keys.size !== beds.length) shared++;
+  }
+  // Two separate checks: the INVARIANT (no two residents share a bed) must hold
+  // for any seed set — including a legitimate all-singles one — while the
+  // COVERAGE check (the shipped seeds exercise double-occupancy at all) names
+  // its own failure instead of masquerading as a bed bug after a seed edit.
+  ok("co-homed residents get distinct beds", shared === 0, shared ? `${shared} shared` : `${doubles} double homes`);
+  ok("seed set exercises double-occupancy beds", doubles > 0, `${doubles} double homes`);
+} catch (e) { ok("sleep/bed invariants", false, e.message); }
+
 console.log("\nStepping 200 ticks:");
 try {
   const before = sim.agents.reduce((s, a) => s + a.memoryCount, 0);

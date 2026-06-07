@@ -16,7 +16,7 @@ import { LocalGenerationProvider } from "../js/agents/GenerationProvider.js";
 import { SEED_AGENTS } from "../js/data/seedAgents.js";
 import { SEED_LOCATIONS } from "../js/data/seedLocations.js";
 import { SEED_EVENTS } from "../js/data/seedEvents.js";
-import { computeLayout, drawTownInto } from "../js/ui/townArt.js";
+import { computeLayout, drawTownInto, BED } from "../js/ui/townArt.js";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -144,6 +144,33 @@ for (const room of rooms.values()) {
   }
 }
 
+// ---- bed-spot alignment (sleep feature) ------------------------------------------
+// Every layout.bedAssign feet-anchor spot must land ON a drawn bed sprite rect of
+// the expected (BED.w × BED.h) size, one DISTINCT drawn bed per sleeper. This pins
+// the computeBedAssignments ↔ furnish geometry (shared via bedPlacement) against
+// the REAL draw path — including the sprite's manifest dims (re-author the bed tile
+// at a new size and the size-mismatch counter trips while BED.w/h are stale).
+const bedNames = new Set(["bed", "bed_red", "bed_green"]);
+const bedRects = records.filter((r) => r.name && bedNames.has(r.name));
+let bedMisses = 0, bedSizeMis = 0;
+{
+  const used = new Set();
+  for (const [agentId, spot] of layout.bedAssign) {
+    const hit = bedRects.find((r) => !used.has(r) &&
+      spot.x >= r.x && spot.x <= r.x + r.w && spot.y >= r.y && spot.y <= r.y + r.h);
+    if (!hit) {
+      bedMisses++;
+      if (VERBOSE) console.log(`bed-spot MISS: ${agentId} @ ${spot.x.toFixed(1)},${spot.y.toFixed(1)} (${spot.locId})`);
+      continue;
+    }
+    used.add(hit);
+    if (Math.abs(hit.w - BED.w) > 0.5 || Math.abs(hit.h - BED.h) > 0.5) {
+      bedSizeMis++;
+      if (VERBOSE) console.log(`bed SIZE drift: drawn ${hit.w}×${hit.h} vs BED ${BED.w}×${BED.h} (${spot.locId})`);
+    }
+  }
+}
+
 // ---- report ---------------------------------------------------------------------
 const types = [...byType.keys()].sort();
 let totO = 0, totS = 0;
@@ -156,7 +183,7 @@ for (const t of types) {
   const w = worst ? `${worst.a}×${worst.b} ${Math.round(worst.frac * 100)}%` : "—";
   console.log(`${t.padEnd(11)} ${String(d.rooms).padStart(4)}  ${String(d.overlaps.length).padStart(7)}  ${String(d.spills.length).padStart(6)}   ${w}`);
 }
-console.log(`\nTOTAL unintended furniture overlaps: ${totO};  out-of-room spills: ${totS}`);
+console.log(`\nTOTAL unintended furniture overlaps: ${totO};  out-of-room spills: ${totS};  bed-spot misses: ${bedMisses} (${layout.bedAssign.size} sleepers, size drift ${bedSizeMis})`);
 
 if (VERBOSE) {
   console.log("\n--- detail (unique by type+pair) ---");

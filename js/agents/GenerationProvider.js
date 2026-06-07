@@ -83,8 +83,14 @@ const ROLE_WORK = {
 
 // A daily routine template, in minutes-into-day. The "work" blocks resolve to the
 // agent's workLocationId; others resolve by location type/tag.
+//
+// Sleep contract (the renderers + smoke test rely on it): the two /sleep/i blocks
+// are both at HOME and total ≥ 480 min (8 h) — 22:00–24:00 plus 00:00–06:00.
+// While a sleep block is active the renderers lay the agent on their assigned bed
+// (townArt.isSleeping / layout.bedAssign). "home"/"work" kinds resolve without an
+// RNG draw, so splitting the evening block is determinism-safe for the other blocks.
 const DAY_TEMPLATE = [
-  { start: 0, end: 360, activity: "Sleep and rest at home", kinds: ["home"], priority: 1 },
+  { start: 0, end: 360, activity: "Sleep soundly in bed at home", kinds: ["home"], priority: 1 },
   { start: 360, end: 480, activity: "Wake up and ease into the morning", kinds: ["home"], priority: 2 },
   { start: 480, end: 540, activity: "Grab breakfast and read the news", kinds: ["cafe"], priority: 2 },
   { start: 540, end: 720, activity: null, kinds: ["work"], priority: 4 }, // morning work
@@ -92,7 +98,8 @@ const DAY_TEMPLATE = [
   { start: 780, end: 1020, activity: null, kinds: ["work"], priority: 4 }, // afternoon work
   { start: 1020, end: 1140, activity: "Run errands and check in around town", kinds: ["shop", "library", "square"], priority: 3 },
   { start: 1140, end: 1260, activity: "Spend time with neighbours", kinds: ["square", "park", "cafe"], priority: 3 },
-  { start: 1260, end: 1440, activity: "Wind down and head home for the evening", kinds: ["home"], priority: 2 },
+  { start: 1260, end: 1320, activity: "Wind down and head home for the evening", kinds: ["home"], priority: 2 },
+  { start: 1320, end: 1440, activity: "Sleep in bed at home", kinds: ["home"], priority: 1 },
 ];
 
 export class LocalGenerationProvider extends GenerationProvider {

@@ -85,6 +85,13 @@ export function computeLayout(sim) {
     rects.set(l.id, { loc: l, cx, cy, bx, by, bw, bh, door: { x: cx, y: by + bh + 12 } });
   }
 
+  // Resident count per location (by homeLocationId) — drives how many beds the
+  // bedroom furnisher draws (double-occupancy homes get two) and bed assignment.
+  for (const a of (sim.agents || [])) {
+    const rc = a && rects.get(a.homeLocationId);
+    if (rc) rc.residents = (rc.residents || 0) + 1;
+  }
+
   // Chunk dimensions, computed INLINE (do NOT import townChunks here — that would
   // create an import cycle, since townChunks imports this module). townChunks
   // re-derives the same values via chunkDims(layout) from these fields.
@@ -112,8 +119,160 @@ export function computeLayout(sim) {
   // the doorway gaps spriteComplex/spriteBuilding cut so the drawn walls match the
   // routing grid's gaps exactly (render ↔ routing lockstep). See pathfinding.js.
   layout.wallTopology = computeWallTopology(locs, { cell: CELL, movement: CONFIG.movement });
+  // Bed spots + per-resident bed assignment (sleeping avatars lie ON their bed).
+  const beds = computeBedAssignments(layout, sim.agents || []);
+  layout.bedSpots = beds.bedSpots;
+  layout.bedAssign = beds.bedAssign;
 
   return layout;
+}
+
+// True while `agent` is in a sleep plan block AT home (the DAY_TEMPLATE sleep
+// activities both contain "sleep"; "wind down"/"rest" deliberately do NOT lie the
+// avatar down). The renderers swap the crowd fan-spot for the agent's assigned
+// bed (layout.bedAssign) and lay the avatar down while this is true.
+export function isSleeping(agent) {
+  return !!(agent && typeof agent.currentActivity === "string" &&
+    /sleep/i.test(agent.currentActivity) &&
+    agent.currentLocationId === agent.homeLocationId);
+}
+
+// Drawn bed footprint (96×112 sprite / ART_SS) + the second bed's x offset.
+// ONE source of truth shared by furnish (which draws the beds), bedPlacement
+// below (which positions sleepers on them) and tools/audit_rooms.mjs (which
+// asserts the drawn rects still match these dims after tile re-authoring).
+export const BED = { w: 24, h: 28, dx: 28 };
+
+// Bed `i`'s top-left within a furnish room rect (roomX/Y = the room origin,
+// i.e. furnish's c.x/c.y) plus the avatar FEET-anchor spot on it: bed-centre
+// in x, 3px above the bed's foot in y — the ~22px on-screen body then lies
+// fully WITHIN the 28px bed with the head on the pillow (feet-centred put the
+// head on the wall band above the headboard). Consumed by BOTH furnish's
+// put() calls and computeBedAssignments, so draw and lie-spot cannot drift.
+export function bedPlacement(roomX, roomY, i) {
+  const x = roomX + 2 + i * BED.dx, y = roomY + 2; // +2 = furnish fixture inset
+  return { x, y, spot: { x: x + BED.w / 2, y: y + BED.h - 3 } };
+}
+
+// Where each occupied home's residents LIE when asleep (world-px feet-anchor
+// points on their beds) and which resident sleeps in which bed. Mirrors the
+// EXACT geometry chain the renderer draws rooms through — spriteComplex's
+// per-edge unit insets (16 perimeter / 8 shared) or spriteBuilding's sub-cell
+// interior, then drawRooms' track layout (wall = 3 → room origin +1.5) — and
+// places beds via the SHARED bedPlacement helper above (the part furnish also
+// uses), so a sleeping avatar lies ON the drawn bed.
+// Each entry also carries `via`: TWO points straddling the DRAWN doorway
+// between the bedroom and the room holding the crowd-fan spot (mirrors
+// drawRooms' doorway scan — first shared wall segment per room pair, 15px gap
+// at the segment midpoint), ordered [fan-side, bed-side] and offset ±5px along
+// the wall's normal so the crossing leg is PERPENDICULAR to the wall. The
+// renderers hop fan-spot → via[0] → via[1] → bed (reversed when getting up) so
+// the nightly walk passes through the doorway instead of ghosting through the
+// art-only interior wall (those walls are not in the collision grid — a single
+// on-the-wall via point is NOT enough: a shallow diagonal approach spends a
+// long x-range inside the 3px wall band and clips it just outside the gap).
+// via is null when the fan spot already sits in the bedroom (straight hop ok).
+// Residents take beds in sorted-id order (deterministic, visitor-independent);
+// a 3rd+ resident gets no bed and falls back to the crowd fan.
+function computeBedAssignments(layout, agents) {
+  const byHome = new Map();
+  for (const a of agents) {
+    if (!a || !a.homeLocationId) continue;
+    if (!byHome.has(a.homeLocationId)) byHome.set(a.homeLocationId, []);
+    byHome.get(a.homeLocationId).push(a.id);
+  }
+  // multi-unit complex per member loc id (lone members take the spriteBuilding path)
+  const complexOf = new Map();
+  for (const cx of layout.complexes) {
+    if (cx.members.length > 1) for (const m of cx.members) complexOf.set(m.loc.id, cx);
+  }
+  const bedSpots = new Map();  // locId   -> [{x,y}, ...]
+  const bedAssign = new Map(); // agentId -> {x, y, locId}
+  for (const [locId, ids] of byHome) {
+    const rc = layout.rects.get(locId);
+    if (!rc) continue;
+    // interior rect — the same branch the renderer takes for this building
+    let ix, iy, iw, ih;
+    const comp = complexOf.get(locId);
+    if (comp) {
+      const ux = rc.loc.x * CELL, uy = rc.loc.y * CELL;
+      const cols = Math.round(comp.w / CELL), rows = Math.round(comp.h / CELL);
+      const gx0 = Math.round(comp.x / CELL), gy0 = Math.round(comp.y / CELL);
+      const cI = rc.loc.x - gx0, rI = rc.loc.y - gy0;
+      const iL = cI === 0 ? 16 : 8, iT = rI === 0 ? 16 : 8;
+      const iR = cI === cols - 1 ? 16 : 8, iB = rI === rows - 1 ? 16 : 8;
+      ix = ux + iL; iy = uy + iT; iw = CELL - iL - iR; ih = CELL - iT - iB;
+    } else {
+      ix = rc.bx + 16; iy = rc.by + 16; iw = rc.bw - 32; ih = rc.bh - 30;
+    }
+    // the bedroom's furnish rect, exactly as drawRooms lays it out
+    const bp = blueprintFor(rc.loc.type);
+    const cell = bp.cells.find((c) => c.kind === "bedroom" || c.kind === "ward") || bp.cells[0];
+    const nc = bp.cols.length, nr = bp.rows.length;
+    const colX = [ix]; for (let i = 0; i < nc; i++) colX.push(colX[i] + bp.cols[i] * iw); colX[nc] = ix + iw;
+    const rowY = [iy]; for (let i = 0; i < nr; i++) rowY.push(rowY[i] + bp.rows[i] * ih); rowY[nr] = iy + ih;
+    const rx = colX[cell.c] + 1.5, ry = rowY[cell.r] + 1.5;   // wall/2
+    // doorway between the bedroom and the fan-spot room — drawRooms' scan, mirrored
+    const occ = Array.from({ length: nr }, () => new Array(nc).fill(-1));
+    bp.cells.forEach((cl, i2) => {
+      for (let r = cl.r; r < cl.r + (cl.rspan || 1) && r < nr; r++)
+        for (let c2 = cl.c; c2 < cl.c + (cl.cspan || 1) && c2 < nc; c2++) occ[r][c2] = i2;
+    });
+    const bedIdx = bp.cells.indexOf(cell);
+    const ds = layout.doorSpots && layout.doorSpots.get(locId);
+    let fanIdx = bedIdx;
+    if (ds) { // room track holding the fan/door spot (the cell centre)
+      let fc = nc - 1; while (fc > 0 && ds.x < colX[fc]) fc--;
+      let fr = nr - 1; while (fr > 0 && ds.y < rowY[fr]) fr--;
+      fanIdx = occ[fr][fc];
+    }
+    let via = null;
+    if (fanIdx >= 0 && fanIdx !== bedIdx) {
+      const OFF = 5; // wall/2 (1.5) + clearance — each via point sits clear of the wall band
+      // first shared wall segment per pair carries the doorway, columns then rows
+      const doored = new Set();
+      const pairKey = (a2, b2) => (a2 < b2 ? a2 + ":" + b2 : b2 + ":" + a2);
+      const want = pairKey(bedIdx, fanIdx);
+      for (let c2 = 1; c2 < nc && !via; c2++) for (let r = 0; r < nr; r++) {
+        const a2 = occ[r][c2 - 1], b2 = occ[r][c2];   // a2 = LEFT room, b2 = RIGHT room
+        if (a2 === b2) continue;
+        const k = pairKey(a2, b2);
+        if (doored.has(k)) continue;
+        doored.add(k);
+        if (k === want) {
+          const m = (rowY[r] + rowY[r + 1]) / 2;
+          const bedSide = { x: colX[c2] + (bedIdx === a2 ? -OFF : OFF), y: m };
+          const fanSide = { x: colX[c2] + (bedIdx === a2 ? OFF : -OFF), y: m };
+          via = [fanSide, bedSide];
+          break;
+        }
+      }
+      for (let r = 1; r < nr && !via; r++) for (let c2 = 0; c2 < nc; c2++) {
+        const a2 = occ[r - 1][c2], b2 = occ[r][c2];   // a2 = room ABOVE, b2 = room BELOW
+        if (a2 === b2) continue;
+        const k = pairKey(a2, b2);
+        if (doored.has(k)) continue;
+        doored.add(k);
+        if (k === want) {
+          const m = (colX[c2] + colX[c2 + 1]) / 2;
+          const bedSide = { x: m, y: rowY[r] + (bedIdx === a2 ? -OFF : OFF) };
+          const fanSide = { x: m, y: rowY[r] + (bedIdx === a2 ? OFF : -OFF) };
+          via = [fanSide, bedSide];
+          break;
+        }
+      }
+    }
+    const sorted = ids.slice().sort();
+    const spots = [];
+    for (let i = 0; i < Math.min(2, sorted.length); i++) {
+      spots.push(bedPlacement(rx, ry, i).spot);
+    }
+    bedSpots.set(locId, spots);
+    sorted.forEach((id, i) => {
+      if (i < spots.length) bedAssign.set(id, { x: spots[i].x, y: spots[i].y, locId, via });
+    });
+  }
+  return { bedSpots, bedAssign };
 }
 
 // Wall-legal route between two WORLD points on the layout's collision grid —
@@ -1025,7 +1184,7 @@ function spriteComplex(g, S, complex, lightsOn, topo) {
     clipTile(g, S.floor_wood, ux, uy, CELL, CELL);        // full-cell base floor (no seams)
     const rng = seededRandom("furn-" + rc.loc.id);
     g.save(); g.beginPath(); g.rect(ux, uy, CELL, CELL); g.clip();
-    drawRooms(g, S, rc.loc.type, ix, iy, iw, ih, rng);
+    drawRooms(g, S, rc.loc.type, ix, iy, iw, ih, rng, { beds: rc.residents || 1 });
     interiorAO(g, ix, iy, iw, ih);
     g.restore();
     // (per-unit nameplates are drawn LAST, on top of the shared wall grid below)
@@ -1140,7 +1299,7 @@ function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
     wallEdge(g, S.wall, false, bx + bw - 16, by, bh, dir === "E");      // right
   }
   // multi-room interior laid out from the building type's blueprint
-  drawRooms(g, S, rc.loc.type, bx + 16, by + 16, bw - 32, bh - 30, rng);
+  drawRooms(g, S, rc.loc.type, bx + 16, by + 16, bw - 32, bh - 30, rng, { beds: rc.residents || 1 });
   // soft AO hugging the south/east interior walls (cheap, deterministic)
   interiorAO(g, bx + 16, by + 16, bw - 32, bh - 30);
   g.restore();
@@ -1205,7 +1364,7 @@ function blueprintFor(type) {
 // Render any blueprint into the interior rect (x,y,w,h): lay out each room from the
 // grid, furnish it, then draw the interior walls implied by the cell spans — with
 // exactly one doorway punched per pair of adjacent rooms (so every room connects).
-function drawRooms(g, S, type, x, y, w, h, rng) {
+function drawRooms(g, S, type, x, y, w, h, rng, opts) {
   const bp = blueprintFor(type);
   const cols = bp.cols, rows = bp.rows, nc = cols.length, nr = rows.length;
   const wall = 3, door = 15;
@@ -1222,7 +1381,7 @@ function drawRooms(g, S, type, x, y, w, h, rng) {
     const c2 = cell.c + (cell.cspan || 1), r2 = cell.r + (cell.rspan || 1);
     const rx = colX[cell.c] + wall / 2, ry = rowY[cell.r] + wall / 2;
     const rw = colX[c2] - colX[cell.c] - wall, rh = rowY[r2] - rowY[cell.r] - wall;
-    if (rw > 4 && rh > 4) furnish(g, S, cell.kind, { x: rx, y: ry, w: rw, h: rh }, rng);
+    if (rw > 4 && rh > 4) furnish(g, S, cell.kind, { x: rx, y: ry, w: rw, h: rh }, rng, opts);
   });
   // interior walls — one doorway per adjacent room pair (light-grey plaster)
   g.fillStyle = "#cdc7ba";
@@ -1254,7 +1413,7 @@ function roomFloor(g, S, kind, c) {
   clipTile(g, f || S.floor_wood, c.x, c.y, c.w, c.h);
 }
 
-function furnish(g, S, kind, c, rng) {
+function furnish(g, S, kind, c, rng, opts) {
   roomFloor(g, S, kind, c);
   g.save();
   g.beginPath();
@@ -1268,14 +1427,24 @@ function furnish(g, S, kind, c, rng) {
   switch (kind) {
     // ---- small rooms in the top band: fixtures hug the back (top) wall ----
     case "bedroom": {
-      put(g, pick(beds, rng), L, T);                 // bed on the back wall, top-left
-      if (c.w > 42) put(g, S.nightstand, L + 26, T); // nightstand beside the bed
+      // One bed per RESIDENT (opts.beds, capped at 2 — a pair fills the back wall).
+      // The second bed reuses the first's sprite pick (no extra rng draw, so the
+      // rest of the room's art is unchanged) and replaces the nightstand, which
+      // sat at L+26 — exactly where bed #2 (BED.dx=+28, BED.w=24 wide) goes.
+      // Bed positions come from the SHARED bedPlacement helper, so the sleeper
+      // spots computeBedAssignments emits land on these exact rects.
+      const nBeds = Math.min(2, Math.max(1, (opts && opts.beds) || 1));
+      const bedImg = pick(beds, rng);
+      const b0 = bedPlacement(c.x, c.y, 0);          // (c.x+2, c.y+2) = (L, T)
+      put(g, bedImg, b0.x, b0.y);                    // bed on the back wall, top-left
+      if (nBeds >= 2) { const b1 = bedPlacement(c.x, c.y, 1); put(g, bedImg, b1.x, b1.y); } // second resident's bed beside it
+      else if (c.w > 42) put(g, S.nightstand, L + 26, T); // nightstand beside the bed
       const wide = c.w > 58;
       if (wide) put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 19, T); // wardrobe/dresser, top-right
       if (S.rug && c.h > 44) put(g, pick([S.rug, S.rug_blue, S.rug_green].filter(Boolean), rng), L + 6, B - 24); // floor rug
       if (S.lamp && c.h > 46) put(g, S.lamp, R - 17, B - 20);     // corner floor lamp (only with bottom-band room)
       if (!wide && S.dresser) put(g, S.dresser, L + 2, B - 16);  // narrow plan: dresser bottom-LEFT, clear of the lamp
-      if (S.painting && c.w > 80) put(g, S.painting, MX + 4, T);  // wall art, right of the nightstand
+      if (nBeds < 2 && S.painting && c.w > 80) put(g, S.painting, MX + 4, T); // wall art, right of the nightstand (bed #2 fills that wall in a double)
       break;
     }
     case "bath":

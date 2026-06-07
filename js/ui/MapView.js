@@ -10,7 +10,7 @@
 // elements in the overlay, positioned via the camera. Node-safe: with no 2D
 // context / RAF it constructs without drawing.
 
-import { computeLayout, spotFor, activityEmoji, ambient, routeFrom } from "./townArt.js";
+import { computeLayout, spotFor, activityEmoji, ambient, routeFrom, isSleeping } from "./townArt.js";
 import { chunkKey, chunkWorldRect, visibleChunks, makeChunkCanvas } from "./townChunks.js";
 import { Camera } from "./camera.js";
 import { CONFIG } from "../config.js";
@@ -150,7 +150,10 @@ export class MapView {
     for (const [locId, group] of groups) {
       group.sort((x, y) => (x.id < y.id ? -1 : 1));
       group.forEach((a, i) => {
-        const finalSpot = spotFor(this.layout, locId, i, group.length);
+        // Sleeping residents target their assigned BED, not the crowd fan
+        // (see PixiMapView._syncTargets — identical logic).
+        const bed = isSleeping(a) && this.layout.bedAssign ? this.layout.bedAssign.get(a.id) : null;
+        const finalSpot = bed ? { x: bed.x, y: bed.y } : spotFor(this.layout, locId, i, group.length);
         let p = this.pos.get(a.id);
         if (!p) {
           p = {
@@ -177,6 +180,10 @@ export class MapView {
             }
           }
           wps[wps.length - 1] = { x: finalSpot.x, y: finalSpot.y };
+          // Heading straight to bed: pass the DRAWN bedroom doorway
+          // (via = [fan-side, bed-side]) so the last leg doesn't ghost
+          // through the art-only interior wall.
+          if (bed && bed.via) wps.splice(wps.length - 1, 0, ...bed.via.map((v) => ({ x: v.x, y: v.y })));
           p.waypoints = wps;
           p.wpIndex = 0;
           p.lastLoc = a.currentLocationId;
@@ -186,8 +193,23 @@ export class MapView {
             p.wpIndex = wps.length;
           }
         } else if (p.waypoints && p.waypoints.length) {
-          // refresh settle target for crowd re-balancing
+          // refresh settle target for crowd re-balancing; a SETTLED avatar whose
+          // target moved materially walks there (bed at 22:00, off it at 06:00).
+          // Route the to-bed / off-bed hop through the drawn bedroom doorway
+          // (bed.via) — see PixiMapView._syncTargets, the identical logic.
           p.waypoints[p.waypoints.length - 1] = { x: finalSpot.x, y: finalSpot.y };
+          if (p.wpIndex >= p.waypoints.length &&
+              Math.hypot(finalSpot.x - p.x, finalSpot.y - p.y) > 2) {
+            const assigned = this.layout.bedAssign ? this.layout.bedAssign.get(a.id) : null;
+            const offBed = !bed && assigned && assigned.locId === locId &&
+              Math.hypot(assigned.x - p.x, assigned.y - p.y) < 6;
+            // via = [fan-side, bed-side]; as-is toward bed, reversed getting up
+            const via = (bed && bed.via) || (offBed && assigned.via && assigned.via.slice().reverse()) || null;
+            p.waypoints = via
+              ? [...via.map((v) => ({ x: v.x, y: v.y })), { x: finalSpot.x, y: finalSpot.y }]
+              : [{ x: finalSpot.x, y: finalSpot.y }];
+            p.wpIndex = 0;
+          }
         } else {
           p.waypoints = [{ x: finalSpot.x, y: finalSpot.y }];
           p.wpIndex = 0;
@@ -222,7 +244,13 @@ export class MapView {
   _onTimeline(e) {
     if (!e || e.type !== "conversation" || typeof performance === "undefined") return;
     const until = performance.now() + SAY_MS;
-    const ids = (e.participantIds && e.participantIds.length ? e.participantIds : e.agentIds) || [];
+    const all = (e.participantIds && e.participantIds.length ? e.participantIds : e.agentIds) || [];
+    // Don't pop 💬 over blanketed, lying avatars — the sim converses co-homed
+    // pairs at night (phase 4 has no sleep gate); suppress sleepers' bubbles.
+    const ids = all.filter((id) => {
+      const ag = this.sim.agents.find((x) => x.id === id);
+      return !(ag && isSleeping(ag));
+    });
     for (const id of ids) this.say.set(id, { until });
     if (ids.length) this.groupSay.set(e.locationId || ids.join("|"), { until, ids: ids.slice() });
   }
@@ -334,7 +362,10 @@ export class MapView {
         }
       }
       p.dir = dir;
-      p.bob = reduce ? 0 : moving ? Math.sin(this._frameN * 0.4) * 2 : Math.sin(this._frameN * 0.08 + p.x) * 0.8;
+      // Lying = asleep AND settled on the bed (mid-walk to bed still walks upright).
+      const lying = !moving && isSleeping(a) &&
+        (!p.waypoints || p.wpIndex >= p.waypoints.length);
+      p.bob = reduce || lying ? 0 : moving ? Math.sin(this._frameN * 0.4) * 2 : Math.sin(this._frameN * 0.08 + p.x) * 0.8;
 
       // Cull off-screen agents.
       if (
@@ -342,7 +373,7 @@ export class MapView {
         p.y < viewRect.y - AGENT_CULL_PAD || p.y > viewRect.y + viewRect.h + AGENT_CULL_PAD
       ) continue;
 
-      this._drawAgent(ctx, a, p, a.id === selected, reduce, moving, dir);
+      this._drawAgent(ctx, a, p, a.id === selected, reduce, moving, dir, lying);
     }
 
     // Day/night overlay: one cheap world-rect fill under the same transform.
@@ -357,12 +388,12 @@ export class MapView {
     this._updateBubbles();
   }
 
-  _drawAgent(ctx, agent, p, isSelected, reduce, moving, dir) {
+  _drawAgent(ctx, agent, p, isSelected, reduce, moving, dir, lying) {
     const x = p.x;
     const y = p.y + p.bob;
     if (p.av) {
       // Shared CharacterFactory avatar (draws its own ground shadow).
-      p.av.update({ dir, moving, dtFrames: 1 });
+      p.av.update({ dir, moving, dtFrames: 1, lying });
       if (isSelected) {
         const fr = (p.av.footRadius || 9) * AVATAR_SCALE;
         const r = fr + 2 + (reduce ? 0 : Math.sin(this._frameN * 0.15) * 1.5);

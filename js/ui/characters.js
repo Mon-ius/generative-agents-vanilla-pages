@@ -408,6 +408,7 @@ class BaseAvatar {
     this.anchorY = manifest ? manifest.anchorY : this.frameH - 2;
     this.dir = IDLE_FALLBACK_DIR;
     this.moving = false;
+    this.lying = false;    // asleep in bed: face-up idle pose, no shadow, blanket on
     this.frame = 0;        // walk-cycle index
     this._acc = 0;         // seconds accumulated toward the next frame flip
     this._dirty = true;    // a redraw/texture-swap is needed
@@ -418,8 +419,18 @@ class BaseAvatar {
   /**
    * Advance the walk timer. dtFrames is elapsed *display* frames (~1 per tick at
    * 60fps); we convert to seconds with a 60fps assumption so fps reads naturally.
+   * `lying` lays the avatar in bed: beds are drawn vertically (pillow at the
+   * top), so the "down"-facing standing idle frame — head up, face to camera —
+   * reads as lying on the back; no rotation needed. The renderers pass it only
+   * once the avatar has SETTLED on its bed spot (townArt.isSleeping && arrived).
    */
-  update({ dir, moving, dtFrames }) {
+  update({ dir, moving, dtFrames, lying }) {
+    const lie = !!lying;
+    if (lie !== this.lying) {
+      this.lying = lie;
+      this._dirty = true;
+    }
+    if (lie) { dir = "down"; moving = false; }
     if (dir && dir !== this.dir) {
       this.dir = dir;
       this._dirty = true;
@@ -446,6 +457,29 @@ class BaseAvatar {
 
   _cycleLength() { return 1; }
   _idleFrameIndex() { return 0; }
+
+  /**
+   * Blanket rect in frame-local px, origin at the FEET anchor (both renderers
+   * anchor avatars there). Covers the body from the hips down so a lying avatar
+   * reads as tucked into its bed; shared by the canvas + Pixi draw paths.
+   */
+  _blanketRect() {
+    const w = this.frameW * 0.72;
+    const h = this.frameH * 0.42;
+    return { x: -w / 2, y: -h + 2, w, h };
+  }
+
+  /** Canvas blanket overlay (Pixi uses a Graphics child toggled in refresh()). */
+  _drawBlanketCanvas(ctx, x, y, scale) {
+    const r = this._blanketRect();
+    const bx = x + r.x * scale, by = y + r.y * scale;
+    const bw = r.w * scale, bh = r.h * scale;
+    roundRectPath(ctx, bx, by, bw, bh, 3 * scale);
+    ctx.fillStyle = "rgba(176,83,63,0.92)";              // warm quilt
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.55)";            // folded sheet line at the top
+    ctx.fillRect(bx + 1.5 * scale, by, bw - 3 * scale, 2.5 * scale);
+  }
 }
 
 // ---- sprite avatar ----------------------------------------------------------
@@ -478,7 +512,7 @@ class SpriteAvatar extends BaseAvatar {
 
   drawCanvas(ctx, x, y, scale = 1) {
     if (!ctx) return;
-    drawGroundShadow(ctx, x, y, this.footRadius * scale);
+    if (!this.lying) drawGroundShadow(ctx, x, y, this.footRadius * scale); // in bed: no floor shadow
     const cv = this.frameCanvas();
     if (!cv) return;
     const prev = ctx.imageSmoothingEnabled;
@@ -487,6 +521,7 @@ class SpriteAvatar extends BaseAvatar {
     const dh = this.frameH * scale;
     ctx.drawImage(cv, x - this.anchorX * scale, y - this.anchorY * scale, dw, dh);
     ctx.imageSmoothingEnabled = prev;
+    if (this.lying) this._drawBlanketCanvas(ctx, x, y, scale);
   }
 
   pixiBuild(PIXI) {
@@ -498,7 +533,11 @@ class SpriteAvatar extends BaseAvatar {
     sprite.anchor.set(this.anchorX / this.frameW, this.anchorY / this.frameH);
     node.addChild(shadow);
     node.addChild(sprite);
+    const blanket = buildPixiBlanket(PIXI, this._blanketRect());
+    node.addChild(blanket);
     const refresh = () => {
+      shadow.visible = !this.lying;     // in bed: blanket on, floor shadow off
+      blanket.visible = this.lying;
       const cv = this.frameCanvas();
       if (!cv) return;
       const frameIdx = this.moving ? this.frame % this.walkLen : -1;
@@ -552,7 +591,7 @@ class ProceduralAvatar extends BaseAvatar {
 
   drawCanvas(ctx, x, y, scale = 1) {
     if (!ctx) return;
-    drawGroundShadow(ctx, x, y, this.footRadius * scale);
+    if (!this.lying) drawGroundShadow(ctx, x, y, this.footRadius * scale); // in bed: no floor shadow
     const cv = this.frameCanvas();
     if (!cv) return;
     const prev = ctx.imageSmoothingEnabled;
@@ -565,6 +604,7 @@ class ProceduralAvatar extends BaseAvatar {
       this.frameH * scale
     );
     ctx.imageSmoothingEnabled = prev;
+    if (this.lying) this._drawBlanketCanvas(ctx, x, y, scale);
   }
 
   pixiBuild(PIXI) {
@@ -576,10 +616,14 @@ class ProceduralAvatar extends BaseAvatar {
     sprite.anchor.set(this.anchorX / this.frameW, this.anchorY / this.frameH);
     node.addChild(shadow);
     node.addChild(sprite);
+    const blanket = buildPixiBlanket(PIXI, this._blanketRect());
+    node.addChild(blanket);
     // Wrap the SAME cached per-pose canvases as textures (keyed per agent id so
     // distinct looks don't collide). Cheap: each pose decodes once.
     const idTag = this.agent && this.agent.id != null ? this.agent.id : "?";
     const refresh = () => {
+      shadow.visible = !this.lying;     // in bed: blanket on, floor shadow off
+      blanket.visible = this.lying;
       const cv = this.frameCanvas();
       if (!cv) return;
       const key = `proc:${idTag}|${this.dir}|${this._parity()}`;
@@ -747,6 +791,20 @@ function drawGroundShadow(ctx, x, y, rx) {
   ctx.ellipse(x, y, rx, rx * 0.45, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+}
+
+/**
+ * Pixi blanket overlay for a lying (sleeping) avatar — the same warm quilt +
+ * folded-sheet top the canvas path draws (BaseAvatar._drawBlanketCanvas).
+ * Built once per avatar, hidden by default; refresh() toggles it with `lying`.
+ */
+function buildPixiBlanket(PIXI, r) {
+  const blanket = new PIXI.Graphics()
+    .roundRect(r.x, r.y, r.w, r.h, 3).fill({ color: 0xb0533f, alpha: 0.92 })
+    .rect(r.x + 1.5, r.y, r.w - 3, 2.5).fill({ color: 0xffffff, alpha: 0.55 });
+  blanket.visible = false;
+  blanket.eventMode = "none";
+  return blanket;
 }
 
 function roundRectPath(ctx, x, y, w, h, r) {
