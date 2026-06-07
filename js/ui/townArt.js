@@ -137,21 +137,24 @@ export function isSleeping(agent) {
     agent.currentLocationId === agent.homeLocationId);
 }
 
-// Drawn bed footprint (96×112 sprite / ART_SS) + the second bed's x offset.
-// ONE source of truth shared by furnish (which draws the beds), bedPlacement
-// below (which positions sleepers on them) and tools/audit_rooms.mjs (which
-// asserts the drawn rects still match these dims after tile re-authoring).
-export const BED = { w: 24, h: 28, dx: 28 };
+// Drawn bed footprint (112×96 HORIZONTAL sprite / ART_SS) + the second bed's
+// y offset. Beds lie SIDEWAYS — pillow on the LEFT, foot on the right — so a
+// sleeping avatar, rotated 90° (head→left), reads unmistakably as lying flat
+// rather than standing front-on. ONE source of truth shared by furnish (which
+// draws the beds), bedPlacement below (which positions sleepers on them) and
+// tools/audit_rooms.mjs (which asserts the drawn rects still match these dims).
+export const BED = { w: 28, h: 24, dy: 28 };
 
 // Bed `i`'s top-left within a furnish room rect (roomX/Y = the room origin,
-// i.e. furnish's c.x/c.y) plus the avatar FEET-anchor spot on it: bed-centre
-// in x, 3px above the bed's foot in y — the ~22px on-screen body then lies
-// fully WITHIN the 28px bed with the head on the pillow (feet-centred put the
-// head on the wall band above the headboard). Consumed by BOTH furnish's
-// put() calls and computeBedAssignments, so draw and lie-spot cannot drift.
+// i.e. furnish's c.x/c.y) plus the avatar lie spot on it: the bed CENTRE. The
+// avatar's lying pose centres its (rotated) body on this point, so the ~28px
+// body fills the 28px-wide horizontal bed with the head on the left pillow.
+// Two-resident homes stack their beds vertically (i·dy down the left wall, both
+// pillows on the same wall). Consumed by BOTH furnish's put() calls and
+// computeBedAssignments, so draw and lie-spot cannot drift.
 export function bedPlacement(roomX, roomY, i) {
-  const x = roomX + 2 + i * BED.dx, y = roomY + 2; // +2 = furnish fixture inset
-  return { x, y, spot: { x: x + BED.w / 2, y: y + BED.h - 3 } };
+  const x = roomX + 2, y = roomY + 2 + i * BED.dy; // +2 = furnish fixture inset
+  return { x, y, spot: { x: x + BED.w / 2, y: y + BED.h / 2 } };
 }
 
 // Where each occupied home's residents LIE when asleep (world-px feet-anchor
@@ -1427,24 +1430,26 @@ function furnish(g, S, kind, c, rng, opts) {
   switch (kind) {
     // ---- small rooms in the top band: fixtures hug the back (top) wall ----
     case "bedroom": {
-      // One bed per RESIDENT (opts.beds, capped at 2 — a pair fills the back wall).
-      // The second bed reuses the first's sprite pick (no extra rng draw, so the
-      // rest of the room's art is unchanged) and replaces the nightstand, which
-      // sat at L+26 — exactly where bed #2 (BED.dx=+28, BED.w=24 wide) goes.
-      // Bed positions come from the SHARED bedPlacement helper, so the sleeper
-      // spots computeBedAssignments emits land on these exact rects.
+      // One HORIZONTAL bed per RESIDENT (opts.beds, capped at 2), pillow-left,
+      // stacked DOWN the left wall so a pair share that wall (both heads left).
+      // The second bed reuses the first's sprite pick (no extra rng draw, so a
+      // 1- vs 2-resident room stays art-stream-identical). Bed positions come
+      // from the SHARED bedPlacement helper, so the sleeper spots
+      // computeBedAssignments emits land on these exact rects; the rest of the
+      // furniture sits to the RIGHT of / below the beds, clear of the left wall.
       const nBeds = Math.min(2, Math.max(1, (opts && opts.beds) || 1));
       const bedImg = pick(beds, rng);
       const b0 = bedPlacement(c.x, c.y, 0);          // (c.x+2, c.y+2) = (L, T)
-      put(g, bedImg, b0.x, b0.y);                    // bed on the back wall, top-left
-      if (nBeds >= 2) { const b1 = bedPlacement(c.x, c.y, 1); put(g, bedImg, b1.x, b1.y); } // second resident's bed beside it
-      else if (c.w > 42) put(g, S.nightstand, L + 26, T); // nightstand beside the bed
-      const wide = c.w > 58;
+      put(g, bedImg, b0.x, b0.y);                    // bed on the left wall, top
+      if (nBeds >= 2) { const b1 = bedPlacement(c.x, c.y, 1); put(g, bedImg, b1.x, b1.y); } // second resident's bed below it
+      const bedRight = b0.x + BED.w + 2;             // x just clear of the left-wall beds
+      if (c.w > 50) put(g, S.nightstand, bedRight, T); // nightstand right of the top bed
+      const wide = c.w > 62;
       if (wide) put(g, (rng() < 0.5 && S.wardrobe) ? S.wardrobe : S.dresser, R - 19, T); // wardrobe/dresser, top-right
-      if (S.rug && c.h > 44) put(g, pick([S.rug, S.rug_blue, S.rug_green].filter(Boolean), rng), L + 6, B - 24); // floor rug
+      if (S.rug && c.h > 44) put(g, pick([S.rug, S.rug_blue, S.rug_green].filter(Boolean), rng), MX - 4, B - 24); // floor rug, centre-bottom
       if (S.lamp && c.h > 46) put(g, S.lamp, R - 17, B - 20);     // corner floor lamp (only with bottom-band room)
-      if (!wide && S.dresser) put(g, S.dresser, L + 2, B - 16);  // narrow plan: dresser bottom-LEFT, clear of the lamp
-      if (nBeds < 2 && S.painting && c.w > 80) put(g, S.painting, MX + 4, T); // wall art, right of the nightstand (bed #2 fills that wall in a double)
+      if (!wide && S.dresser) put(g, S.dresser, L + 2, B - 16);   // narrow plan: dresser bottom-LEFT (1 bed only, top row), clear of the lamp
+      if (nBeds < 2 && S.painting && c.w > 84) put(g, S.painting, R - 38, T); // wall art on the top wall, left of the wardrobe
       break;
     }
     case "bath":
@@ -1468,9 +1473,9 @@ function furnish(g, S, kind, c, rng, opts) {
       }
       break;
     case "ward":
-      put(g, pick(beds, rng), L, T);
-      if (c.w > 42) put(g, S.nightstand, L + 26, T);
-      if (c.w > 58) put(g, S.dresser, R - 19, T);
+      put(g, pick(beds, rng), L, T);                 // horizontal bed, pillow-left
+      if (c.w > 46) put(g, S.nightstand, L + BED.w + 2, T); // nightstand clear of the bed
+      if (c.w > 62) put(g, S.dresser, R - 19, T);
       break;
     case "kitchen":
       put(g, S.counter, L, T);

@@ -369,16 +369,20 @@ modules, so they stay in lockstep:
   `townArt.isSleeping(agent)` = `/sleep/i.test(currentActivity) && currentLocationId ===
   homeLocationId` — deliberately false for "Wind down…"/"Resting" (those stand, not lie).
   `computeLayout` counts each home's residents into `rect.residents`; `drawRooms`/`furnish` take
-  `{beds}` and a 2-resident home draws **two beds side by side** — bed #2 replaces the nightstand
-  and reuses the SAME `pick(beds, rng)` draw (one draw either way, so 1- vs 2-bed rooms stay
-  art-stream-identical), and the bedroom `painting` is gated `nBeds < 2` (at `MX+4` it would
-  overlap bed #2). Bed positions come from the exported **`bedPlacement(roomX, roomY, i)`** helper
-  (and its `BED = {w:24, h:28, dx:28}` dims — the 96×112 sprite / `ART_SS`), the ONE source
-  consumed by both `furnish`'s `put()` calls and `computeBedAssignments`, which publishes
-  `layout.bedSpots` (locId → **feet-anchor** points: bed-centre x, 3 px above the bed's foot in
-  y — avatars anchor at the feet, so the body lies on the mattress, head on the pillow) and
-  `layout.bedAssign` (agentId → `{x,y,locId,via}`; residents id-sorted, max 2 beds, a 3rd+
-  housemate falls back to the crowd fan). The room-origin chain feeding the helper is still
+  `{beds}` and a 2-resident home draws **two HORIZONTAL beds stacked down the left wall** (both
+  pillows on that wall) — bed #2 reuses the SAME `pick(beds, rng)` draw (one draw either way, so
+  1- vs 2-bed rooms stay art-stream-identical). Beds lie **sideways — pillow on the LEFT, foot on
+  the right** (the `bed`/`bed_red`/`bed_green` tile SVGs are authored vertically then wrapped in a
+  `translate(0,96) rotate(-90)` group, so the manifest region is **112×96** and `put()` draws them
+  horizontal with no canvas transform — keeping the room auditor's mock, which ignores transforms,
+  truthful). Bed positions come from the exported **`bedPlacement(roomX, roomY, i)`** helper (and
+  its `BED = {w:28, h:24, dy:28}` dims — the 112×96 sprite / `ART_SS`; **`i` now offsets `y` by
+  `dy`, stacking vertically**), the ONE source consumed by both `furnish`'s `put()` calls and
+  `computeBedAssignments`, which publishes `layout.bedSpots` (locId → the **bed-CENTRE** point
+  `{x+BED.w/2, y+BED.h/2}` — the lying avatar centres its rotated body there) and `layout.bedAssign`
+  (agentId → `{x,y,locId,via}`; residents id-sorted, max 2 beds, a 3rd+ housemate falls back to the
+  crowd fan). Only `home`/`studio` bedrooms ever hold 2 residents (always the **wide** plan, so two
+  stacked beds fit); cafe-type decorative bedrooms draw 1. The room-origin chain feeding the helper is still
   **mirrored, not shared** — complex unit insets (16 perimeter / 8 shared edge; standalone
   `bx+16,by+16`), `drawRooms`' wall=3 → `+1.5` track origin — so an inset change in
   `spriteComplex`/`drawRooms` must be applied to `computeBedAssignments` in lockstep or sleepers
@@ -398,9 +402,13 @@ modules, so they stay in lockstep:
   shallow diagonal approaches clip the 3 px wall band just outside the 15 px gap) — mirroring
   `drawRooms`' doorway scan (first shared wall segment per room pair, columns then rows); the
   renderers walk fan → via[0] → via[1] → bed and the reverse getting up. The **lying pose** lives
-  in `characters.js`: `av.update({…, lying})` forces `dir = "down"` + `moving = false` (beds are
-  vertical with the pillow at top — the down-facing idle frame reads as lying on the back), hides
-  the ground shadow, and shows a terracotta **blanket overlay** over the lower `frameH·0.42`; the
+  in `characters.js` (shared `BaseAvatar.drawCanvas` + `_buildPixiScaffold`/`_applyPixiPose`, so
+  both avatar subclasses and both renderers stay in lockstep): `av.update({…, lying})` forces
+  `dir = "down"` + `moving = false`, then the draw path **rotates the body `-90°` (`LIE_ROTATION`)
+  and centres it on the bed** (head → left pillow, face up), shrunk by `LIE_SCALE` (0.85) so the
+  ~28 px body tucks inside the 28 px-wide horizontal bed. It hides the ground shadow and lays a
+  terracotta **blanket** over the lower body (`_lyingBlanketRect`, in body-centred coords so it
+  rotates with the sprite — Pixi rotates a `buildPixiBlanket` Graphics the same `-90°`); the
   renderers zero `bob` and gate `lying` on settled && !moving && `isSleeping`. Both `_onTimeline`
   handlers also **suppress 💬 bubbles for sleeping participants** — the sim's phase 4 has no sleep
   gate (long-standing: co-homed pairs converse ~4–5×/night and still grow relationships; that is
