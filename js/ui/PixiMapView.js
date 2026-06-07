@@ -12,7 +12,7 @@
 // module graph the Node tests load, and (b) any load/WebGL failure rejects
 // init() cleanly, letting main.js fall back to the canvas MapView.
 
-import { computeLayout, spotFor, activityEmoji, ambient } from "./townArt.js";
+import { computeLayout, spotFor, activityEmoji, ambient, routeFrom } from "./townArt.js";
 import { chunkWorldRect, visibleChunks, makeChunkCanvas } from "./townChunks.js";
 import { Camera } from "./camera.js";
 import { CONFIG } from "../config.js";
@@ -446,6 +446,21 @@ export class PixiMapView {
           // Prefer the agent's planned A* world path; else a direct hop.
           const path = Array.isArray(a.path) && a.path.length ? a.path.slice() : null;
           let wps = path ? path.map((p) => ({ x: p.x, y: p.y })) : [{ x: finalSpot.x, y: finalSpot.y }];
+          // The sim path starts at the PREVIOUS location's room centre. If the
+          // avatar is still mid-walk (the common case at 1× speed — plan blocks
+          // change faster than a cross-town walk finishes), walking straight to
+          // that first waypoint would cut through walls. Re-plan a wall-legal
+          // route from the avatar's ACTUAL position on the same grid the sim
+          // routes on; keep the sim path only when the avatar is already at its
+          // start (settled in the previous room — that hop stays inside the
+          // open interior). Display-only: never touches the sim RNG or state.
+          if (!snap && CONFIG.movement && CONFIG.movement.pathfindingEnabled) {
+            const eps = ((this.layout && this.layout.CELL) || 176) * 0.24; // crowd-fan radius + slack, still inside the room interior
+            if (Math.hypot(wps[0].x - e.pos.x, wps[0].y - e.pos.y) > eps) {
+              const re = routeFrom(this.layout, { x: e.pos.x, y: e.pos.y }, { x: finalSpot.x, y: finalSpot.y });
+              if (re && re.length) wps = re.map((p) => ({ x: p.x, y: p.y }));
+            }
+          }
           // ALWAYS override the final waypoint with crowd placement so co-located
           // agents fan out around the door rather than stacking.
           wps[wps.length - 1] = { x: finalSpot.x, y: finalSpot.y };

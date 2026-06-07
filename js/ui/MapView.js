@@ -10,7 +10,7 @@
 // elements in the overlay, positioned via the camera. Node-safe: with no 2D
 // context / RAF it constructs without drawing.
 
-import { computeLayout, spotFor, activityEmoji, ambient } from "./townArt.js";
+import { computeLayout, spotFor, activityEmoji, ambient, routeFrom } from "./townArt.js";
 import { chunkKey, chunkWorldRect, visibleChunks, makeChunkCanvas } from "./townChunks.js";
 import { Camera } from "./camera.js";
 import { CONFIG } from "../config.js";
@@ -164,6 +164,18 @@ export class MapView {
         if (locationChanged) {
           const path = Array.isArray(a.path) && a.path.length ? a.path.slice() : null;
           let wps = path ? path.map((q) => ({ x: q.x, y: q.y })) : [{ x: finalSpot.x, y: finalSpot.y }];
+          // Mid-walk re-route: the sim path starts at the PREVIOUS location's
+          // room centre — walking straight there from the avatar's current
+          // position would cut through walls. Re-plan from the avatar's actual
+          // position on the sim's own grid (see PixiMapView._syncTargets, the
+          // identical logic, for the full rationale). Display-only.
+          if (!snap && CONFIG.movement && CONFIG.movement.pathfindingEnabled) {
+            const eps = ((this.layout && this.layout.CELL) || 176) * 0.24;
+            if (Math.hypot(wps[0].x - p.x, wps[0].y - p.y) > eps) {
+              const re = routeFrom(this.layout, { x: p.x, y: p.y }, { x: finalSpot.x, y: finalSpot.y });
+              if (re && re.length) wps = re.map((q) => ({ x: q.x, y: q.y }));
+            }
+          }
           wps[wps.length - 1] = { x: finalSpot.x, y: finalSpot.y };
           p.waypoints = wps;
           p.wpIndex = 0;

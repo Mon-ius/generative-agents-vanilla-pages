@@ -9,7 +9,7 @@ import { LocalGenerationProvider } from "../js/agents/GenerationProvider.js";
 import { SEED_AGENTS } from "../js/data/seedAgents.js";
 import { SEED_LOCATIONS } from "../js/data/seedLocations.js";
 import { SEED_EVENTS } from "../js/data/seedEvents.js";
-import { computeLayout } from "../js/ui/townArt.js";
+import { computeLayout, routeFrom } from "../js/ui/townArt.js";
 import * as PF from "../js/utils/pathfinding.js";
 import { CONFIG } from "../js/config.js";
 
@@ -68,6 +68,58 @@ try {
   const wp = PF.pathWorldPoints(g, { x: a.x * CONFIG.world.cellPixels + 80, y: a.y * CONFIG.world.cellPixels + 80 }, { x: b.x * CONFIG.world.cellPixels + 80, y: b.y * CONFIG.world.cellPixels + 80 });
   ok("pathWorldPoints returns waypoints", Array.isArray(wp) && wp.length >= 2, wp ? wp.length + " pts" : "null");
 } catch (e) { ok("pathfinding works", false, e.message); }
+
+console.log("\nRenderer re-route (walls stay solid on screen):");
+try {
+  // The renderers re-plan mid-walk avatars on layout.collisionGrid (routeFrom),
+  // so it must be BYTE-IDENTICAL to the grid the sim routes agents on — a
+  // divergence means avatars walk routes the sim's walls don't allow. Compare
+  // against the sim's OWN cached grid (sim._getGrid(), the real routing
+  // artifact — safe to pre-warm: deterministic and RNG-free), not a re-built
+  // copy, so the check still catches a drift in _getGrid's construction opts.
+  // cell/sub/ox/oy matter too: worldToGrid uses them, so a mismatch re-routes
+  // avatars on the wrong sub-tiles even with identical blocked/cost arrays.
+  const simGrid = sim._getGrid();
+  const lg = layout.collisionGrid;
+  let same = !!lg && lg.w === simGrid.w && lg.h === simGrid.h &&
+    lg.cell === simGrid.cell && lg.sub === simGrid.sub &&
+    (lg.ox || 0) === (simGrid.ox || 0) && (lg.oy || 0) === (simGrid.oy || 0);
+  if (same) for (let i = 0; i < lg.blocked.length; i++) {
+    if (lg.blocked[i] !== simGrid.blocked[i] || lg.cost[i] !== simGrid.cost[i]) { same = false; break; }
+  }
+  ok("layout.collisionGrid matches the sim routing grid", same, lg ? `${lg.w}x${lg.h}` : "missing");
+
+  // A re-routed walk must be wall-legal end-to-end: sample every segment at
+  // quarter-sub-tile resolution and require zero blocked hits.
+  const subPx = lg.cell / lg.sub;
+  const blockedAt = (x, y) => {
+    const { gx, gy } = PF.worldToGrid(lg, x, y);
+    return !!lg.blocked[gy * lg.w + gx];
+  };
+  const legal = (r) => {
+    if (!Array.isArray(r) || r.length < 2) return false;
+    for (let i = 1; i < r.length; i++) {
+      const p = r[i - 1], q = r[i];
+      const n = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.y - p.y) / (subPx / 4)));
+      for (let s = 0; s <= n; s++) {
+        const t = s / n;
+        if (blockedAt(p.x + (q.x - p.x) * t, p.y + (q.y - p.y) * t)) return false;
+      }
+    }
+    return true;
+  };
+  const OPEN = new Set(["park", "square", "plaza", "green", "street", "road"]);
+  const street = locs.find((l) => l.type === "street");
+  const bldgs = locs.filter((l) => !OPEN.has(l.type));
+  const CELLPX = CONFIG.world.cellPixels;
+  const midStreet = { x: street.x * CELLPX + CELLPX / 2, y: street.y * CELLPX + CELLPX / 2 };
+  const spotA = layout.doorSpots.get(bldgs[0].id);
+  const spotB = layout.doorSpots.get(bldgs[Math.floor(bldgs.length / 2)].id);
+  const r1 = routeFrom(layout, midStreet, { x: spotB.x, y: spotB.y });
+  ok("re-route street → room is wall-legal", legal(r1), r1 ? r1.length + " pts" : "null");
+  const r2 = routeFrom(layout, { x: spotA.x, y: spotA.y }, { x: spotB.x, y: spotB.y });
+  ok("re-route room → room is wall-legal (exits via doors)", legal(r2), r2 ? r2.length + " pts" : "null");
+} catch (e) { ok("renderer re-route works", false, e.message); }
 
 console.log("\nStepping 200 ticks:");
 try {

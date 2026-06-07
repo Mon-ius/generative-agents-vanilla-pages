@@ -10,7 +10,7 @@
 
 import { seededRandom } from "../utils/random.js";
 import { CONFIG } from "../config.js";
-import { buildGrid, computeDoorSpots, computeWallTopology, gapSpan } from "../utils/pathfinding.js";
+import { buildGrid, computeDoorSpots, computeWallTopology, gapSpan, pathWorldPoints } from "../utils/pathfinding.js";
 
 // Logical px per grid cell, sourced from CONFIG so the world size is tunable in
 // one place. A defensive fallback keeps headless/standalone use working even if
@@ -100,7 +100,10 @@ export function computeLayout(sim) {
 
   // Collision grid for pathfinding — built AFTER rects so it matches the drawn
   // footprints exactly. buildGrid is DOM-free, so this stays headless-safe.
-  layout.collisionGrid = buildGrid(layout);
+  // Built with CONFIG.movement (like doorSpots/wallTopology below) so it is
+  // byte-identical to the sim's routing grid — the renderers re-route avatars
+  // on it (routeFrom), so it MUST match what agents actually walk.
+  layout.collisionGrid = buildGrid(layout, { movement: CONFIG.movement });
   layout.complexes = groupComplexes(layout);
   // Stand spots: where agents stand — now INSIDE their room (the cell centre).
   // THE single source of truth shared with the sim — see spotFor.
@@ -111,6 +114,20 @@ export function computeLayout(sim) {
   layout.wallTopology = computeWallTopology(locs, { cell: CELL, movement: CONFIG.movement });
 
   return layout;
+}
+
+// Wall-legal route between two WORLD points on the layout's collision grid —
+// the SAME grid the sim routes agents on (both built from CONFIG.movement).
+// The renderers use this when a location change arrives while an avatar is
+// still mid-walk: the new sim path starts at the OLD location's room centre,
+// so walking straight from the avatar's current position to that first
+// waypoint would cut through walls (~70% of all movements at 1× speed).
+// Re-planning from the avatar's actual position keeps every rendered step on
+// open tiles — through doors, never through walls. Returns [{x,y}, ...] or
+// null (caller falls back). Deterministic; never touches the sim RNG.
+export function routeFrom(layout, from, to) {
+  if (!layout || !layout.collisionGrid || !from || !to) return null;
+  return pathWorldPoints(layout.collisionGrid, from, to);
 }
 
 // Place agent `index` of `count` standing at a location's door spot — the world
