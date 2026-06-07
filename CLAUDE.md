@@ -52,15 +52,27 @@ node tools/audit_rooms.mjs  # room-furniture overlap audit; per-type table. Repo
 ```
 The smoke harness is a **single fast file with no per-test filter** — it runs all 21 checks and
 prints a labeled `✓`/`✗` line each; to isolate one, read its label in the output (or temporarily
-comment the others). No npm script for the room auditor — run it directly (add `--verbose` to list
-every flagged pair, not just the per-type summary; note "TOTAL 0/0" is thresholded — overlaps
+comment the others). No npm script for the room auditor — run it directly (add `--verbose` for a per-type detail
+list of *unique* flagged pairs/spills — overlaps deduped by sprite-name pair, spills by sprite
+name, each showing only the worst fraction, so verbose lines can total fewer than the TOTAL
+counts; note "TOTAL 0/0" is thresholded — overlaps
 < 12 %/< 6 px² pass silently, and a spill is flagged only when it is **both** > 2 px **and** > 18 %
 of the sprite's smaller drawn dimension, so a visible few-px spill on a typical 20–60 px sprite
 can still report 0) after any `townArt.js`
-furniture/`BLUEPRINTS` change.
+furniture/`BLUEPRINTS` change. Three more test-interpretation gotchas: the smoke suite has one
+**wall-clock gate** — "200 steps under 4s" — that can fail spuriously on a loaded machine with no
+code change; its world-integrity counts are **loose floors** (`locations ≥ 60`, `agents ≥ 20` —
+losing all 88 streets or all 274 courtyards still passes 21/21; only the duplicate-coord and
+agent-location-ref checks are exact, and location-**id** uniqueness is never checked at all — see
+*Configuration & extending*); `npm run check` walks **only the `js/` tree**, so a syntax error in
+`test/*.mjs`/`tools/*.mjs` itself surfaces only when that tool runs; and `audit_rooms.mjs` hardcodes
+the 176px cell in its room-type labeler (`typeOfClip`), not `CONFIG.world.cellPixels` — change
+`cellPixels` and the audit still exits 0 while labeling rooms `?` (a garbage per-type table).
 ```js
 window.runSmokeTest()       // browser console; a SEPARATE smaller suite defined in main.js (NOT the
-                            // 21-check node harness); MUTATES the live sim (steps/selects/saves/resets)
+                            // 21-check node harness); MUTATES the live sim (steps/selects/saves/resets);
+                            // returns JSON-serializable { passed, total, results } — doubles as a
+                            // headless probe via screenshot.mjs --eval
 ```
 `window.__app` (`{ app, sim, renderer, controls, map }`) is exposed for live inspection;
 `__app.map.camera` exposes the pan/zoom Camera (`fit()`, `zoomIn/Out`, `centerOn(wx,wy)`, `toJSON/applyState`).
@@ -97,7 +109,8 @@ page *missing those mounts*, **not** a DOM-free import: importing `main.js` unde
 `new Renderer(sim)`; headless boot constructs `Simulation` directly, as `test/smoke.node.mjs` does),
 and selects the map renderer. It also wires the **Export/Import/Share** buttons, the one-shot
 `#seed=` hash parse, and camera persistence inline — `Controls.js` covers only the playback toolbar
-(start/step/save/load/clear/speed/seed/debug/zoom), so don't grep there for the rest.
+(start/pause/step/reset/save/load/clear/speed/seed/debug/zoom — the Reset button's wiring, which
+reads the seed input, lives there too), so don't grep there for the rest.
 
 **EventBus contract** — `sim.bus.emit(type, payload)` / `sim.bus.on(type, cb)`. The complete
 closed set of event types is: `init`, `tick`, `timeline`, `select`, `reset`, `load`. `on()` returns
@@ -116,13 +129,28 @@ bubbles). The **map views live outside that cycle**: `MapView` runs its own
 directly **every frame** (that's how path-walking animates between ticks); they use the bus
 only to sync on `tick`, rebuild on `reset`/`load`, focus on `select`, and pop bubbles on
 `timeline`. Panel-tab visibility is a small WAI-ARIA controller (`js/ui/Tabs.js`) toggling
-each panel's `hidden` attribute — purely presentational; hidden panels are still
+each panel's `hidden` attribute — purely presentational. Two Tabs caveats: it wires only the
+**first** `[role=tablist]` in the document (its header comment claims "any" — stale), and it never
+normalizes initial state — the boot-time selected tab/hidden panels are entirely the hand-authored
+`aria-selected`/`tabindex`/`hidden` attributes in `index.html`, so keep those consistent when
+adding a tab. Naming trap: the Timeline tab/panel ids are `tab-feed`/`panel-feed` (only the inner
+list is `#timeline-list`) — grep "feed" for tab wiring. Hidden panels are still
 re-rendered, **except the debug panel**: `renderAll()` skips `_renderDebug()` while it's hidden,
 and `#debug-panel` is nested *inside* the hidden-by-default Tune tab, so the "Show debug" toolbar
 button appears to do nothing until you also switch to the Tune tab — not a bug. Separately,
 **`main.js` auto-pauses the playback loop when the browser tab is
 hidden** (`visibilitychange`, stashing `app._wasRunning`) and resumes on return — long
-background runs silently stop.
+background runs silently stop. Step, Reset, a successful localStorage Load, and a successful file
+Import each pause the loop too (`app.step()` calls `pause()` first) — stepping or loading mid-run
+silently stops the run, independent of the tab-visibility pause.
+
+UI-panel fine print: a new memory/timeline `type` needs triple wiring — a `TYPE_ICON` entry in
+`MemoryPanel.js`/`TimelinePanel.js` (fallback is a bare •) plus `mem-type--<type>`/`tl-type--<type>`
+background **and** `mem-item--<type>`/`tl-item--<type>` accent rules in `css/components.css`; the
+type pill's text color is hardcoded dark on the assumption of a bright per-type background, so a
+missing background rule renders a near-invisible dark-on-dark label. And `js/utils/dom.js el()`'s
+`html:` escape hatch is used **nowhere** — every agent-generated string flows through `textContent`
+(no HTML-injection path); keep it that way.
 
 ## The simulation tick (`Simulation.step()`)
 
@@ -130,9 +158,9 @@ Each `step()` advances the clock by `CONFIG.minutesPerTick` and runs a **fixed, 
 five-phase cycle** over `this.agents` (iteration order is stable for reproducibility):
 
 1. **World events** due at `minutesIntoDay` fire once; present agents get an `event` memory + a generated reaction.
-2. **Plan → move**: `Planner.updateStatuses()` returns the active block; if it's elsewhere the agent's `currentLocationId` is set **immediately** (`moveTo()` — cognition/co-location stays bit-deterministic) AND `agent.setDestination()` computes an A* waypoint `path` (`js/utils/pathfinding.js`) that **only the renderers animate** along. Movement is "logical-instant for cognition, animated for rendering" — a deliberate determinism choice; multi-tick travel was rejected. **Solid buildings + tunnels** (`CONFIG.movement.solidBuildings`, `subdivisions:8`): each building cell is a walled unit on the sub-tile grid — a thin blocked perimeter ring with an **open interior** (the centre 6×6) and a **narrow** centred gap on its one **door** edge and on every **tunnel** edge (shared with a sibling unit of the same `complex`). The gap is only `GAP_SUBTILES` (=2 of 8) wide, so **walls cover ~75% of every edge** and rooms read as real rooms with limited doorways. The **door edge is chosen by `townTopology`'s `classify`**: the edge facing the largest 4-connected open component (exterior `gridPad` grass + streets + courtyards), preferring S, then E, W, N — so a door can legitimately open onto a courtyard green/plaza rather than a street, and a building cut off from that main network gets **no door at all**. Agents route the street network, **enter through the door**, move **room-to-room through the tunnels**, and **stand inside** (`computeDoorSpots` → the cell centre) — never crossing a wall. **A\* is weighted-cost, not step-count**: every sub-tile carries a cost painted from its location type — street 1, open ground 4, building interior 12 (`CONFIG.movement.streetCost`/`openCost`/`buildingCost`, applied via `costForType`) — which is what actually makes residents follow the paved avenues instead of cutting across parks; walls only enforce door-only entry. The wall/door/tunnel layout is one shared `townTopology`: the routing grid (`rasterizeSolid`) and the renderer (`computeWallTopology` → `townArt.spriteComplex`, which cuts the gaps at the identical cell-fraction from `gapSpan()`, ≈0.375–0.625) are driven from it, so picture and pathing stay in lockstep. A `gridPad` ring of open grass frames the town so corner complexes stay reachable. Two routing gotchas: `Simulation` **caches** the collision grid + door spots (`_grid`/`_doorSpots` — lazily built, cleared only on `init()`/`reset()`/`loadState()`), so runtime `CONFIG.movement.*`/location changes don't affect routing until a Reset ("the engine re-reads CONFIG each tick" does **not** apply here); and the comments around `_getDoorSpots`/`_doorWorld` in `Simulation.js` still describe the **old stand-OUTSIDE-the-building model** — trust `pathfinding.js` (and this file) over them. More movement fine print: **a null A\* route is silent** — `Agent.setDestination` falls back to `path = [toWorld]` (one waypoint) and the renderers glide the avatar straight there, *through walls*, with no log anywhere in the chain; an agent visibly crossing a wall almost always means an unreachable destination (doorless building per `classify`, a lost `complex` field, `gridPad` mischief), not a renderer bug — and the smoke test routes only one A→B pair, so a sealed building passes all 21 checks. `maxAStarNodes` (60 000) cannot trip on the shipped 200×200 sub-grid (40 000 cells) — a null route means *genuinely no path*, so don't bump the budget. The three costs are `Math.floor`ed and clamped ≥ 1 (fractional tuning silently no-ops; the ≥ 1 clamp keeps the Manhattan heuristic admissible — don't relax it). `gridPad` has an effective floor of 1: `townTopology` forces `pad ≥ 1` while `rasterizeSolid` uses the raw value, so `gridPad: 0` classifies perimeter doors onto a phantom grass ring the grid doesn't have — edge buildings become unreachable. The render↔routing lockstep is **load-time only** on the render side: `townArt`'s `WALL_GAP` is a module-load constant, so a runtime `subdivisions` change + Reset re-rasterizes routing but keeps drawing the old doorways until a full page reload (`subdivisions < 3` is worse: `gapSpan` → null seals every building cell fully solid while the renderer falls back to a wide fake doorway). Finally, both renderers replace the **final** waypoint with `spotFor()`'s crowd-fan position; its `maxRadius = 0.22·CELL` cap is what keeps fanned avatars inside the 6×6 open interior (±0.375·CELL) — raise it and crowded rooms draw avatars inside walls with no routing involved.
-3. **Observe**: each agent may record its location (gated `rng() < 0.5`) and records every co-located agent. `Environment.indexAgents()` is refreshed after the move for O(agents) co-location lookups — its freshness check is identity+length only (it can't see `currentLocationId` changes), so the hidden invariant is **agents may only move in phase 2**: phase 1's event delivery reads the *previous* tick's index, and code that relocates an agent anywhere else gets silently stale co-location for the rest of that tick and the next tick's events, with no error.
-4. **Converse**: per location with ≥2 co-located agents, up to `CONFIG.conversation.maxPerLocationPerTick` (=1) conversations form over consecutive **id-sorted slices** of up to `maxGroupSize` (=4) (`ConversationEngine.checkGroupConverse`/`converseGroup`). The gate per slice: `baseChance` (0.45) + min(0.3, max familiarity over **off-cooldown** ordered pairs/300) — a pair still inside the 90-min per-pair `cooldownMinutes` (on monotonic `totalMinutes`) contributes nothing to the bonus, even if it is the group's most familiar pair; all-pairs-on-cooldown returns false **without consuming an RNG draw**, and a failed gate falls through to the next disjoint slice. Composition is positional, not social: adding an agent whose id sorts early shifts every group boundary town-wide (different RNG draws — the classic "unrelated change altered the run" trap), and a trailing remainder slice of 1 stays mute. Each participant gets a `conversation` memory (`relatedAgentIds` = the others), every ordered pair's relationship updates — the tone→delta numbers are **hardcoded in `Simulation.js _applyGroupConversation`, not in CONFIG or `RelationshipGraph`** (warm +3 affinity/+2 trust, tense −3/−1, neutral +1/+1, familiarity always +4; warm/tense = anchor's average affinity ≥ 20/≤ −20) — and **one** timeline entry carries `participantIds` + `locationId`. Size-2 behaves like the old pair path.
+2. **Plan → move**: `Planner.updateStatuses()` returns the active block; if it's elsewhere the agent's `currentLocationId` is set **immediately** (`moveTo()` — cognition/co-location stays bit-deterministic) AND `agent.setDestination()` computes an A* waypoint `path` (`js/utils/pathfinding.js`) that **only the renderers animate** along. Movement is "logical-instant for cognition, animated for rendering" — a deliberate determinism choice; multi-tick travel was rejected. **Solid buildings + tunnels** (`CONFIG.movement.solidBuildings`, `subdivisions:8`): each building cell is a walled unit on the sub-tile grid — a thin blocked perimeter ring with an **open interior** (the centre 6×6) and a **narrow** centred gap on its one **door** edge and on every **tunnel** edge (shared with a sibling unit of the same `complex`). The gap is only `GAP_SUBTILES` (=2 of 8) wide, so **walls cover ~75% of every edge** and rooms read as real rooms with limited doorways. The **door edge is chosen by `townTopology`'s `classify`**: the edge facing the largest 4-connected open component (exterior `gridPad` grass + streets + courtyards), preferring S, then E, W, N — so a door can legitimately open onto a courtyard green/plaza rather than a street, and a building cut off from that main network gets **no door at all**. Agents route the street network, **enter through the door**, move **room-to-room through the tunnels**, and **stand inside** (`computeDoorSpots` → the cell centre) — never crossing a wall. **A\* is weighted-cost, not step-count**: every sub-tile carries a cost painted from its location type — street 1, open ground 4, building interior 12 (`CONFIG.movement.streetCost`/`openCost`/`buildingCost`, applied via `costForType`) — which is what actually makes residents follow the paved avenues instead of cutting across parks; walls only enforce door-only entry. The wall/door/tunnel layout is one shared `townTopology`: the routing grid (`rasterizeSolid`) and the renderer (`computeWallTopology` → `townArt.spriteComplex`, which cuts the gaps at the identical cell-fraction from `gapSpan()`, ≈0.375–0.625) are driven from it, so picture and pathing stay in lockstep. A `gridPad` ring of open grass frames the town so corner complexes stay reachable. Two routing gotchas: `Simulation` **caches** the collision grid + door spots (`_grid`/`_doorSpots` — lazily built, cleared only on `init()`/`reset()`/`loadState()`), so runtime `CONFIG.movement.*`/location changes don't affect routing until a Reset ("the engine re-reads CONFIG each tick" does **not** apply here); and the comments around `_getDoorSpots`/`_doorWorld` in `Simulation.js` still describe the **old stand-OUTSIDE-the-building model** — trust `pathfinding.js` (and this file) over them. More movement fine print: **a null A\* route is silent** — `Agent.setDestination` falls back to `path = [toWorld]` (one waypoint) and the renderers glide the avatar straight there, *through walls*, with no log anywhere in the chain; an agent visibly crossing a wall almost always means an unreachable destination (doorless building per `classify`, a lost `complex` field, `gridPad` mischief), not a renderer bug — and the smoke test routes only one A→B pair, so a sealed building passes all 21 checks. `maxAStarNodes` (60 000) cannot trip on the shipped 200×200 sub-grid (40 000 cells) — a null route means *genuinely no path*, so don't bump the budget. And "no path" is rarer than it looks: **A\* snaps a blocked start/goal to the nearest open sub-tile before searching** (`snapToOpen` — deterministic Manhattan ring, lowest-linear-index tie-break, *blind to wall topology*), so a destination painted inside a wall reroutes from whichever open tile is geometrically nearest (possibly the wrong side of the wall), and `pathWorldPoints` restores the raw world endpoints, so the first/last segment of a snapped path can legitimately cross a wall on screen; null happens only when the goal's open pocket is *disconnected* from the start — e.g. the `subdivisions < 3` sealed cells below do **not** null-route, they just terminate outside the wall. The three costs are `Math.floor`ed and clamped ≥ 1 (fractional tuning silently no-ops; the ≥ 1 clamp keeps the Manhattan heuristic admissible — don't relax it). `gridPad` has an effective floor of 1: `townTopology` forces `pad ≥ 1` while `rasterizeSolid` uses the raw value, so `gridPad: 0` classifies perimeter doors onto a phantom grass ring the grid doesn't have — edge buildings become unreachable. The render↔routing lockstep is **load-time only** on the render side: `townArt`'s `WALL_GAP` is a module-load constant, so a runtime `subdivisions` change + Reset re-rasterizes routing but keeps drawing the old doorways until a full page reload (`subdivisions < 3` is worse: `gapSpan` → null seals every building cell fully solid while the renderer falls back to a wide fake doorway). Finally, both renderers replace the **final** waypoint with `spotFor()`'s crowd-fan position; its `maxRadius = 0.22·CELL` cap is what keeps fanned avatars inside the 6×6 open interior (±0.375·CELL) — raise it and crowded rooms draw avatars inside walls with no routing involved (`spotFor`'s other branch — the directional half-arc with `maxRadius = 0.42·CELL` — is unreachable: `computeDoorSpots` emits `dx/dy = 0` for every location, so the full-circle interior branch is the only live one; a lone occupant bypasses both).
+3. **Observe**: each agent may record its location (gated `rng() < 0.5` — and short-circuited for a phantom `currentLocationId`: `if (loc && rng() < 0.5)` skips the draw entirely, so a bad location id **shifts the whole run's RNG stream** from that tick on, not just that agent's observations) and records every co-located agent. `Environment.indexAgents()` is refreshed after the move for O(agents) co-location lookups — its freshness check is identity+length only (it can't see `currentLocationId` changes), so the hidden invariant is **agents may only move in phase 2**: the index's only readers are phase 1's `agentsAt` event delivery (which deliberately reads the *previous* tick's index) and phase 3's `coLocated` observations, and code that relocates an agent anywhere but phase 2 silently serves them stale co-location (until the next post-phase-2 rebuild) with no error. Phase 4 is immune — conversation grouping builds its own location map from `currentLocationId` each tick, bypassing the index.
+4. **Converse**: per location with ≥2 co-located agents, up to `CONFIG.conversation.maxPerLocationPerTick` (=1) conversations form over consecutive **id-sorted slices** of up to `maxGroupSize` (=4) (`ConversationEngine.checkGroupConverse`/`converseGroup`). The gate per slice: `baseChance` (0.45) + min(0.3, max familiarity over **off-cooldown** ordered pairs/300) — a pair still inside the 90-min per-pair `cooldownMinutes` (on monotonic `totalMinutes`) contributes nothing to the bonus, even if it is the group's most familiar pair; all-pairs-on-cooldown returns false **without consuming an RNG draw**, and a failed gate falls through to the next disjoint slice. Composition is positional, not social: adding an agent whose id sorts early shifts every group boundary town-wide (different RNG draws — the classic "unrelated change altered the run" trap), and a trailing remainder slice of 1 stays mute. Each participant gets a `conversation` memory (`relatedAgentIds` = the others), every ordered pair's relationship updates — the tone→delta numbers are **hardcoded in `Simulation.js _applyGroupConversation`, not in CONFIG or `RelationshipGraph`** (warm +3 affinity/+2 trust, tense −3/−1, neutral +1/+1, familiarity always +4; warm/tense = anchor's average affinity ≥ 20/≤ −20) — and **one** timeline entry carries `participantIds` + `locationId`. Size-2 behaves like the old pair path — via `converseGroup`'s delegation to `converse()`; `ConversationEngine.canConverse` is **dead code with a different, one-directional cooldown gate** (nothing calls it — don't read it as the gate spec).
 5. **Reflect**: agents whose accumulated importance crossed the threshold synthesize an insight.
 
 At **day rollover** (checked at the top of `step()`): `Environment.resetEvents()` re-arms
@@ -154,21 +182,39 @@ templated inline in `Simulation.js`):
   recency is exponential decay (`0.5^(age/halfLife)`), importance is `importance/10`, and
   relevance is keyword overlap (memory `keywords[]` + tokenized description vs. query).
   `MemoryStream.retrieve(query, currentTime, n)` sorts by score then newest-first and returns
-  scored wrappers `{memory, score, recency, importance, relevance}` — unwrap `.memory`.
+  scored wrappers `{memory, score, recency, importance, relevance}` — unwrap `.memory`. **But the
+  sim never calls it**: no tick phase or cognition module invokes `retrieve` — `Reflector`
+  synthesizes from `memoryStream.recent(12)` (plain newest-N, unscored), `Agent.retrieveMemories`
+  has zero callers, and the only runtime caller is the RetrievalProbe panel — so the scoring
+  pipeline and the `CONFIG.retrieval` weights shape a *display*, never a run.
 - **Reflection accumulation gotcha**: only *lived* memory types (`observation`, `action`,
   `conversation`, `event`) add to `reflection.accumulatedImportance`; `reflection` memories
   are deliberately excluded to avoid a feedback loop — the type gate lives in `Agent.addMemory`,
   and `Reflector.reflect()` is what resets the counter. `Reflector.shouldReflect()` gates on
-  both the importance threshold **and** `minIntervalMinutes`.
+  both the importance threshold **and** `minIntervalMinutes`. Trap for custom providers:
+  `reflect()` zeroes the counter and stamps `lastReflectionTime` **before** `Simulation` checks
+  the insight (`if (insight)` gates the memory + timeline entry) — a falsy `generateReflection`
+  return silently burns the accumulated importance *and* re-arms the interval gate with nothing
+  recorded (invisible today: `LocalGenerationProvider` always returns a non-empty string).
 - **Relationships**: `RelationshipGraph.update(id, deltas)` **adds** clamped deltas (it does
   not set) — `affinity`/`trust` ∈ [-100,100], `familiarity` ∈ [0,100]. Conversation tone
   (warm/neutral/tense, derived from existing affinity) drives the deltas — the actual numbers
-  live in `Simulation.js`, not here (see the tick's phase 4).
+  live in `Simulation.js`, not here (see the tick's phase 4). `RelationshipGraph.get()` is a
+  **mutating getter** — it auto-vivifies and stores a zero-value record for unknown ids, and the
+  conversation gate calls it for every off-cooldown ordered pair, so merely sharing a location
+  writes zeroed relationship rows into saves (and flips the `relationships.has()` branch in
+  `generateReflection`) even when no conversation ever fires; "read-only" debug code calling
+  `.get()` changes `getState()` bytes — the UI panels deliberately use `.all()`.
 - **Planner edge cases / dead fields**: plan-item `priority` is written but never read —
   overlapping blocks resolve to the **last** one in array order; a plan gap (`active = null`)
   makes the agent freeze in place as `"Resting"` (it does not go home). `Location.capacity`
   (default 8) is never enforced — co-location is unbounded — and `district`/`distanceTo()`/
-  `agent.planDay` are stored or serialized but never consulted. Don't design around any of them.
+  `agent.planDay` are stored or serialized but never consulted, as are `agent.pathIndex`/
+  `arrived`/`destLocationId` (write-only render-state: both renderers `slice()` `agent.path` and
+  track walk progress privately, and nothing ever sets `arrived` back to `true` — the constructor
+  comment describing that is wrong) and `archetype`/`relationshipPrefs`/`activityPrefs` (the last
+  reaches the Planner's provider context but the shipped provider ignores it; of the appearance
+  block only `spriteVariant`/`palette` are consumed). Don't design around any of them.
 - **`GenerationProvider`** — the abstract base declares four throwing stubs (`generatePlan`,
   `generateReflection`, `generateConversation`, `generateReaction`), but a complete provider
   needs a **fifth method the base class does not declare**:
@@ -200,6 +246,10 @@ templated inline in `Simulation.js`):
   camera pan — writes that shared seed into localStorage permanently. Relatedly, an **empty** seed
   box on Reset falls through to the previously persisted `settings.seed`, **not** back to
   `CONFIG.defaultSeed` (escape: type the default seed, use a `#seed=` hash, or clear localStorage).
+  And Reset never clears the hash itself — `location.hash` is written only by Share and read once
+  at boot (no `hashchange` listener), so after arriving via `#seed=X`, a Reset to seed Y runs Y
+  while the URL keeps `#seed=X`, and the **next reload silently re-hijacks back to X** (escape:
+  clear the hash manually or hit Share to overwrite it with the current seed).
 - **Two separate persistence stores** (both `localStorage`, version-suffixed keys):
   full sim state under `CONFIG.storageKey` (`generative-agents-vanilla:state:v1`) via
   `sim.save()/load()`; UI settings (speed/debug/seed) under `CONFIG.settingsKey`
@@ -207,7 +257,10 @@ templated inline in `Simulation.js`):
 - **Two save paths**: localStorage (`sim.save()/sim.load()`) vs. file export/import
   (`sim.getState()` → JSON download; `sim.loadState(state)` ← imported file — both wired in
   `main.js`, not `Controls.js`). **`getState()` returns live references** (the `timeline` array;
-  each agent's `currentPlan`/`conversationLog`/`reflection`/`path`; the memory arrays) and
+  each agent's `currentPlan`/`conversationLog`/`reflection`/`path`/`traits`/`goals`/`dailyRoutine`;
+  each location's `tags`; the memory arrays; and `RelationshipGraph.toJSON` returns the **live
+  relationships map itself** — on load the constructor only shallow-spreads it, so the per-pair
+  record objects and their `notes` arrays stay shared and `update()` mutates them in place) and
   `loadState()` adopts them directly (one exception: `MemoryStream`'s constructor `slice()`s its
   memories array, so the two sims share the memory *objects* but not the array — an append in one
   never shows up in the other) — `simB.loadState(simA.getState())` cross-wires two sims into
@@ -215,7 +268,17 @@ templated inline in `Simulation.js`):
   `JSON.parse(JSON.stringify(...))`s first — do the same in any fork/determinism test. Also:
   `TimeManager.fromJSON` restores the **saved** `minutesPerTick`, so loading a save made at a
   different tick rate desyncs `sim.time` from `CONFIG`/the Minutes-per-tick slider until the
-  slider is touched (its `set()` dual-writes both).
+  slider is touched (its `set()` dual-writes both). More `loadState` asymmetries: it hard-rejects
+  `version !== 1` by returning `false` without touching the sim or logging (the file-import path
+  surfaces that only as its "unrecognised state file" message — bump/handle the version gate when
+  evolving the save shape); a missing or non-numeric `rngState` silently restarts the RNG from the
+  seed's beginning; and `_seedData` is never replaced — `reset()` always rebuilds the
+  constructor-time seed world, so **Reset after importing a save from a modified seed set silently
+  discards the imported world**. Finally, `MemoryStream` is append-only and uncapped
+  (`memoryVisible` caps display, not storage), so state grows without bound; on localStorage quota
+  exhaustion `storage.save` just `console.warn`s and returns `false` — the manual Save button
+  flashes "Save unavailable", but the settings/camera `persistSettings` path fails with zero UI
+  feedback.
 
 ## Rendering (`js/ui/`)
 
@@ -242,7 +305,8 @@ modules, so they stay in lockstep:
   **no door at all** → sealed rooms + the silent straight-line wall-clipping fallback, town-wide,
   with no test to catch it. Stale comments in `townArt.js`/`Location.js` still describe an
   old coarse-grid fallback that lumped unrelated buildings into sparse pseudo-complexes — that
-  fallback was removed; don't believe them*). `spriteComplex` draws each member's walled unit and
+  fallback was removed; don't believe them, nor `spriteComplex`'s "per-unit nameplates are drawn
+  LAST" comment: no per-unit nameplate code exists, the fascia plank is the only sign*). `spriteComplex` draws each member's walled unit and
   the shared shell, cutting a narrow centred **door** gap in each unit's door-edge shell wall (the
   edge `classify` picks — see the tick section) and a **tunnel** gap in every wall
   shared with a sibling unit — gaps positioned at the narrow cell-fraction from the shared
@@ -252,16 +316,21 @@ modules, so they stay in lockstep:
   renderer-facing wrapper — render ↔ routing lockstep, see the tick's *Plan → move* note:
   `wallEdge` reads `gapSpan`, which is derived from the same `gapIndices`/`GAP_SUBTILES` that
   `rasterizeSolid` punches its openings from — **change the gap via `GAP_SUBTILES`, never by editing
-  `gapSpan` alone**). That exact alignment holds for **multi-unit complexes only**: a 1-member
+  `gapSpan` alone** — and note door and tunnel gaps are **pixel-identical**: `wallEdge` receives
+  only open/closed, not the door=1/tunnel=2 distinction; only the routing semantics differ). That exact alignment holds for **multi-unit complexes only**: a 1-member
   complex takes the old `spriteBuilding` path, whose sub-cell footprint draws walls/door ~14px
   inside the full-cell collision walls (today only `loc_river_studio`/cx17, plus any building
   added without re-running `pack_locations`) — don't chase that offset as a regression. Empty
   cells in the bounding box are furnished as the block's shared lounge (`gapLounge`: a back-wall
   sofa/plant/bookshelf reading nook, a central dining set on a rug, side greenery, a front bench —
-  clipped to the cell, deterministic via `seededRandom("gap-<x>-<y>")`), so a complex that doesn't
-  tile its bounding box never reads as a bare/broken room. There is no entry doormat anywhere —
-  doormats drew unclipped over door-adjacent furniture and were removed; only **south** doors get
-  deck+stairs. **Signs are per BUILDING, not per room**: a multi-unit complex draws exactly ONE
+  clipped to the cell, deterministic via `seededRandom("gap-<px>-<py>")` keyed on the cell's
+  world-**pixel** origin, e.g. `gap-3520-1760`, not grid coords), so a complex that doesn't
+  tile its bounding box never reads as a bare/broken room — 18 such bbox-hole cells exist in the
+  shipped town, and they have **no `Location` record at all** (don't assume every 23×23 footprint
+  cell resolves to a location). There is no entry doormat in the sprite path —
+  doormats drew unclipped over door-adjacent furniture and were removed (a dark-wood doormat strip
+  survives only in the procedural `drawBuilding` fallback, like the shingle roof); only **south**
+  doors get deck+stairs. **Signs are per BUILDING, not per room**: a multi-unit complex draws exactly ONE
   `nameSign` (fascia-mounted — no hanger peg/links — fully inside the bottom wall band
   `[y+h−16, y+h]`, so it can never cover furniture or courtyard decor) on its south face, named
   by `buildingName()` (type → `SIGN_LABELS` + a deterministic `SIGN_PREFIXES` prefix keyed on the
@@ -272,7 +341,10 @@ modules, so they stay in lockstep:
   the left strip would collide with the complex mailbox at `x+6` whenever the lone unit is in
   the leftmost column, true of all 7 shipped lone-branch complexes). Per-unit names survive only
   in the side panels/legend; a 1-member
-  complex keeps its member's own name via `spriteBuilding`'s top-hung sign.
+  complex keeps its member's own name via `spriteBuilding`'s top-hung sign (`spriteBuilding` also
+  rolls its deck 50/50 — seeded `deck-<id>` — always at the **south** face regardless of which
+  edge `classify` gave the door; today's sole standalone, `loc_river_studio`, happens to have a
+  south door and a passing roll).
   **`wallCap()` caps every shell with a flat light-grey wall top
   (the cutaway look) — there is NO colored shingle roof in the sprite path** (`shingleRoof`/`ROOF`
   survive only in the procedural `drawBuilding` fallback). Each unit's interior comes from a per-type
@@ -293,24 +365,41 @@ modules, so they stay in lockstep:
   ~0.84×0.74-cell footprint (the `DEFAULT_BLUEPRINT` `foot` — outdoor types have no blueprint of
   their own; a grass verge shows at their edges). The procedural fallback mirrors this
   with `drawStreet`/`drawPark`/`drawPlaza` (the old global path-band grid was removed — streets are
-  explicit cells now).
+  explicit cells now). The sprite path also dresses the map with a sandy **shoreline** across the
+  south ~1.4 cells (dithered grass→sand transition) and a deterministic **forest** — a dense grove
+  over open cells in the top-left ~30%×34% of the grid, ~4.5% sparse elsewhere, seeded
+  `forest-<cx>-<cy>`, drawn *before* buildings so canopies overhang — sand at the bottom / woods
+  at the top-left of a capture are by design, not artifacts.
 - **`townChunks.js`** — the world is too big for one texture (> WebGL limits), so
   it's **baked per chunk** (4×4 cells) **lazily and viewport-culled**. `makeChunkCanvas`,
   `visibleChunks`, `chunkDims`, `chunkWorldRect`, `chunkKey`. Pixi LRU-caches chunk textures
-  (`CONFIG.rendering.chunkCacheMax`); off-screen chunks/agents are hidden.
+  (`CONFIG.rendering.chunkCacheMax`); off-screen chunks/agents are hidden. Eviction differs by
+  renderer: Pixi's true LRU never evicts a *visible* chunk (the cache can exceed the cap), while
+  MapView's is insertion-order FIFO with no touch-on-use and **can** drop a still-visible chunk —
+  at far zoom-out (more visible chunks than the cap) MapView silently re-bakes evicted chunks
+  every frame (perf churn, not a bug). The 2× bake supersample `TEXTURE_SCALE` lives in **three
+  places**: `townArt.js` exports it (the `makeChunkCanvas` default), but each renderer defines its
+  own local `const TEXTURE_SCALE = 2` and passes it explicitly — editing only townArt's export
+  changes nothing the live renderers bake.
 - **`camera.js`** (`Camera`) — **one** renderer-agnostic controller for **both** views (Pixi
   applies it to the world container via `scale`/`position`; canvas via `ctx.setTransform`):
   **drag-pan + wheel/pinch-zoom + inertia + double-tap-zoom**, `worldToScreen`/`screenToWorld`,
   `visibleWorldRect()` (the culling source), `centerOn(wx,wy)`, `toJSON/applyState` (persisted to
   `settings.camera`, debounced 300 ms — `main.js` does this by **wrapping** `camera.onChange`, so
-  reassigning `onChange` after `setupMap()` silently kills persistence). Node-safe — the pure math
+  reassigning `onChange` after `setupMap()` silently kills persistence; ignore the stale
+  `_persist` comment in `PixiMapView` — main.js never assigns it, both views' constructor
+  `onChange` is a no-op, the wrap is the only persistence path). Node-safe — the pure math
   constructs/runs with no DOM (though no test
   currently imports it). The
   world is **boundless** (`CONFIG.camera.infinite`): there are **no map edges** — the town floats
   in infinite grass, so the zoom-out floor is an **absolute** `minScale` (`CONFIG.camera.minZoom`),
   **not** fit-to-world; `canPan()` is always true; and `_clampTarget()` only *soft*-limits roaming
-  (a `pad` around the town keeps it reachable instead of clamping to an edge). `fit()` / the **Fit**
-  toolbar button frames the town centered (not its edges); the initial view opens centered on the
+  (a `pad` around the town keeps it reachable instead of clamping to an edge). `CONFIG.camera`
+  passes exactly five keys (`infinite`/`minZoom`/`maxZoom`/`zoomStep`/`easing`) — the feel knobs
+  `inertia`/`friction`/`minVelocity`/`doubleTapZoom` exist only in `camera.js`'s own
+  `CAMERA_CONFIG` defaults, so tune them there, not in config.js. `fit()` / the **Fit**
+  toolbar button frames the town centered at **90% of true fit** (an extra 0.9 margin in infinite
+  mode, so the town never touches the viewport edges); the initial view opens centered on the
   town (a zoomed-in `defaultView`, ~12 cells across) **unless a numeric `settings.camera.scale`
   was persisted — a stale camera in localStorage overrides the default view, so clear it (or hit
   Fit) before judging view/centering changes**; and **selecting or clicking a resident** (on the
@@ -358,10 +447,15 @@ modules, so they stay in lockstep:
   furniture placement must go through `put()`** (a raw `drawImage` renders 4× too big). The
   sprite path also needs a critical mass: `drawTownInto` takes the tilemap path only when the
   sprites map has **≥6 entries** — a missing atlas (`loadSprites` → `{}`) *or any partial/mock
-  sprite map* silently renders the full **procedural** fallback instead.
+  sprite map* silently renders the full **procedural** fallback instead. And `loadSprites()`
+  caches its promise module-wide with no retry or reset hook, so one transient manifest/atlas
+  fetch failure locks the procedural fallback in for the entire page lifetime (hard reload to
+  recover).
 
 High-DPI: Pixi `resolution = CONFIG.rendering.resolutionScale` (devicePixelRatio, capped 2) +
-`autoDensity`; canvas backs the store at `cssPx*dpr`. **All art is original SVG** (no third-party
+`autoDensity`; canvas backs the store at `cssPx*dpr` — with **raw, uncapped** `devicePixelRatio`,
+so on a 3× display the two renderers rasterize at different densities (don't pixel-compare
+screenshots across renderers there). **All art is original SVG** (no third-party
 packs); the two atlases are the only image assets.
 
 Day/night: both renderers tint the world with `townArt.ambient(minutesIntoDay)` — a keyframed
@@ -391,16 +485,28 @@ check the sim clock before judging palette.
   persisted-index trap: the speed `<select>` stores the *index* into `CONFIG.speeds` in
   localStorage (`settings.speedIndex`) and `_schedule()` dereferences it unguarded — reordering or
   removing `CONFIG.speeds` entries breaks returning sessions only (fresh profiles are fine).
-  `js/ui/ParamControls.js` mutates retrieval/
-  reflection live for in-browser ablation; the engine re-reads `CONFIG` each tick. Caveat:
+  `js/ui/ParamControls.js` mutates retrieval/reflection `CONFIG` live for in-browser ablation —
+  but only the **reflection** knobs change the run (the engine re-reads `CONFIG.reflection` each
+  tick); the retrieval weights re-rank only the RetrievalProbe panel's display, because no core
+  cognition path ever calls `MemoryStream.retrieve` (see the retrieval note under *Cognitive
+  architecture*). ParamControls tuning is also **never persisted** — the settings store holds only
+  speed/debug/seed/camera, so ablation changes revert on reload — and its "Reset defaults" button
+  restores the **mount-time snapshot** of CONFIG, not the `config.js` literals. Caveat:
   `TimeManager` **caches** `minutesPerTick`, so the Minutes/tick slider also writes
   `sim.time.minutesPerTick` — keep that dual-write. (Same pattern: `Simulation` caches
   `_grid`/`_doorSpots`, so movement/location changes need a Reset — see the tick section.)
 - **Add an agent/location/event**: append to `js/data/seedAgents.js` / `seedLocations.js` (exact
   field names: `homeLocationId`, `workLocationId`, `currentLocationId`; every referenced id
   must exist in `seedLocations.js` — a missing id does **not** break init, the sim silently
-  degrades: the agent stands at a phantom id with no observations and no path, and only the smoke
-  test's world-integrity check catches it, so run `npm run smoke` after editing seeds), then
+  degrades: `currentLocationId` still updates to the phantom id, observations stop (and the
+  skipped `rng()` draw shifts the whole run's RNG stream — see the tick's phase 3), and
+  `setDestination` is never called, so the agent's *previous* `path` is left stale and the
+  renderers replay that old route with its final waypoint swapped to `spotFor`'s no-rect fallback
+  at the town centre — an avatar drifting to mid-town is the symptom; only the smoke
+  test's world-integrity check catches it, so run `npm run smoke` after editing seeds. Ids must
+  also be **unique**: `Environment.addLocation` is a plain `Map.set`, so a copy-pasted location id
+  silently drops the earlier location — and the smoke test checks duplicate *coords* and agent
+  *refs*, not id uniqueness, so it passes), then
   **Reset** to rebuild. **World events**
   are the third seed file, `js/data/seedEvents.js`: fields `id`, `time` (minutes-into-day,
   0–1439), `locationId` (must exist in `seedLocations.js`), `title`, `description`,
@@ -410,7 +516,11 @@ check the sim clock before judging palette.
   catch-up), and on day 1 everything scheduled before the 08:00 start fires in one first-tick
   burst in seed-array order. `Environment.resetEvents()` re-arms them at
   rollover, and `Environment.addEvent()` injects more at runtime (a past `time` fires on the very
-  next tick). Location
+  next tick; injections survive save/load — events + `fired` flags are serialized, so a loaded
+  mid-day save does not re-fire that morning — but **Reset wipes them**, rebuilding from the
+  pristine constructor-time `_seedData` clone). Event ids must be unique: `markFired` flags the
+  **first** event with a matching id, so a duplicated id makes the second copy re-fire **every
+  tick** (re-armed daily), with no error. Location
   `type`/`tags` (`cafe`, `park`, `shop`, `library`, `square`, …) drive plan-block resolution.
   Each building location also carries a packed `x`/`y` and a `complex` id (grouped into one
   cutaway shell by the renderer) — both assigned by `node tools/pack_locations.mjs`; re-run it
@@ -431,13 +541,33 @@ check the sim clock before judging palette.
   cells, ids `loc_street_*`); every unused block cell (including every pad cell between
   complexes) becomes a `green`/`plaza` courtyard (ids `loc_fill_*`). Both `loc_street_*`/
   `loc_fill_*` are stripped + regenerated each run (idempotent), so the town has **walkable
-  streets** and **no bare-grass gaps**. Hand-authored parks/squares are dealt **round-robin
+  streets** and **no bare-grass gaps**. The 3×3-blocks/23×23/511 figures are **derived, not
+  configured** (`BLOCKS_COLS = round(√blocksN)`, 8 zone-pure blocks today): a 9th complex-bearing
+  block silently consumes the central park slot (still 3×3), a 10th reshapes the town to 3×4 →
+  23×31 — re-verify this file's numbers after a repack that adds complexes. Two more pack-time
+  throws exist besides no-touch: "dup coord" and "complex too big for a block" (complex widths are
+  clamped to ≤ 5 columns, so an over-grown type group trips the latter). Hand-authored parks/squares are dealt **round-robin
   across the zones** (uninflated 1×1 — flush against a building is fine; they ARE breathing
-  room). **Both generated filler kinds are scenery, never plan destinations**: `street` cells
+  room). **Every** location carries a `complex` field — generated streets/courtyards get
+  `out_street_*`/`out_fill_*` and hand-authored parks/squares `out_<id>` pseudo-ids; building
+  complexes are exactly the `cx<N>` ids (cx0–cx31 shipped), and the renderer's grouper skips
+  outdoor plots by `isOutdoorType(loc.type)`, not by the field. Expect deterministic-art churn
+  after any repack: courtyard/gap-lounge decor is seeded by the cell's **pixel position** (moved
+  cells redraw differently), and `cx` ids come from one global counter over type-groups (split at
+  8 members) — a change that alters how many complexes are emitted earlier in type order shifts
+  every later `cx` id and with it the `sign-<complex>`-seeded name prefixes; town-wide
+  signage/decor churn after a repack is expected, **not an art regression**. **Both generated filler kinds are scenery, never plan destinations**: `street` cells
   are tagged `["street","road","outdoor"]` and courtyards `["green"|"plaza","courtyard","outdoor"]` —
   deliberately **no** park/square/cafe tag on either (the planner matches blocks by
   `type`-or-tag, and 274 park-tagged courtyards once swamped the real cafés/parks so badly that
-  lunch/leisure gatherings halved) — residents just walk through them. New community building **types** each need: a
+  lunch/leisure gatherings halved) — residents just walk through them. Re-tagging is also a
+  town-wide RNG butterfly (same class as the conversation-slice trap): `_resolveLocation` picks
+  plan destinations via `choice(candidates, rng)` over every location matching a template's
+  type/tags, at init and every rollover — adding, removing, or re-tagging any
+  cafe/park/shop/library/square changes the candidate arrays and diverges all 24 agents' plans
+  from day 1. New community building **types** each need: a zone in `pack_locations.mjs`'s `ZONES` map (the
+  fallback is silent — `ZONES[type] || "commercial"` packs an unknown type into the commercial
+  core with no warning), a
   `BLUEPRINTS` plan (or `BLUEPRINT_ALIAS`), a `furnish()` room `kind`, a `ROOF` colour, and tags for
   plan-block resolution; new **outdoor** types must be added to `OUTDOOR_TYPES`/`isOutdoorType` (so
   the complex grouper skips them), `isOpenType` in `pathfinding.js` (so the movement grid
@@ -471,18 +601,27 @@ CLI fine print for that loop: `svg2png` and `screenshot.mjs` both hard-require t
 positional args (bare → usage error, exit 2); only `pack_tiles` runs bare, defaulting its
 out-path to `/tmp/tile_atlas.svg` — but **never run
 `pack_tiles --manifest` without the positional**, since `argv[2]` becomes the literal `--manifest`
-and the atlas SVG lands in a junk `./--manifest` file while still exiting 0. A tile SVG missing
+and the atlas SVG lands in a junk `./--manifest` file while still exiting 0 (`assemble_atlas.mjs`
+has the **identical trap** — bare `--manifest` writes the char-atlas SVG to `./--manifest` while
+still writing `assets/characters.json` and exiting 0). A tile SVG missing
 from `tools/tile_svg/` still writes atlas + manifest (blank region → that sprite silently renders
 as nothing) with only `process.exitCode = 1` and a `MISSING:` suffix on the log line — chain with
-`&&` and watch for it. `screenshot.mjs` extras: `--clip '#map-host'` captures just the map,
+`&&` and watch for it. `screenshot.mjs` extras: `--clip '#map-host'` captures just the map (a selector that matches
+**nothing** silently falls back to a full-viewport capture with exit 0 — the only tell is the
+final log line missing its `clip` suffix),
 `--w/--h` set the viewport (default 1500×800), `--wait` ms after eval, `--dpr` scale; the `--eval`
 result is awaited (promises OK) and printed to **stderr**, so it doubles as a headless state probe
 (sim clock, agent positions). Its ~20 s boot wait (polling `window.__app.map.layout`) is
 **non-fatal** — on timeout it warns and captures the half-loaded page anyway with exit 0, so check
 stderr, not the exit code. Both Chrome-driving tools (`svg2png`, `screenshot`) honor
 `CHROME_PATH`/`CDP_PORT` (no Google Chrome at the default macOS path → set `CHROME_PATH`) and will
-**reuse/commandeer** a Chrome already listening on their port.
+**reuse/commandeer** a Chrome already listening on their port (defaults differ — svg2png 9388,
+screenshot 9389 — so they never collide with each other, but one `CDP_PORT` overrides **both**;
+they only kill a Chrome they spawned themselves).
 
 `ART_BIBLE.md` documents the older palette, sprite grid, and room layouts. Note it describes a
-procedural generator/`tools/` workflow that is **not present in this deploy repo**, and it predates
-the cutaway refactor — treat it as historical design intent, not runnable here.
+procedural generator/`tools/` workflow that is **not present in this deploy repo**, it predates
+the cutaway refactor, and its headline "art source" note — sprites sliced from Kenney CC0 packs by
+`tools/slice_city.mjs` — is **false here** (no such tool exists; all art is original
+self-generated SVG, per `assets/CREDITS.txt`, whose own "37 tiles" count is *also* stale vs. the
+88 in `assets/manifest.json`) — treat it as historical design intent, not runnable here.
