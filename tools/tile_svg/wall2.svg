@@ -1,17 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="wall2_v" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ece8de"/><stop offset="0.5" stop-color="#ddd8cc"/><stop offset="1" stop-color="#cec8b9"/>
+      <stop offset="0" stop-color="#f3efe3"/><stop offset="0.5" stop-color="#e2dccd"/><stop offset="1" stop-color="#cbc4b2"/>
+    </linearGradient>
+    <linearGradient id="wall2_face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#988f7b" stop-opacity="0"/><stop offset="1" stop-color="#8a826e" stop-opacity="0.54"/>
     </linearGradient>
     <filter id="wall2_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
       <feTurbulence type="fractalNoise" baseFrequency="0.5 0.55" numOctaves="2" seed="11" stitchTiles="stitch" result="n"/>
-      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.45 0 0 0 0" result="a"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.4 0 0 0 0" result="a"/>
       <feComposite in="a" in2="SourceAlpha" operator="in"/>
     </filter>
   </defs>
-  <!-- complex outer shell wall: same light-grey plaster as the interior walls, a touch brighter -->
-  <rect width="64" height="64" fill="url(#wall2_v)"/>
-  <rect width="64" height="64" fill="#a59d8b" filter="url(#wall2_grain)" opacity="0.12"/>
-  <rect x="0" y="0" width="64" height="3.5" fill="#f4f0e6" opacity="0.65"/>
-  <rect x="0" y="61" width="64" height="3" fill="#b6ae9c" opacity="0.5"/>
+  <!-- complex outer SHELL wall: same ashlar + cutaway depth as the interior wall, a touch brighter -->
+  <rect width="64" height="64" fill="#ada48f"/>
+  <rect x="2" y="2" width="60" height="60" fill="url(#wall2_v)"/>
+  <rect x="2" y="2" width="60" height="60" fill="#9b927d" filter="url(#wall2_grain)" opacity="0.1"/>
+  <rect x="2" y="36" width="60" height="26" fill="url(#wall2_face)"/>
+  <rect x="2" y="2" width="60" height="4" fill="#fbf7ed" opacity="0.66"/>
+  <rect x="2" y="2" width="4" height="60" fill="#f3eee3" opacity="0.36"/>
+  <rect x="2" y="58" width="60" height="4" fill="#847c68" opacity="0.66"/>
+  <rect x="2" y="60.5" width="60" height="1.5" fill="#6a6251" opacity="0.58"/>
 </svg>

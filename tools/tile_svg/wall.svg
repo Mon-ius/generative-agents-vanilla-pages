@@ -1,17 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="wall_v" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#e6e2d8"/><stop offset="0.5" stop-color="#d8d3c7"/><stop offset="1" stop-color="#cbc5b6"/>
+      <stop offset="0" stop-color="#ece7da"/><stop offset="0.5" stop-color="#dcd5c5"/><stop offset="1" stop-color="#c3bca9"/>
+    </linearGradient>
+    <linearGradient id="wall_face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8f8773" stop-opacity="0"/><stop offset="1" stop-color="#827a66" stop-opacity="0.6"/>
     </linearGradient>
     <filter id="wall_grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
       <feTurbulence type="fractalNoise" baseFrequency="0.5 0.55" numOctaves="2" seed="6" stitchTiles="stitch" result="n"/>
-      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.45 0 0 0 0" result="a"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0.4 0 0 0 0" result="a"/>
       <feComposite in="a" in2="SourceAlpha" operator="in"/>
     </filter>
   </defs>
-  <!-- light warm-grey plaster wall, smooth with a faint top-lit edge so stacked rows read as courses -->
-  <rect width="64" height="64" fill="url(#wall_v)"/>
-  <rect width="64" height="64" fill="#a59d8b" filter="url(#wall_grain)" opacity="0.14"/>
-  <rect x="0" y="0" width="64" height="3" fill="#f0ece2" opacity="0.6"/>
-  <rect x="0" y="61" width="64" height="3" fill="#b2aa98" opacity="0.5"/>
+  <!-- mortar bed: a darker grey shows through the thin ashlar joints when the 16px tile repeats -->
+  <rect width="64" height="64" fill="#a79e8b"/>
+  <!-- raised plaster-stone block, inset 2px so a recessed joint frames it (a joint every 16px in either orientation) -->
+  <rect x="2" y="2" width="60" height="60" fill="url(#wall_v)"/>
+  <rect x="2" y="2" width="60" height="60" fill="#9b927d" filter="url(#wall_grain)" opacity="0.12"/>
+  <!-- baked cutaway depth: shaded lower FACE (continuous lit-top/shaded-bottom band on horizontal walls; stacked courses on vertical walls) -->
+  <rect x="2" y="36" width="60" height="26" fill="url(#wall_face)"/>
+  <!-- lit top cap edge + left bevel highlight (consistent top-left light) -->
+  <rect x="2" y="2" width="60" height="4" fill="#f6f2e8" opacity="0.62"/>
+  <rect x="2" y="2" width="4" height="60" fill="#efeadf" opacity="0.34"/>
+  <!-- dark footing / base contact line -->
+  <rect x="2" y="58" width="60" height="4" fill="#7d7561" opacity="0.7"/>
+  <rect x="2" y="60.5" width="60" height="1.5" fill="#655e4d" opacity="0.6"/>
 </svg>

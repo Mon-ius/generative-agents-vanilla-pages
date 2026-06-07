@@ -498,12 +498,13 @@ function drawBuilding(g, r, rnd, lightsOn) {
   const doorW = 16, doorX = r.cx - doorW / 2;
   g.fillRect(r.bx, r.by + r.bh - wt, doorX - r.bx, wt);                       // bottom-left
   g.fillRect(doorX + doorW, r.by + r.bh - wt, r.bx + r.bw - (doorX + doorW), wt); // bottom-right
-  // doormat
-  g.fillStyle = C.woodDark; g.fillRect(doorX, r.by + r.bh - 3, doorW, 3);
+  // a short wooden door leaf standing in the gap (procedural parity with the sprite path)
+  g.fillStyle = "#8a5a2e"; g.fillRect(doorX + 1, r.by + r.bh - wt - 4, doorW - 2, wt + 4);
+  g.fillStyle = "#caa86e"; g.fillRect(doorX + doorW - 5, r.by + r.bh - wt, 1.6, 2.4); // brass knob
 
-  // dark outline + cozy shingled roof eave on top
-  g.strokeStyle = C.wallLine; g.lineWidth = 1.5;
-  g.strokeRect(r.bx + 0.5, r.by + 4.5, r.bw - 1, r.bh - 4);
+  // heavier dark outline + cozy shingled roof eave on top
+  g.strokeStyle = "#241f19"; g.lineWidth = 2;
+  g.strokeRect(r.bx + 1, r.by + 5, r.bw - 2, r.bh - 5);
   shingleRoof(g, r, roof);
 
   composeInterior(g, r.loc.type, ix, iy, iw, ih, roof, rnd);
@@ -681,11 +682,14 @@ export function shingleRoof(g, r, roof) {
 // cutaway look (no colored roof): the wall's top face seen from above, lit on the
 // top edge with a crisp dark outline. Replaces the shingle roof in the sprite path.
 export function wallCap(g, r) {
-  const x = r.bx, w = r.bw, y = r.by, capH = 7;
-  g.fillStyle = "#d6d0c4"; g.fillRect(x, y - capH, w, capH);   // wall top face
-  g.fillStyle = "#efeae0"; g.fillRect(x, y - capH, w, 2);      // top-lit highlight
-  g.fillStyle = "#b4ac9a"; g.fillRect(x, y - 2, w, 2);         // contact shadow into the interior
-  g.strokeStyle = "#3a352e"; g.lineWidth = 1;
+  const x = r.bx, w = r.bw, y = r.by, capH = 9;
+  const grad = g.createLinearGradient(0, y - capH, 0, y);
+  grad.addColorStop(0, "#e7e1d4"); grad.addColorStop(1, "#c3bca9");
+  g.fillStyle = grad; g.fillRect(x, y - capH, w, capH);          // raised wall top face (lit -> shaded)
+  g.fillStyle = "#f4efe4"; g.fillRect(x, y - capH, w, 2);        // top-lit cap highlight
+  g.fillStyle = "#a39a86"; g.fillRect(x, y - 2.5, w, 2.5);       // shaded front lip (cutaway thickness)
+  g.fillStyle = "rgba(36,31,25,0.55)"; g.fillRect(x, y - 0.5, w, 1); // dark contact line into the interior
+  g.strokeStyle = "#241f19"; g.lineWidth = 1;
   g.strokeRect(x + 0.5, y - capH + 0.5, w - 1, capH);
 }
 
@@ -1135,6 +1139,26 @@ function wallEdge(g, img, horizontal, ex, ey, len, open) {
   else { clipTile(g, img, ex, ey, 16, g0); clipTile(g, img, ex, ey + g1, 16, len - g1); }
 }
 
+// Stand a recognizable door LEAF (the S.door sprite) in a unit's open doorway, on
+// whichever single edge classify() chose (S/E/W/N). Centred on the gap (cell mid) it
+// sits in the 16px wall band and steps ~8px OUT onto the deck/ground, rotated to face
+// outward. Pure decorative paint INSIDE the already-open gap: its inward reach
+// (DH-OUT = 14px) stays within the 16px band, so it never touches interior furniture
+// and never alters the routing gap.
+function doorLeaf(g, S, edge, ux, uy, cw, ch) {
+  if (!S.door || !edge) return;
+  const DW = 18, DH = 22, OUT = 8;
+  const midX = ux + cw / 2, midY = uy + ch / 2;
+  g.save();
+  if (edge === "S") g.translate(midX, uy + ch);
+  else if (edge === "N") { g.translate(midX, uy); g.rotate(Math.PI); }
+  else if (edge === "E") { g.translate(ux + cw, midY); g.rotate(-Math.PI / 2); }
+  else if (edge === "W") { g.translate(ux, midY); g.rotate(Math.PI / 2); }
+  else { g.restore(); return; }
+  g.drawImage(S.door, -DW / 2, -(DH - OUT), DW, DH);
+  g.restore();
+}
+
 // A complex may not perfectly tile its bounding rectangle; the leftover GAP cells
 // used to render as a bare wood floor with a lone rug+plant, which reads as a broken
 // empty room. Instead furnish each gap as the block's SHARED LOUNGE: a reading nook
@@ -1227,7 +1251,7 @@ function spriteComplex(g, S, complex, lightsOn, topo) {
   }
 
   // --- cap, outline, per-unit entry fixtures ---------------------------------
-  g.strokeStyle = "#3a352e"; g.lineWidth = 1.5; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  g.strokeStyle = "#241f19"; g.lineWidth = 2.5; g.strokeRect(x + 1.25, y + 1.25, w - 2.5, h - 2.5);
   wallCap(g, { bx: x, bw: w, by: y });                               // flat light-grey wall cap (top-down cutaway, no roof)
   if (lightsOn) eaveLight(g, { bx: x, bw: w, by: y });
   // entry fixtures on each unit's DOOR side. Only SOUTH doors get a deck+stairs
@@ -1242,6 +1266,10 @@ function spriteComplex(g, S, complex, lightsOn, topo) {
       if (S.deck) clipTile(g, S.deck, cxu - 22, uy + CELL - 1, 44, 18);
       if (S.stairs) g.drawImage(S.stairs, cxu - 14, uy + CELL - 3, 28, 16);
     }
+    // recognizable door leaf on whichever single edge classify() opened (E/W/N
+    // doors were previously bare holes); interior all-tunnel units stay doorless
+    const dEdge = cl.S === 1 ? "S" : cl.E === 1 ? "E" : cl.W === 1 ? "W" : cl.N === 1 ? "N" : null;
+    doorLeaf(g, S, dEdge, ux, uy, CELL, CELL);
   }
   if (S.mailbox) g.drawImage(S.mailbox, x + 6, y + h - 20, 16, 16);
 
@@ -1307,13 +1335,19 @@ function spriteBuilding(g, S, rc, lightsOn, opts = {}) {
   interiorAO(g, bx + 16, by + 16, bw - 32, bh - 30);
   g.restore();
 
-  g.strokeStyle = "#2f2a22";
-  g.lineWidth = 1;
-  g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  g.strokeStyle = "#241f19";
+  g.lineWidth = 2;
+  g.strokeRect(bx + 1, by + 1, bw - 2, bh - 2);
   // flat light-grey wall cap capping the top (skipped for units inside a complex)
   if (!opts.noRoof) wallCap(g, rc);
   // warm window-light wash on the eave when lit (e.g. night bakes)
   if (lightsOn) eaveLight(g, rc);
+  // recognizable door leaf set in this unit's doorway (south by default w/o topology)
+  {
+    const dcl = (opts.topo && opts.topo.get(rc.loc.x + "," + rc.loc.y)) || { N: 0, E: 0, S: 1, W: 0 };
+    const dEdge = dcl.S === 1 ? "S" : dcl.E === 1 ? "E" : dcl.W === 1 ? "W" : dcl.N === 1 ? "N" : "S";
+    doorLeaf(g, S, dEdge, bx, by, bw, bh);
+  }
   // hanging wood shop-sign mounted over the wall band (rests on the interior top: by+16)
   nameSign(g, rc.loc.name, cx, by + 16, Math.min(150, bw - 8));
 }
