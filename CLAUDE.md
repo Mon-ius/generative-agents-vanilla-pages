@@ -226,7 +226,15 @@ templated inline in `Simulation.js`):
   is deterministic, template-based, and implements all five. Its `DAY_TEMPLATE` also carries the
   **sleep contract** — two `/sleep/i` blocks at home (0–360 + 1320–1440 = 8 h/day; the
   `home`/`work` template kinds resolve to the agent's own ids with **no RNG draw**, so this split
-  is determinism-neutral). The renderers key all bed/lying behavior on that **activity text** via
+  is determinism-neutral). `CONFIG.startMinutes` is **05:50 (350)** — inside the 0–360 block — so
+  the sim **boots with all 24 residents asleep in bed** and they rise at 06:00; for that to show on
+  the very first frame (before any `step()`), `Simulation.init()` now mirrors step-phase-2's status
+  assignment — it calls `Planner.updateStatuses` after `_planAgentDay` and sets `currentActivity`
+  from the active block (`"Resting"` if none), so `isSleeping` is true at boot instead of the old
+  `"Settling in"` default. `updateStatuses` is pure (no RNG/movement) so determinism is intact; the
+  renderers then **place** a sleeping-at-boot avatar directly on its bed (already settled → lying),
+  not walking onto it, and the get-up at 06:00 animates via the usual settled-rewalk. The renderers
+  key all bed/lying behavior on that **activity text** via
   `townArt.isSleeping` (see *Rendering → Sleep & beds*) — reword a sleep block without the word
   "sleep" and residents stand at the crowd-fan spot all night with no error. `LLMGenerationProvider` is a
   stub that **throws on purpose** to prevent shipping an API key in client code (a custom one
@@ -576,8 +584,9 @@ check the sim clock before judging palette.
   `importance`, `tags`; each fires once per day **when `time <= minutesIntoDay` at a tick
   boundary** — at the default 10-min ticks an event in the final window (time 1431–1439) can
   **never** fire (rollover re-arms *before* the due-check, so there is no cross-midnight
-  catch-up), and on day 1 everything scheduled before the 08:00 start fires in one first-tick
-  burst in seed-array order. `Environment.resetEvents()` re-arms them at
+  catch-up), and on day 1 everything scheduled before the **05:50** start (`CONFIG.startMinutes`)
+  fires in one first-tick burst in seed-array order — though the shipped events are all at 08:00+,
+  so none currently burst (lower `startMinutes` further and they would). `Environment.resetEvents()` re-arms them at
   rollover, and `Environment.addEvent()` injects more at runtime (a past `time` fires on the very
   next tick; injections survive save/load — events + `fired` flags are serialized, so a loaded
   mid-day save does not re-fire that morning — but **Reset wipes them**, rebuilding from the

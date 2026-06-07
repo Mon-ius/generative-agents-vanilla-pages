@@ -57,7 +57,18 @@ export class Simulation {
     this._grid = null; // lazily (re)built collision grid for movement/pathing
     this._doorSpots = null; // lazily (re)built door-spot map (where agents stand)
     this.selectedAgentId = this.agents.length ? this.agents[0].id : null;
-    for (const agent of this.agents) this._planAgentDay(agent);
+    for (const agent of this.agents) {
+      this._planAgentDay(agent);
+      // Reflect the active plan block in the agent's status at boot so the very
+      // first rendered frame matches the plan. Without this, currentActivity keeps
+      // its "Settling in" default until the first step(), so residents that boot
+      // inside the overnight sleep block would only start lying in bed AFTER a step
+      // (and would visibly walk onto the bed instead of waking in it). updateStatuses
+      // is pure (no RNG, no movement), so determinism is unaffected; the active
+      // sleep block resolves to the agent's own home, where they already stand.
+      const active = this.planner.updateStatuses(agent.currentPlan, this.time.minutesIntoDay);
+      agent.currentActivity = active ? active.activity : "Resting";
+    }
     this.bus.emit("init", { sim: this });
   }
 

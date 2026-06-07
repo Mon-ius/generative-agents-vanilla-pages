@@ -3,7 +3,7 @@
 
 export const CONFIG = {
   // ----- Time -----
-  startMinutes: 8 * 60, // simulation begins at 08:00 on Day 1 (minutes since Day 1 00:00)
+  startMinutes: 5 * 60 + 50, // 05:50 on Day 1 — residents boot asleep in bed (overnight block is 00:00–06:00) and rise at 06:00 (minutes since Day 1 00:00)
   minutesPerTick: 10, // each simulation step advances the clock by this many minutes
   dayLengthMinutes: 24 * 60, // 1440
 
