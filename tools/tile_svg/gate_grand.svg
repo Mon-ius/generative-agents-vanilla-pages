@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="48" viewBox="0 0 96 48">
+  <defs>
+    <linearGradient id="gate_grand_bar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b3b46"/><stop offset="0.5" stop-color="#23232a"/><stop offset="1" stop-color="#141419"/></linearGradient>
+    <radialGradient id="gate_grand_gold" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffeaa0"/><stop offset="0.55" stop-color="#d8af44"/><stop offset="1" stop-color="#876418"/></radialGradient>
+  </defs>
+  <ellipse cx="50" cy="44" rx="44" ry="3" fill="#141009" opacity="0.22"/>
+  <rect id="gate_grand_hinge" x="1" y="8" width="8" height="34" rx="2" fill="url(#gate_grand_bar)" stroke="#0c0c10" stroke-width="1"/>
+  <rect x="6" y="11" width="84" height="5" rx="2" fill="url(#gate_grand_bar)" stroke="#0c0c10" stroke-width="0.8"/>
+  <rect x="6" y="36" width="84" height="6" rx="2" fill="url(#gate_grand_bar)" stroke="#0c0c10" stroke-width="0.8"/>
+  <g fill="url(#gate_grand_bar)" stroke="#0c0c10" stroke-width="0.7">
+    <rect x="16" y="8" width="3.5" height="34"/><rect x="30" y="8" width="3.5" height="34"/><rect x="44" y="8" width="3.5" height="34"/>
+    <rect x="58" y="8" width="3.5" height="34"/><rect x="72" y="8" width="3.5" height="34"/><rect x="84" y="8" width="3.5" height="34"/>
+  </g>
+  <!-- abundant gold: spear finials + a central medallion -->
+  <g fill="url(#gate_grand_gold)"><path d="M17.7 3 l2.5 5 h-5 z"/><path d="M31.7 3 l2.5 5 h-5 z"/><path d="M45.7 3 l2.5 5 h-5 z"/><path d="M59.7 3 l2.5 5 h-5 z"/><path d="M73.7 3 l2.5 5 h-5 z"/><path d="M85.7 3 l2.5 5 h-5 z"/></g>
+  <circle cx="48" cy="24" r="8" fill="url(#gate_grand_gold)" stroke="#6e5212" stroke-width="1"/>
+  <circle cx="48" cy="24" r="3.4" fill="#23232a"/>
+  <circle id="gate_grand_latch" cx="89" cy="24" r="3.2" fill="url(#gate_grand_gold)" stroke="#6e5212" stroke-width="1"/>
+</svg>

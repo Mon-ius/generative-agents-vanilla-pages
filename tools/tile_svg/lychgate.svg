@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72">
+  <defs>
+    <linearGradient id="lychgate_roof" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a5a39"/><stop offset="1" stop-color="#5a4129"/></linearGradient>
+    <linearGradient id="lychgate_wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cdab74"/><stop offset="1" stop-color="#9c7e4a"/></linearGradient>
+  </defs>
+  <ellipse cx="50" cy="68" rx="44" ry="3.5" fill="#241a10" opacity="0.2"/>
+  <!-- cedar pitched roof across the top -->
+  <path d="M6 34 L48 4 L90 34 L84 40 L48 14 L12 40 Z" fill="url(#lychgate_roof)" stroke="#3f2d1b" stroke-width="1.5"/>
+  <g stroke="#3f2d1b" stroke-width="0.8" opacity="0.55">
+    <path d="M24 27 L30 31 M40 18 L46 22 M56 18 L50 22 M72 27 L66 31"/>
+  </g>
+  <rect x="44" y="9" width="8" height="8" fill="url(#lychgate_roof)" stroke="#3f2d1b" stroke-width="1"/>
+  <!-- timber gate bar below the roof -->
+  <rect id="lychgate_hinge" x="2" y="40" width="8" height="30" rx="2" fill="url(#lychgate_wood)" stroke="#7c6238" stroke-width="1"/>
+  <rect x="6" y="45" width="86" height="6" fill="url(#lychgate_wood)" stroke="#7c6238" stroke-width="0.8"/>
+  <rect x="6" y="61" width="86" height="6" fill="url(#lychgate_wood)" stroke="#7c6238" stroke-width="0.8"/>
+  <g fill="url(#lychgate_wood)" stroke="#7c6238" stroke-width="0.7">
+    <rect x="26" y="40" width="4" height="30"/><rect x="46" y="40" width="4" height="30"/><rect x="66" y="40" width="4" height="30"/><rect x="86" y="40" width="4" height="30"/>
+  </g>
+</svg>

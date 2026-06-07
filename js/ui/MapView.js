@@ -11,6 +11,7 @@
 // context / RAF it constructs without drawing.
 
 import { computeLayout, spotFor, activityEmoji, ambient, routeFrom, isSleeping } from "./townArt.js";
+import { createGateAnimator } from "./gates.js";
 import { chunkKey, chunkWorldRect, visibleChunks, makeChunkCanvas } from "./townChunks.js";
 import { Camera } from "./camera.js";
 import { CONFIG } from "../config.js";
@@ -81,6 +82,9 @@ export class MapView {
 
   _layout() {
     this.layout = computeLayout(this.sim);
+    // One gate animator per view, recreated here so its open/close state never
+    // survives a town rebuild (reset/load) — no module-global mutable state.
+    this._gateAnim = createGateAnimator(this.layout.gates);
   }
 
   _viewport() {
@@ -332,6 +336,10 @@ export class MapView {
       if (canvas && canvas.width) ctx.drawImage(canvas, wr.x, wr.y, wr.w, wr.h);
     }
 
+    // Swinging garden gate leaves — drawn PER-FRAME over the baked fence (never
+    // baked into a chunk), above the ground and below the avatars.
+    this._drawGates(ctx, viewRect);
+
     // Agents (depth-sorted by y), walked along waypoints + culled.
     const selected = this.sim.selectedAgentId;
     const speed = CONFIG.movement.walkSpeedPixelsPerFrame;
@@ -367,6 +375,10 @@ export class MapView {
         (!p.waypoints || p.wpIndex >= p.waypoints.length);
       p.bob = reduce || lying ? 0 : moving ? Math.sin(this._frameN * 0.4) * 2 : Math.sin(this._frameN * 0.08 + p.x) * 0.8;
 
+      // Flag any garden gate this avatar is near — BEFORE the cull, so an off-screen
+      // approacher still opens the gate (its p.x/p.y advance even when culled).
+      if (this._gateAnim) this._gateAnim.noteAvatar(p.x, p.y);
+
       // Cull off-screen agents.
       if (
         p.x < viewRect.x - AGENT_CULL_PAD || p.x > viewRect.x + viewRect.w + AGENT_CULL_PAD ||
@@ -375,6 +387,8 @@ export class MapView {
 
       this._drawAgent(ctx, a, p, a.id === selected, reduce, moving, dir, lying);
     }
+    // Advance every gate's open/close state once per frame (canvas = 1 frame step).
+    if (this._gateAnim) this._gateAnim.tick(1, reduce);
 
     // Day/night overlay: one cheap world-rect fill under the same transform.
     const amb = ambient(this.sim.time.minutesIntoDay);
@@ -386,6 +400,28 @@ export class MapView {
     // Reset transform for the DOM bubble pass (screen-space positioning).
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     this._updateBubbles();
+  }
+
+  // Draw each visible garden gate's swinging leaf, pivoting about its hinge (the
+  // sprite's x=0 edge) at the live animator angle. The fence ring + posts are baked
+  // into the chunk; only the moving leaf is drawn here. Type-varied leaf sprite per
+  // gate.style; falls back to S.gate / S.door when the styled tile is absent.
+  _drawGates(ctx, viewRect) {
+    const gates = this.layout.gates;
+    if (!this._gateAnim || !gates || !gates.length) return;
+    const S = this.sprites; if (!S) return;
+    const DH = 9;
+    for (const g of gates) {
+      if (g.gapCX < viewRect.x - AGENT_CULL_PAD || g.gapCX > viewRect.x + viewRect.w + AGENT_CULL_PAD ||
+          g.gapCY < viewRect.y - AGENT_CULL_PAD || g.gapCY > viewRect.y + viewRect.h + AGENT_CULL_PAD) continue;
+      const leaf = S[g.style && g.style.leaf] || S.gate || S.door; if (!leaf) continue;
+      ctx.save();
+      ctx.translate(g.hingeX, g.hingeY);
+      ctx.rotate(this._gateAnim.angleFor(g));
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(leaf, 0, -DH / 2, g.length, DH); // from x=0 (hinge) → pivots about the hinge
+      ctx.restore();
+    }
   }
 
   _drawAgent(ctx, agent, p, isSelected, reduce, moving, dir, lying) {

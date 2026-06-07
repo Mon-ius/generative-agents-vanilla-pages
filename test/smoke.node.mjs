@@ -121,6 +121,41 @@ try {
   ok("re-route room → room is wall-legal (exits via doors)", legal(r2), r2 ? r2.length + " pts" : "null");
 } catch (e) { ok("renderer re-route works", false, e.message); }
 
+console.log("\nGarden walling — reachability (no sealed pocket):");
+try {
+  // The 3 fixed building-pair routes above are blind to a sub<3-sealed garden, a
+  // naively-sealed building, or a pad:0 edge pocket. BFS the SHARED collision grid
+  // from a known-open exterior tile and assert every location stand-spot — every
+  // building door-spot AND every garden interior centre — lands in that one
+  // connected component. This pins the garden-walling "connectivity preserved by
+  // construction" guarantee against future edits.
+  const lg = layout.collisionGrid, w = lg.w, h = lg.h, blocked = lg.blocked;
+  // Seed = grid index 0 = the (-pad,-pad) exterior grass corner — always open and
+  // part of the boundless network the streets tie into.
+  if (blocked[0]) throw new Error("seed exterior tile blocked");
+  const seen = new Uint8Array(w * h), q = [0]; seen[0] = 1;
+  const DX = [0, 0, -1, 1], DY = [-1, 1, 0, 0];
+  for (let qi = 0; qi < q.length; qi++) {
+    const cur = q[qi], cx = cur % w, cy = (cur - cx) / w;
+    for (let k = 0; k < 4; k++) {
+      const nx = cx + DX[k], ny = cy + DY[k];
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const ni = ny * w + nx; if (blocked[ni] || seen[ni]) continue;
+      seen[ni] = 1; q.push(ni);
+    }
+  }
+  const OUT = new Set(["plaza", "green", "street", "road"]);
+  let unreachBuild = 0, unreachGarden = 0;
+  for (const l of locs) {
+    const { gx, gy } = PF.worldToGrid(lg, l.x * lg.cell + lg.cell / 2, l.y * lg.cell + lg.cell / 2);
+    if (seen[gy * w + gx]) continue;
+    if (PF.isGardenType(l.type)) unreachGarden++;
+    else if (!OUT.has(l.type)) unreachBuild++;
+  }
+  ok("every garden interior reachable from the main network", unreachGarden === 0, unreachGarden ? unreachGarden + " sealed garden" : "");
+  ok("every building door-spot still reachable", unreachBuild === 0, unreachBuild ? unreachBuild + " sealed building" : "");
+} catch (e) { ok("garden reachability", false, e.message); }
+
 console.log("\nSleep (beds + >=8h at home):");
 try {
   // Every agent's daily plan must sleep >= 480 min (8h) AT HOME — the contract

@@ -437,6 +437,42 @@ modules, so they stay in lockstep:
   over open cells in the top-left ~30%×34% of the grid, ~4.5% sparse elsewhere, seeded
   `forest-<cx>-<cy>`, drawn *before* buildings so canopies overhang — sand at the bottom / woods
   at the top-left of a capture are by design, not artifacts.
+- **Walled gardens & animated gates (cross-cutting: `pathfinding` → `townArt` → `gates.js` → both
+  map views).** Only **`park` + `square`** plots are walled (12 plots) — `green`/`plaza`/`street`
+  stay fully open (walling the 274 connective courtyards would mesh-gate the whole town). Gardens
+  keep their `park`/`square` **type + tags**, so plan-candidate pools are unchanged and all 24
+  agents' plans stay byte-identical (determinism intact). **Routing**: `pathfinding.gardenEdges(loc)`
+  codes each N/S/E/W edge — **2** = open seam (a same-`complex` garden sibling: no fence), **1** =
+  GATE (neighbour is an open courtyard **or** a building whose `classify`d door faces this edge),
+  **0** = solid FENCE. It is strictly **downstream** of `classify` (gardens stay `isOpenType`, so
+  `onMain`/door classification never sees the walling) — connectivity is preserved **by
+  construction**: every previously-open edge becomes a *centred gate gap*, never solid. `rasterizeSolid`
+  walls garden cells from `gardenEdges`, punching the **same** centred `gapSpan`/`GAP_SUBTILES`
+  opening building doors use (a `subdivisions < 3` guard leaves gardens fully open). **Render
+  lockstep**: `computeGardenTopology` (renderer-facing wrapper, like `computeWallTopology`) →
+  `layout.gardenTopology`; `townArt.spriteGarden` draws the decorative park/plaza with `{noBorder}`
+  then `gardenFence` rings the **full cell edge** via the same `wallEdge`/`WALL_GAP`, with `gate_post`
+  piers flanking each gap (procedural fallback: `drawGardenFenceProc`). The **swinging leaf** lives in
+  the shared **`js/ui/gates.js`** (same shared-source pattern as `camera.js`/`characters.js`):
+  `computeGates(layout)` → `layout.gates` descriptors (one per code-1 edge, hinge at the lower gap
+  end, `closedAngle` flush-along-edge → `openAngle` along the outward normal — always a 90° swing),
+  and `createGateAnimator(gates)` → **one instance per renderer**, recreated on rebuild (no
+  module-global mutable state). The leaf is drawn **per-frame by both renderer overlays, never baked
+  into a chunk** (a chunk is a frozen daytime texture): each frame calls `noteAvatar(p.x,p.y)` per
+  agent *before* the cull, `tick(dt, reduce)` once after the agent loop, then `angleFor(gate)` to
+  rotate — smoothstep-eased over `OPEN_FRAMES`(10), held `HOLD_FRAMES`(30) after the last avatar
+  leaves a `NEAR_FACTOR`(0.5·CELL) radius; `reduce` (prefers-reduced-motion) snaps open/closed.
+  It runs on the **render clock, never the sim RNG**, so a swing can't desync a save. **Style
+  variety**: `gateStyleFor(plotType, nbType)` picks the leaf — base from the plot (park→`arbor`,
+  square→`grand`), refined by the nearest building (chapel→`lych`, civic→`grand`, residential→`picket`,
+  craft→`rustic`, else `iron`); in the shipped scope park/square border only courtyards, so the
+  neighbour branches are **dormant** (all parks→arbor, all squares→grand = 48 gates: 32 arbor + 16
+  grand). New tiles: `fence`, `gate_post`, `gate_iron`, `gate_picket`, `gate_arbor`, `gate_grand`,
+  `lychgate`. Two gates pin this: a smoke **reachability BFS** over the shared collision grid asserts
+  **0 sealed gardens / 0 sealed buildings** (now 31/31), and `audit_rooms.mjs` lists `fence`/`gate_post`
+  in `STRUCT` (garden structure on the cell edge, like `wall`/`hedge` — **not** furniture) so the
+  edge-drawn ring doesn't read as a phantom out-of-room spill; the per-frame gate **leaf** sprites
+  are never in the baked draw path the auditor drives, so it never sees them.
 - **`townChunks.js`** — the world is too big for one texture (> WebGL limits), so
   it's **baked per chunk** (4×4 cells) **lazily and viewport-culled**. `makeChunkCanvas`,
   `visibleChunks`, `chunkDims`, `chunkWorldRect`, `chunkKey`. Pixi LRU-caches chunk textures

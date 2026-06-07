@@ -13,6 +13,7 @@
 // init() cleanly, letting main.js fall back to the canvas MapView.
 
 import { computeLayout, spotFor, activityEmoji, ambient, routeFrom, isSleeping } from "./townArt.js";
+import { createGateAnimator } from "./gates.js";
 import { chunkWorldRect, visibleChunks, makeChunkCanvas } from "./townChunks.js";
 import { Camera } from "./camera.js";
 import { CONFIG } from "../config.js";
@@ -138,6 +139,12 @@ export class PixiMapView {
     this.chunkLayer = new PIXI.Container();
     stage.addChild(this.chunkLayer);
 
+    // Swinging garden gate leaves — above the baked fence, below the avatars. The
+    // leaf is a live per-frame Sprite (the fence ring + posts are baked into chunks).
+    this.gateLayer = new PIXI.Container();
+    this.gateLayer.eventMode = "none";
+    stage.addChild(this.gateLayer);
+
     // Agents layer (depth-sorted by y).
     this.agentsLayer = new PIXI.Container();
     this.agentsLayer.sortableChildren = true;
@@ -145,6 +152,7 @@ export class PixiMapView {
 
     for (const a of this.sim.agents) this._makeAgent(a);
     this._syncTargets(true);
+    this._buildGates();
 
     // Day/night overlay: one cheap full-world quad on top.
     this.overlay = new PIXI.Graphics().rect(0, 0, this.layout.W, this.layout.H).fill("#ffffff");
@@ -353,6 +361,48 @@ export class PixiMapView {
       pos: { x: 0, y: 0, bob: 0, dir: "down" },
       waypoints: null, wpIndex: 0, lastLoc: a.currentLocationId,
     });
+  }
+
+  // ---- garden gates --------------------------------------------------------
+
+  // Build one Sprite per gate descriptor, pivoting at the hinge (anchor 0,0.5), and
+  // a fresh animator. Recreated in _buildScene() (fires on reset/load) so no open
+  // state survives a town rebuild — no module-global mutable state.
+  _buildGates() {
+    const PIXI = this.PIXI;
+    this._gateSprites = new Map();
+    this._gateAnim = createGateAnimator(this.layout.gates);
+    const gates = this.layout.gates;
+    if (!gates || !gates.length) return;
+    const S = this.sprites; if (!S) return;
+    const DH = 9;
+    for (const g of gates) {
+      const src = S[g.style && g.style.leaf] || S.gate || S.door; if (!src) continue;
+      let tex; try { tex = PIXI.Texture.from(src); if (tex.source && "scaleMode" in tex.source) tex.source.scaleMode = "nearest"; } catch (_) { continue; }
+      const sp = new PIXI.Sprite(tex);
+      sp.anchor.set(0, 0.5);            // pivot at the hinge (sprite x=0 edge)
+      sp.width = g.length; sp.height = DH;
+      sp.x = g.hingeX; sp.y = g.hingeY;
+      sp.rotation = g.closedAngle;
+      if (g.style && g.style.tint) sp.tint = g.style.tint;
+      sp.eventMode = "none";
+      this.gateLayer.addChild(sp);
+      this._gateSprites.set(g.id, sp);
+    }
+  }
+
+  // Advance the animator once per frame and rotate each visible leaf to its angle.
+  _syncGates(reduce) {
+    if (!this._gateAnim || !this._gateSprites || !this._gateSprites.size) return;
+    this._gateAnim.tick(this.app.ticker.deltaTime, reduce);
+    const r = this.camera.visibleWorldRect();
+    for (const g of this.layout.gates) {
+      const sp = this._gateSprites.get(g.id); if (!sp) continue;
+      const vis = g.gapCX >= r.x - AGENT_CULL_PAD && g.gapCX <= r.x + r.w + AGENT_CULL_PAD &&
+                  g.gapCY >= r.y - AGENT_CULL_PAD && g.gapCY <= r.y + r.h + AGENT_CULL_PAD;
+      sp.visible = vis;
+      if (vis) sp.rotation = this._gateAnim.angleFor(g);
+    }
   }
 
   // Minimal procedural avatar used only when no CharacterFactory was supplied.
@@ -590,6 +640,10 @@ export class PixiMapView {
         (!e.waypoints || e.wpIndex >= e.waypoints.length);
       p.bob = reduce || lying ? 0 : moving ? Math.sin(this._t * 0.4) * 2 : Math.sin(this._t * 0.08 + p.x) * 0.8;
 
+      // Flag any garden gate this avatar is near — BEFORE the cull, so an off-screen
+      // approacher still opens the gate (its p.x/p.y advance even when culled).
+      if (this._gateAnim) this._gateAnim.noteAvatar(p.x, p.y);
+
       // Cull off-screen agents.
       const visible =
         p.x >= viewRect.x - AGENT_CULL_PAD && p.x <= viewRect.x + viewRect.w + AGENT_CULL_PAD &&
@@ -619,6 +673,9 @@ export class PixiMapView {
         this._drawBubble(e);
       }
     }
+
+    // Advance + rotate the garden gate leaves once per frame (after noteAvatar).
+    this._syncGates(reduce);
 
     this._updateGroupBubble();
 

@@ -34,6 +34,11 @@ const STRUCT = new Set([
   "grass", "grass2", "path", "gravel", "sand", "deck", "corridor",
   "floor_wood", "floor_tile", "floor_pink", "wall", "wall2", "window", "door",
   "hedge",
+  // garden-perimeter structure: the fence ring + flanking gate piers are drawn on
+  // the FULL cell edge by design (where the routing gap is), NOT inside the smaller
+  // park/square decorative footprint — so, like wall/hedge, they are structure, not
+  // furniture, and must be excluded or they read as phantom out-of-room spills.
+  "fence", "gate_post",
 ]);
 // intended underlays: a rug/mat sits UNDER other furniture by design.
 const UNDERLAY = new Set(["rug", "rug_blue", "rug_green", "doormat"]);

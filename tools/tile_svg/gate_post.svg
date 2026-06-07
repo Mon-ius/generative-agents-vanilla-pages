@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="56" viewBox="0 0 48 56">
+  <defs>
+    <linearGradient id="gate_post_stone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cfc8b6"/><stop offset="0.5" stop-color="#b3ab97"/><stop offset="1" stop-color="#8d856f"/></linearGradient>
+    <radialGradient id="gate_post_cap" cx="0.4" cy="0.35" r="0.8"><stop offset="0" stop-color="#e7e0cf"/><stop offset="1" stop-color="#a59c84"/></radialGradient>
+  </defs>
+  <ellipse cx="24" cy="52" rx="18" ry="4" fill="#241c10" opacity="0.22"/>
+  <rect x="9" y="14" width="30" height="38" rx="2" fill="url(#gate_post_stone)" stroke="#5f5848" stroke-width="1.5"/>
+  <rect x="11" y="16" width="4" height="34" fill="#efe9da" opacity="0.4"/>
+  <rect x="5" y="6" width="38" height="14" rx="2" fill="url(#gate_post_cap)" stroke="#5f5848" stroke-width="1.5"/>
+  <circle cx="24" cy="13" r="3" fill="#8d856f" opacity="0.5"/>
+</svg>

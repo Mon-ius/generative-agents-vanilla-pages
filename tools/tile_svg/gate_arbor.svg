@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="64" viewBox="0 0 96 64">
+  <defs>
+    <linearGradient id="gate_arbor_leaf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a9a45"/><stop offset="1" stop-color="#34662a"/></linearGradient>
+    <linearGradient id="gate_arbor_wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4bb8c"/><stop offset="1" stop-color="#a3854f"/></linearGradient>
+  </defs>
+  <ellipse cx="50" cy="60" rx="44" ry="3.5" fill="#1d2c14" opacity="0.2"/>
+  <!-- overhanging rose-arbor canopy across the top -->
+  <path d="M2 30 q46 -30 92 0 v8 q-46 -22 -92 0 z" fill="url(#gate_arbor_leaf)" stroke="#2c5421" stroke-width="1.5"/>
+  <g fill="#e88aa6"><circle cx="20" cy="20" r="2.6"/><circle cx="38" cy="13" r="2.6"/><circle cx="56" cy="12" r="2.6"/><circle cx="74" cy="18" r="2.6"/><circle cx="48" cy="22" r="2.4"/></g>
+  <g fill="#f4b6cb"><circle cx="29" cy="16" r="1.6"/><circle cx="66" cy="15" r="1.6"/></g>
+  <!-- timber lattice gate leaf below -->
+  <rect id="gate_arbor_hinge" x="1" y="30" width="7" height="32" rx="2" fill="url(#gate_arbor_wood)" stroke="#7c6238" stroke-width="1"/>
+  <rect x="6" y="36" width="86" height="5" fill="url(#gate_arbor_wood)" stroke="#7c6238" stroke-width="0.8"/>
+  <rect x="6" y="54" width="86" height="5" fill="url(#gate_arbor_wood)" stroke="#7c6238" stroke-width="0.8"/>
+  <g stroke="#b89c66" stroke-width="3" fill="none" opacity="0.9">
+    <path d="M12 41 l14 13 M26 41 l-14 13 M40 41 l14 13 M54 41 l-14 13 M68 41 l14 13 M82 41 l-14 13"/>
+  </g>
+  <circle id="gate_arbor_latch" cx="89" cy="47" r="3" fill="none" stroke="#7c6238" stroke-width="1.8"/>
+</svg>

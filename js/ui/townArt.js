@@ -10,7 +10,8 @@
 
 import { seededRandom } from "../utils/random.js";
 import { CONFIG } from "../config.js";
-import { buildGrid, computeDoorSpots, computeWallTopology, gapSpan, pathWorldPoints } from "../utils/pathfinding.js";
+import { buildGrid, computeDoorSpots, computeWallTopology, computeGardenTopology, isGardenType, gapSpan, pathWorldPoints } from "../utils/pathfinding.js";
+import { computeGates } from "./gates.js";
 
 // Logical px per grid cell, sourced from CONFIG so the world size is tunable in
 // one place. A defensive fallback keeps headless/standalone use working even if
@@ -119,6 +120,14 @@ export function computeLayout(sim) {
   // the doorway gaps spriteComplex/spriteBuilding cut so the drawn walls match the
   // routing grid's gaps exactly (render ↔ routing lockstep). See pathfinding.js.
   layout.wallTopology = computeWallTopology(locs, { cell: CELL, movement: CONFIG.movement });
+  // Walled-garden (park|square) edge topology: per cell { N,E,S,W } in {0 fence,
+  // 1 gate, 2 open seam}. SAME shared townTopology rasterizeSolid walls from, so the
+  // drawn fence/gate lines up pixel-exactly with the routed gate (render ↔ routing).
+  layout.gardenTopology = computeGardenTopology(locs, { cell: CELL, movement: CONFIG.movement });
+  // Gate descriptors (hinge / gap centre / swing angles / type-varied style) — the
+  // ONE shared source both renderers' per-frame gate overlay reads. Pure & determi-
+  // nistic; MUST follow gardenTopology (computeGates reads layout.gardenTopology).
+  layout.gates = computeGates(layout);
   // Bed spots + per-resident bed assignment (sleeping avatars lie ON their bed).
   const beds = computeBedAssignments(layout, sim.agents || []);
   layout.bedSpots = beds.bedSpots;
@@ -414,7 +423,13 @@ export function drawTownInto(g, layout, sprites, worldRect, opts = {}) {
     const t = r.loc.type;
     if (t === "street" || t === "road") continue;           // already paved as ground above
     const rng = seededRandom("bld-" + r.loc.id);
-    if (t === "park" || t === "green") drawPark(g, r, rng);
+    if (isGardenType(t)) {
+      // The collision grid walls park|square for ALL renderers, so the no-atlas
+      // fallback must draw the gate-aware fence too (else open grass over walled
+      // cells). The fallback gate is static — only the sprite path animates.
+      if (t === "square") drawPlaza(g, r, rng); else drawPark(g, r, rng);
+      drawGardenFenceProc(g, r, (layout.gardenTopology && layout.gardenTopology.get(r.loc.x + "," + r.loc.y)) || { N: 1, E: 1, S: 1, W: 1 });
+    } else if (t === "park" || t === "green") drawPark(g, r, rng);
     else if (t === "square" || t === "plaza") drawPlaza(g, r, rng);
     else drawBuilding(g, r, rng, lightsOn);
   }
@@ -784,6 +799,20 @@ function easel(g, x, y) {
   g.fillStyle = RUGS[1]; g.fillRect(x + 1, y - 3, 4, 4);
 }
 
+// Procedural-fallback garden fence ring on the FULL CELL edge, gate gaps at the
+// SAME WALL_GAP fraction the routing grid opens. Static (the fallback never
+// animates the leaf). Codes: 0 solid run, 1 gate (centred gap), 2 merged (skip).
+function drawGardenFenceProc(g, r, edges) {
+  const ux = r.loc.x * CELL, uy = r.loc.y * CELL, lo = WALL_GAP.lo, hi = WALL_GAP.hi;
+  g.fillStyle = C.fenceDark;
+  const runH = (y, open) => { if (open) { g.fillRect(ux, y, CELL * lo, 4); g.fillRect(ux + CELL * hi, y, CELL * (1 - hi), 4); } else g.fillRect(ux, y, CELL, 4); };
+  const runV = (x, open) => { if (open) { g.fillRect(x, uy, 4, CELL * lo); g.fillRect(x, uy + CELL * hi, 4, CELL * (1 - hi)); } else g.fillRect(x, uy, 4, CELL); };
+  if (edges.N !== 2) runH(uy, edges.N === 1);
+  if (edges.S !== 2) runH(uy + CELL - 4, edges.S === 1);
+  if (edges.W !== 2) runV(ux, edges.W === 1);
+  if (edges.E !== 2) runV(ux + CELL - 4, edges.E === 1);
+}
+
 // ---- park & plaza -----------------------------------------------------------
 function drawPark(g, r, rnd) {
   // grassy plot
@@ -905,8 +934,8 @@ function drawTownSprites(g, layout, S, worldRect, lightsOn) {
   for (const rc of rects.values()) {
     if (!footprintNearRect(wr, rc, MARGIN)) continue;
     const t = rc.loc.type;
-    if (t === "park") spritePark(g, S, rc);
-    else if (t === "square" || t === "plaza") spritePlaza(g, S, rc);
+    if (isGardenType(t)) spriteGarden(g, S, rc, layout.gardenTopology); // park|square: decor + baked fence ring + gate posts
+    else if (t === "plaza") spritePlaza(g, S, rc);
     else if (t === "green") spriteGreen(g, S, rc);
     else if (t === "street" || t === "road") streetFurniture(g, S, rc);
   }
@@ -1650,25 +1679,27 @@ function furnish(g, S, kind, c, rng, opts) {
 
 // A fenced park: grass, a leafy border, a central tree, plus a bench, a flower bed
 // and a street lamp drawn from the new outdoor sprites (deterministic per plot).
-function spritePark(g, S, rc) {
+function spritePark(g, S, rc, opts = {}) {
   const { bx, by, bw, bh, cx, cy } = rc;
   const rng = seededRandom("park-" + rc.loc.id);
   clipTile(g, S.grass2 || S.grass, bx, by, bw, bh);
-  g.fillStyle = "#9c7a4c";
-  for (let x = bx; x <= bx + bw; x += 12) { g.fillRect(x, by, 3, 6); g.fillRect(x, by + bh - 6, 3, 6); }
-  for (let y = by; y <= by + bh; y += 12) { g.fillRect(bx, y, 3, 6); g.fillRect(bx + bw - 3, y, 3, 6); }
+  if (!opts.noBorder) {
+    g.fillStyle = "#9c7a4c";
+    for (let x = bx; x <= bx + bw; x += 12) { g.fillRect(x, by, 3, 6); g.fillRect(x, by + bh - 6, 3, 6); }
+    for (let y = by; y <= by + bh; y += 12) { g.fillRect(bx, y, 3, 6); g.fillRect(bx + bw - 3, y, 3, 6); }
+  }
   if (S.tree) g.drawImage(S.tree, cx - 16, cy - 20, 32, 40);
   if (S.flowerbed) put(g, S.flowerbed, bx + 8, by + bh - 18);
   else if (S.flower) for (let i = 0; i < 5; i++) g.drawImage(S.flower, bx + 8 + i * 14, by + bh - 22, 16, 16);
   if (S.bench) put(g, S.bench, bx + bw - 32, by + bh - 16);
   if (S.streetlamp) put(g, S.streetlamp, bx + 6, by + 6);
   if (S.bush && rng() < 0.6) put(g, S.bush, bx + bw - 24, by + 8);
-  g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  if (!opts.noBorder) { g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1); }
 }
 
 // A paved town plaza centred on the stone fountain sprite, with corner planters,
 // a bench and a street lamp. Falls back to the old drawn fountain if no sprite.
-function spritePlaza(g, S, rc) {
+function spritePlaza(g, S, rc, opts = {}) {
   const { bx, by, bw, bh, cx, cy } = rc;
   if (S.gravel) {
     clipTile(g, S.gravel, bx, by, bw, bh); // cobbled plaza ground
@@ -1688,7 +1719,7 @@ function spritePlaza(g, S, rc) {
   if (S.streetlamp) put(g, S.streetlamp, bx + 6, by + 6);
   put(g, S.plant, bx + 4, by + bh - 22);
   put(g, S.plant, bx + bw - 18, by + 4);
-  g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  if (!opts.noBorder) { g.strokeStyle = "#2f2a22"; g.lineWidth = 1; g.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1); }
 }
 
 // A landscaped GREEN — the gap-filler plot that keeps the town free of bare grass
@@ -1713,6 +1744,49 @@ function spriteGreen(g, S, rc) {
   if (S.flowerbed && rng() < 0.7) put(g, S.flowerbed, bx + 22, by + bh - 26);
   if (S.bench && rng() < 0.6) put(g, S.bench, bx + bw - 38, by + bh - 24);
   if (S.streetlamp && rng() < 0.5) put(g, S.streetlamp, bx + 22, by + 22);
+}
+
+// A WALLED garden (park|square): the planted plot (decor on the inset foot-rect,
+// its own inner border suppressed) framed by a FENCE ring on the FULL CELL edge
+// with centred GATE gaps cut at the SAME WALL_GAP the routing grid opens. The fence
+// + hinge posts are BAKED here; the SWINGING gate LEAF is drawn PER-FRAME by the
+// renderers (gates.js / createGateAnimator), never baked into a chunk.
+function spriteGarden(g, S, rc, gtopo) {
+  const t = rc.loc.type;
+  const edges = (gtopo && gtopo.get(rc.loc.x + "," + rc.loc.y)) || { N: 1, E: 1, S: 1, W: 1 };
+  if (t === "square") spritePlaza(g, S, rc, { noBorder: true });
+  else spritePark(g, S, rc, { noBorder: true });
+  gardenFence(g, S, rc, edges);
+}
+
+// Fence ring on the FULL CELL edges. Per gardenEdges code: 0 -> a solid run;
+// 1 -> wallEdge(open) cuts the centred WALL_GAP gap (identical to a building door,
+// so the drawn gap == the routed gate); 2 -> skip (merged same-complex lawn).
+// Clipped to the cell. Prefers the `fence` tile, falls back to hedge/wall.
+function gardenFence(g, S, rc, edges) {
+  const F = S.fence || S.hedge || S.wall2 || S.wall;
+  if (!F) return;
+  const ux = rc.loc.x * CELL, uy = rc.loc.y * CELL;
+  g.save(); g.beginPath(); g.rect(ux, uy, CELL, CELL); g.clip();
+  if (edges.N !== 2) wallEdge(g, F, true,  ux,             uy,             CELL, edges.N === 1);
+  if (edges.S !== 2) wallEdge(g, F, true,  ux,             uy + CELL - 16, CELL, edges.S === 1);
+  if (edges.W !== 2) wallEdge(g, F, false, ux,             uy,             CELL, edges.W === 1);
+  if (edges.E !== 2) wallEdge(g, F, false, ux + CELL - 16, uy,             CELL, edges.E === 1);
+  const lo = WALL_GAP.lo, hi = WALL_GAP.hi;
+  if (edges.N === 1) { gatePost(g, S, ux + CELL * lo, uy, true);             gatePost(g, S, ux + CELL * hi, uy, true); }
+  if (edges.S === 1) { gatePost(g, S, ux + CELL * lo, uy + CELL - 12, true); gatePost(g, S, ux + CELL * hi, uy + CELL - 12, true); }
+  if (edges.W === 1) { gatePost(g, S, ux, uy + CELL * lo, false);           gatePost(g, S, ux, uy + CELL * hi, false); }
+  if (edges.E === 1) { gatePost(g, S, ux + CELL - 12, uy + CELL * lo, false); gatePost(g, S, ux + CELL - 12, uy + CELL * hi, false); }
+  g.restore();
+}
+
+// A stone pier flanking a gate gap (baked). Prefers the gate_post sprite (drawn via
+// put(), so it scales by ART_SS); falls back to a tiny stone block.
+function gatePost(g, S, x, y, horizontal) {
+  if (S.gate_post) { put(g, S.gate_post, Math.round(x - (horizontal ? 6 : 3)), Math.round(y - (horizontal ? 3 : 6))); return; }
+  const w = horizontal ? 5 : 7, h = horizontal ? 7 : 5;
+  g.fillStyle = C.fenceDark; g.fillRect(Math.round(x - w / 2), Math.round(y), w, h);
+  g.fillStyle = C.fence;     g.fillRect(Math.round(x - w / 2), Math.round(y), w, 2);
 }
 
 // A paved STREET cell — filled full-bleed (the WHOLE cell, edge to edge) with the

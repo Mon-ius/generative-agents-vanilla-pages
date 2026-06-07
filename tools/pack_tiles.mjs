@@ -54,6 +54,14 @@ export const SPRITES = [
   { name: "streetlamp", w: 12, h: 30 }, { name: "hedge", w: 16, h: 16 },
   { name: "flowerbed", w: 22, h: 14 }, { name: "statue", w: 16, h: 28 },
   { name: "market_stall", w: 30, h: 24 }, { name: "pond", w: 30, h: 22 },
+  // ---- walled-garden boundary + type-varied animated gates ----
+  { name: "fence", w: 16, h: 16 },        // root 64x64  — tileable picket/rail segment (fence ring)
+  { name: "gate_post", w: 12, h: 14 },    // root 48x56  — static stone pier flanking a gate gap
+  { name: "gate_iron", w: 22, h: 10 },    // root 88x40  — leaf: wrought iron (commercial / default)
+  { name: "gate_picket", w: 22, h: 10 },  // root 88x40  — leaf: picket (tinted white / rustic timber)
+  { name: "gate_arbor", w: 24, h: 16 },   // root 96x64  — leaf: rose arbor (park)
+  { name: "gate_grand", w: 24, h: 12 },   // root 96x48  — leaf: ornate civic (square)
+  { name: "lychgate", w: 24, h: 18 },     // root 96x72  — leaf: roofed lychgate (chapel-adjacent)
 ];
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");

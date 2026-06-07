@@ -114,6 +114,16 @@ function isOpenType(type) {
     type === "street" || type === "road";
 }
 
+// "Gardens" = the planted plots that get a FENCED perimeter with centred gate
+// gaps. They KEEP isOpenType (open movement cost + open render); the walling is a
+// dedicated, strictly-downstream pass. NOTE: green/plaza are the connective
+// courtyard mesh and are deliberately NOT walled, and the BUILDING type "garden"
+// is a building (not isOpenType). park|square only — the 12 shipped plots, each
+// ringed by open courtyard so every one is reachable by construction.
+export function isGardenType(type) {
+  return type === "park" || type === "square";
+}
+
 // Movement cost for a cell of this type — see DEFAULT_*_COST above. Streets first
 // (they are also "open"), then the open plots, then everything else = building.
 function costForType(type, costs) {
@@ -280,7 +290,34 @@ function townTopology(locations, o) {
     return cl;
   };
 
-  return { cols, rows, cell: CELL, pad, at, isBuildingCell, onMain, classify, byComplex };
+  // Garden-walling topology ("narrow, don't close"). Per garden cell, classify its
+  // four edges on the PRE-walling open grid:
+  //   2 OPEN  — neighbour is a SAME-complex garden cell (interiors merge; no fence)
+  //   1 GATE  — neighbour had an open passage pre-walling: an open cell (street /
+  //             green / plaza / another garden / exterior pad) OR a BUILDING whose
+  //             classify()-assigned DOOR faces this shared edge (centred gap aligns
+  //             with the door — both from gapSpan, so they overlap exactly)
+  //   0 FENCE — neighbour is a building WALL (no door here) or non-reachable
+  // STRICTLY DOWNSTREAM of onMain/classify: gardens stay isOpenType (open cells in
+  // the flood-fill), so building doors are UNCHANGED and connectivity is preserved
+  // by construction. Must run AFTER classify — never feed back into onMain/classify.
+  const OPP = { N: "S", S: "N", E: "W", W: "E" };
+  const gardenKey = (l) => l.complex || ("solo_" + l.id);
+  const gardenEdges = (l) => {
+    const ge = { N: 0, E: 0, S: 0, W: 0 };
+    const myKey = gardenKey(l);
+    for (const [d, dx, dy] of DIRS) {
+      const nx = l.x + dx, ny = l.y + dy;
+      const nl = at.get(nx + "," + ny);
+      if (nl && isGardenType(nl.type) && gardenKey(nl) === myKey) { ge[d] = 2; continue; }
+      if (openCell(nx, ny)) { ge[d] = 1; continue; }
+      if (nl && isBuildingCell(nx, ny) && classify(nl)[OPP[d]] === 1) { ge[d] = 1; continue; }
+      ge[d] = 0;
+    }
+    return ge;
+  };
+
+  return { cols, rows, cell: CELL, pad, at, isBuildingCell, onMain, classify, byComplex, gardenEdges };
 }
 
 // Door/tunnel opening width, in sub-tiles. Kept NARROW — a real doorway, not
@@ -313,6 +350,17 @@ export function gapSpan(sub) {
   return { lo: lo / sub, hi: (hi + 1) / sub };
 }
 
+// Garden perimeter sub-tile openness for a gardenEdges code (idx = the sub-tile
+// index along the edge, gap = gapIndices(sub)):
+//   2 open  -> whole edge open (same-complex sibling seam)
+//   1 gate  -> only the centred gapIndices sub-tiles (IDENTICAL to a building door)
+//   0 fence -> solid.
+function gardenEdgeOpen(code, idx, gap) {
+  if (code === 2) return true;
+  if (code === 1) return gap.has(idx);
+  return false;
+}
+
 // Rasterize the SOLID wall/door/tunnel grid (the real sim routing grid). Each
 // building cell becomes a sub×sub block: a blocked perimeter ring with centred
 // gaps on its door/tunnel edges, and an OPEN interior; outdoor plots stay fully
@@ -340,19 +388,33 @@ function rasterizeSolid(locations, topo, o) {
       const gx = sx0 + i, gy = sy0 + j;
       if (gx < w && gy < h) cost[gy * w + gx] = c;
     }
-    if (isOpenType(l.type)) continue; // parks/squares/streets stay fully walkable
+    const garden = isGardenType(l.type);
+    // Streets/greens/plazas stay fully open; gardens (park|square) are walled below.
+    if (isOpenType(l.type) && !garden) continue;
 
-    const cl = topo.classify(l);
+    const cl = garden ? topo.gardenEdges(l) : topo.classify(l);
     for (let j = 0; j < sub; j++) for (let i = 0; i < sub; i++) {
       const gx = sx0 + i, gy = sy0 + j;
       if (gx >= w || gy >= h) continue;
       let open;
       if (!wallModel) {
-        open = false; // sub<3: no interior possible -> whole cell solid (Phase-1 behaviour)
+        // sub<3: no interior ring to model a gap. Buildings seal solid (Phase-1
+        // behaviour); a sealed garden would be a disconnected pocket, so leave
+        // gardens FULLY OPEN (matches today's isOpenType behaviour) — never let a
+        // chokepoint garden flip to a solid block (both critics' sub<3 attack).
+        open = garden;
       } else {
         const perim = i === 0 || i === sub - 1 || j === 0 || j === sub - 1;
         if (!perim) {
-          open = true; // interior room
+          open = true; // interior room / open lawn
+        } else if (garden) {
+          // Garden perimeter: fence runs (0) solid, gate runs (1) open only at the
+          // centred gap, same-complex seams (2) fully open.
+          open = false;
+          if (j === 0)       open = open || gardenEdgeOpen(cl.N, i, gap);
+          if (j === sub - 1) open = open || gardenEdgeOpen(cl.S, i, gap);
+          if (i === 0)       open = open || gardenEdgeOpen(cl.W, j, gap);
+          if (i === sub - 1) open = open || gardenEdgeOpen(cl.E, j, gap);
         } else {
           open = false;
           if (j === 0 && cl.N !== 0 && gap.has(i)) open = true;        // North door/tunnel gap
@@ -532,6 +594,22 @@ export function computeWallTopology(locations, opts = {}) {
   for (const l of locs) {
     if (isOpenType(l.type)) continue;
     out.set(l.x + "," + l.y, topo.classify(l));
+  }
+  return out;
+}
+
+// Garden topology for the RENDERER: garden cellKey "x,y" -> { N, E, S, W } in
+// {0 fence, 1 gate, 2 open seam} (townTopology.gardenEdges). The SAME source
+// rasterizeSolid walls from, so the drawn fence/gate == the routed gate (no
+// re-derivation in the renderer). Only park|square cells appear in the map.
+export function computeGardenTopology(locations, opts = {}) {
+  const out = new Map();
+  const locs = extractLocations(locations);
+  if (!locs.length) return out;
+  const topo = townTopology(locs, resolveOpts(opts));
+  for (const l of locs) {
+    if (!isGardenType(l.type)) continue;
+    out.set(l.x + "," + l.y, topo.gardenEdges(l));
   }
   return out;
 }
