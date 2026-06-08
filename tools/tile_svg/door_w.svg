@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="80" viewBox="0 0 96 80">
+  <defs>
+    <linearGradient id="door_w_slab" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#bd8b4e"/><stop offset="0.5" stop-color="#9c6b3c"/><stop offset="1" stop-color="#774e28"/></linearGradient>
+    <linearGradient id="door_w_panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#aa7843"/><stop offset="1" stop-color="#6e4622"/></linearGradient>
+    <radialGradient id="door_w_knob" cx="0.35" cy="0.35" r="0.7"><stop offset="0" stop-color="#fff0b8"/><stop offset="0.5" stop-color="#f3d24e"/><stop offset="1" stop-color="#a87f1f"/></radialGradient>
+  </defs>
+  <ellipse cx="48" cy="78" rx="40" ry="2.4" fill="#241a10" opacity="0.24"/>
+  <rect x="3" y="3" width="90" height="74" rx="3" fill="#855a31" stroke="#201207" stroke-width="3"/>
+  <rect x="5" y="6" width="11" height="68" fill="#4a3018" stroke="#201207" stroke-width="1.5"/>
+  <rect x="15" y="8" width="73" height="64" rx="2" fill="url(#door_w_slab)" stroke="#201207" stroke-width="2.5"/>
+  <rect x="16.5" y="9.5" width="70" height="2.5" fill="#ffffff" opacity="0.2"/>
+  <rect x="16.5" y="9.5" width="2.5" height="61" fill="#ffffff" opacity="0.16"/>
+  <rect x="16.5" y="68" width="70" height="2.5" fill="#201207" opacity="0.14"/>
+  <rect x="84" y="9.5" width="2.5" height="61" fill="#201207" opacity="0.14"/>
+  <rect x="21" y="14" width="30" height="42" rx="2" fill="url(#door_w_panel)" stroke="#573920" stroke-width="2"/>
+  <rect x="55" y="14" width="30" height="42" rx="2" fill="url(#door_w_panel)" stroke="#573920" stroke-width="2"/>
+  <circle cx="53" cy="64" r="3.4" fill="#201207" opacity="0.35"/>
+  <circle cx="52.2" cy="63.2" r="3" fill="url(#door_w_knob)" stroke="#7a5a16" stroke-width="0.8"/>
+  <circle cx="51.1" cy="62.1" r="0.9" fill="#fff7d6" opacity="0.9"/>
+</svg>

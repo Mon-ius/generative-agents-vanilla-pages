@@ -36,6 +36,10 @@ export const SPRITES = [
   { name: "gravel", w: 16, h: 16 }, { name: "sand", w: 16, h: 16 }, { name: "deck", w: 16, h: 16 },
   // ---- apartment complexes: corridors, doors, entry, fixtures, wall variants ----
   { name: "corridor", w: 16, h: 16 }, { name: "door", w: 12, h: 20 },
+  // directional door leaves (one per wall) — axis-aligned, NOT a rotated generic
+  // door, so the top-left light + outward threshold stay consistent on every edge.
+  { name: "door_s", w: 20, h: 24 }, { name: "door_n", w: 20, h: 24 },
+  { name: "door_e", w: 24, h: 20 }, { name: "door_w", w: 24, h: 20 },
   { name: "stairs", w: 28, h: 16 }, { name: "doormat", w: 16, h: 8 },
   { name: "mailbox", w: 16, h: 16 }, { name: "island", w: 28, h: 16 },
   { name: "wall2", w: 16, h: 16 }, { name: "window", w: 16, h: 12 },

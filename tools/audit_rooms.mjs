@@ -33,6 +33,9 @@ for (const [name, r] of Object.entries(manifest.sprites)) S[name] = { width: r.w
 const STRUCT = new Set([
   "grass", "grass2", "path", "gravel", "sand", "deck", "corridor",
   "floor_wood", "floor_tile", "floor_pink", "wall", "wall2", "window", "door",
+  // the directional door leaves are wall structure too (drawn in the cell-edge wall
+  // gap, stepping outward), exactly like the generic "door" above — not furniture.
+  "door_s", "door_n", "door_e", "door_w",
   "hedge",
   // garden-perimeter structure: the fence ring + flanking gate piers are drawn on
   // the FULL cell edge by design (where the routing gap is), NOT inside the smaller

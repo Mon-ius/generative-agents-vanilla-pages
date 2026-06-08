@@ -1168,23 +1168,37 @@ function wallEdge(g, img, horizontal, ex, ey, len, open) {
   else { clipTile(g, img, ex, ey, 16, g0); clipTile(g, img, ex, ey + g1, 16, len - g1); }
 }
 
-// Stand a recognizable door LEAF (the S.door sprite) in a unit's open doorway, on
-// whichever single edge classify() chose (S/E/W/N). Centred on the gap (cell mid) it
-// sits in the 16px wall band and steps ~8px OUT onto the deck/ground, rotated to face
-// outward. Pure decorative paint INSIDE the already-open gap: its inward reach
-// (DH-OUT = 14px) stays within the 16px band, so it never touches interior furniture
-// and never alters the routing gap.
+// Stand a recognizable door LEAF in a unit's open doorway, on whichever single edge
+// classify() chose (S/E/W/N). Each wall uses its OWN purpose-drawn sprite
+// (door_s/door_n/door_e/door_w), authored axis-aligned with a CONSISTENT top-left
+// light and the threshold on the outward side — NOT one generic sprite rotated
+// (rotation dragged the highlight/sill/knob off-axis: north doors read upside-down,
+// E/W doors lay on their side). Centred on the gap (cell mid), the leaf sits in the
+// 16px wall band and steps OUT (=9px) onto the deck/ground; its inward reach (15px)
+// stays within the 16px band, so it never touches interior furniture nor alters the
+// routing gap. Falls back to the legacy rotated generic `door` only if a directional
+// tile is missing (partial atlas / older art set).
 function doorLeaf(g, S, edge, ux, uy, cw, ch) {
-  if (!S.door || !edge) return;
-  const DW = 18, DH = 22, OUT = 8;
-  const midX = ux + cw / 2, midY = uy + ch / 2;
+  if (!edge) return;
+  const midX = ux + cw / 2, midY = uy + ch / 2, OUT = 9;
+  const dir = S["door_" + edge.toLowerCase()];
+  if (dir) {
+    const VW = 20, VH = 24, HW = 24, HH = 20;                  // vertical (S/N) vs horizontal (E/W) draw dims
+    if (edge === "S")      g.drawImage(dir, midX - VW / 2, uy + ch + OUT - VH, VW, VH);
+    else if (edge === "N") g.drawImage(dir, midX - VW / 2, uy - OUT, VW, VH);
+    else if (edge === "E") g.drawImage(dir, ux + cw + OUT - HW, midY - HH / 2, HW, HH);
+    else if (edge === "W") g.drawImage(dir, ux - OUT, midY - HH / 2, HW, HH);
+    return;
+  }
+  if (!S.door) return;                                          // legacy fallback: rotate the single generic door
+  const DW = 18, DH = 22, O0 = 8;
   g.save();
   if (edge === "S") g.translate(midX, uy + ch);
   else if (edge === "N") { g.translate(midX, uy); g.rotate(Math.PI); }
   else if (edge === "E") { g.translate(ux + cw, midY); g.rotate(-Math.PI / 2); }
   else if (edge === "W") { g.translate(ux, midY); g.rotate(Math.PI / 2); }
   else { g.restore(); return; }
-  g.drawImage(S.door, -DW / 2, -(DH - OUT), DW, DH);
+  g.drawImage(S.door, -DW / 2, -(DH - O0), DW, DH);
   g.restore();
 }
 

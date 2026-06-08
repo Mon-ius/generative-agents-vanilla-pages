@@ -346,7 +346,23 @@ modules, so they stay in lockstep:
   cell resolves to a location). There is no entry doormat in the sprite path —
   doormats drew unclipped over door-adjacent furniture and were removed (a dark-wood doormat strip
   survives only in the procedural `drawBuilding` fallback, like the shingle roof); only **south**
-  doors get deck+stairs. **Signs are per BUILDING, not per room**: a multi-unit complex draws exactly ONE
+  doors get deck+stairs. **The door leaf is a per-edge directional sprite, not a rotated generic.**
+  Both sprite paths (`spriteComplex`, `spriteBuilding`) draw the leaf through the single `doorLeaf(g,
+  S, edge, ux, uy, cw, ch)` helper, which picks `S["door_"+edge.toLowerCase()]` — one of four
+  axis-aligned tiles `door_{s,n,e,w}` (S/N authored 20×24, E/W 24×20; pack-registered in
+  `pack_tiles.mjs`, art in `tools/tile_svg/door_*.svg`). Each tile **bakes a consistent top-left light
+  and puts its threshold sill on the correct OUTWARD side** (bottom=S, top=N, right=E, left=W), so a
+  door reads right on every wall — the old single `door.svg` was canvas-**rotated** for N/E/W, which
+  dragged its highlight/sill/knob off-axis (north read upside-down, E/W lay on their side: the
+  "unprofessional" look this replaced). `doorLeaf` centres the leaf on the gap (cell mid) and steps it
+  `OUT`=9px onto the deck/ground; its inward reach (15px) stays inside the 16px wall band, so it never
+  touches interior furniture nor alters the routing gap. The leaf is drawn via raw `g.drawImage` (NOT
+  `put()`), so the authored aspect must match the draw dims. **Legacy fallback**: if a directional tile
+  is absent (partial/mock atlas), `doorLeaf` falls back to rotating the generic `door` tile, which is
+  retained in the atlas for exactly that. The four directional leaves are listed in `audit_rooms.mjs`'s
+  `STRUCT` set (wall structure, like the generic `door` — not furniture, so the cell-edge leaf isn't a
+  phantom out-of-room spill). The procedural `drawBuilding` fallback keeps its own south-only door
+  (out of scope for the directional set). **Signs are per BUILDING, not per room**: a multi-unit complex draws exactly ONE
   `nameSign` (fascia-mounted — no hanger peg/links — fully inside the bottom wall band
   `[y+h−16, y+h]`, so it can never cover furniture or courtyard decor) on its south face, named
   by `buildingName()` (type → `SIGN_LABELS` + a deterministic `SIGN_PREFIXES` prefix keyed on the
@@ -534,7 +550,7 @@ modules, so they stay in lockstep:
   silently slices the wrong atlas cells. `assemble_atlas` packs the **sorted directory listing**
   of `tools/char_svg/` while `gen_chars_svg` only overwrites its own 12 files — `rm` stale SVGs
   after removing/renaming a variant or they stay in the atlas and shift later blocks' offsets.
-- **Town tiles** (`js/assets.js` — note: one level *above* `js/ui/` — and `js/ui/townArt.js`) — the 88 terrain/furniture sprites are **also
+- **Town tiles** (`js/assets.js` — note: one level *above* `js/ui/` — and `js/ui/townArt.js`) — the 99 terrain/furniture sprites are **also
   one CC0 SVG→PNG atlas** `assets/sprites/atlas.png`, addressed by `{x,y,w,h}` regions in
   `assets/manifest.json`. `loadSprites()` fetches that atlas **once** and slices each region into
   a per-name canvas, so `townArt` draws `S.<name>` exactly as before (no townArt change). Tiles
@@ -732,4 +748,4 @@ procedural generator/`tools/` workflow that is **not present in this deploy repo
 the cutaway refactor, and its headline "art source" note — sprites sliced from Kenney CC0 packs by
 `tools/slice_city.mjs` — is **false here** (no such tool exists; all art is original
 self-generated SVG, per `assets/CREDITS.txt`, whose own "37 tiles" count is *also* stale vs. the
-88 in `assets/manifest.json`) — treat it as historical design intent, not runnable here.
+99 in `assets/manifest.json`) — treat it as historical design intent, not runnable here.
