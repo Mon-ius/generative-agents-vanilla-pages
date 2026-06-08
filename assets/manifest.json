@@ -3,6 +3,7 @@
   "atlas": "sprites/atlas.png",
   "atlasW": 1024,
   "atlasH": 800,
+  "version": "606efbcfdc",
   "sprites": {
     "grass": {
       "x": 688,

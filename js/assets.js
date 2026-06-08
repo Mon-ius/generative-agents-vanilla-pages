@@ -35,7 +35,13 @@ export function loadSprites(base = "assets/") {
     _cache = Promise.resolve({});
     return _cache;
   }
-  _cache = fetch(base + "manifest.json")
+  // `no-cache` revalidates the manifest every load, so the region coordinates are
+  // always the CURRENT ones; the atlas URL then carries `?v=<manifest.version>` (a
+  // hash of the atlas image) so the browser fetches the matching atlas and can never
+  // slice a stale cached atlas.png with freshly-reflowed coordinates. Adding/removing
+  // one sprite reshuffles the shelf-pack and moves most regions — without this guard a
+  // returning visitor's cached atlas + new manifest mis-slices the whole map.
+  _cache = fetch(base + "manifest.json", { cache: "no-cache" })
     .then((res) => res.json())
     .then(
       (manifest) =>
@@ -56,7 +62,7 @@ export function loadSprites(base = "assets/") {
             resolve(map);
           };
           atlasImg.onerror = () => resolve({});
-          atlasImg.src = base + manifest.atlas;
+          atlasImg.src = base + manifest.atlas + (manifest.version ? "?v=" + manifest.version : "");
         })
     )
     .catch(() => ({}));

@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 const FW = 32, FH = 48, COLS = 3, ROWS = 4, PER_ROW = 5;
 const BLOCK_W = COLS * FW, BLOCK_H = ROWS * FH; // 96 × 192
@@ -59,9 +60,14 @@ if (doManifest) {
       walkCols: [1, 2], idleCol: 0, // walk alternates step-left/step-right; idle = stand
     };
   });
+  // Content version = hash of the atlas SVG (which determines the PNG); the loader
+  // appends it to the atlas URL (?v=) so a stale cached atlas.png can never be sliced
+  // by reflowed offsets after a variant add/remove. Same cache-coherency guard as the
+  // town-tile manifest (tools/pack_tiles.mjs).
+  const version = createHash("md5").update(svg).digest("hex").slice(0, 10);
   const manifest = {
     frameW: FW, frameH: FH, anchorX: Math.round(FW / 2), anchorY: FH - 2, fps: 6,
-    atlas: "characters/atlas.png",
+    atlas: "characters/atlas.png", version,
     sheets, variants: keys,
     palette: {
       skins: ["#f1c9a5", "#e6b48f", "#c98e63", "#a96e44", "#8a5a36", "#f7d9bd"],

@@ -5,6 +5,7 @@
   "anchorY": 46,
   "fps": 6,
   "atlas": "characters/atlas.png",
+  "version": "ab47f44093",
   "sheets": {
     "townsfolk_01": {
       "file": "characters/atlas.png",

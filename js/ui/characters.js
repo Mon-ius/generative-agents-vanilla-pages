@@ -140,6 +140,10 @@ export function normalizeManifest(m) {
   // Tolerate an optional top-level `atlas` (the shared PNG every variant points
   // at); carried through so loaders/tools can read it without breaking old data.
   if (typeof m.atlas === "string") out.atlas = m.atlas;
+  // Carry through the content `version` (atlas hash) so loadCharacterSheets can
+  // cache-bust the atlas URL — normalize() rebuilds `out`, so an unforwarded field
+  // is silently dropped and the ?v= guard never fires.
+  if (typeof m.version === "string") out.version = m.version;
   return out;
 }
 
@@ -160,6 +164,11 @@ export async function loadCharacterSheets(manifest, base = "assets/") {
   // one atlas PNG, so fetch each UNIQUE def.file exactly once, then point every
   // sheetKey that uses that file at the SAME decoded HTMLImageElement.
   const files = [...new Set(keys.map((k) => manifest.sheets[k].file))];
+  // Cache-bust the atlas with the manifest's content version (the manifest itself is
+  // already fetched `no-cache`, so it's current): a stale cached atlas.png then can't
+  // be sliced by reflowed offsets after a variant add/remove. Same guard as the
+  // town-tile atlas (js/assets.js); harmless when `version` is absent.
+  const bust = manifest.version ? `?v=${manifest.version}` : "";
   const byFile = {};
   await Promise.all(
     files.map(
@@ -172,7 +181,7 @@ export async function loadCharacterSheets(manifest, base = "assets/") {
           };
           img.onerror = () => resolve(); // drop the failed atlas, keep the rest
           try {
-            img.src = `${base}${file}`;
+            img.src = `${base}${file}${bust}`;
           } catch {
             resolve();
           }

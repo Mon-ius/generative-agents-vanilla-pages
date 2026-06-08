@@ -10,6 +10,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 // Canonical tiles + their native sizes (must match what townArt draws).
 export const SPRITES = [
@@ -109,7 +110,13 @@ console.log(`tile atlas SVG ${W}x${H}, ${SPRITES.length} tiles -> ${outSvg}${mis
 if (doManifest) {
   const sprites = {};
   for (const s of SPRITES) sprites[s.name] = placed[s.name];
-  const manifest = { tile: 16 * SS, atlas: "sprites/atlas.png", atlasW: W, atlasH: H, sprites };
+  // Content version = hash of the atlas SVG (which fully determines the PNG). The
+  // loader appends it to the atlas URL as ?v=<version> so a stale cached atlas.png
+  // can NEVER be sliced by freshly-reflowed region coordinates: adding/removing any
+  // sprite reshuffles the shelf-pack and moves most regions, and without this a
+  // returning browser holding the old atlas + new manifest mis-slices the whole map.
+  const version = createHash("md5").update(svg).digest("hex").slice(0, 10);
+  const manifest = { tile: 16 * SS, atlas: "sprites/atlas.png", atlasW: W, atlasH: H, version, sprites };
   writeFileSync(join(ROOT, "assets", "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   console.log(`wrote assets/manifest.json — single-atlas, ${SPRITES.length} tile regions${missing.length ? " (with " + missing.length + " MISSING)" : ""}`);
 }
