@@ -569,7 +569,20 @@ modules, so they stay in lockstep:
   sprite map* silently renders the full **procedural** fallback instead. And `loadSprites()`
   caches its promise module-wide with no retry or reset hook, so one transient manifest/atlas
   fetch failure locks the procedural fallback in for the entire page lifetime (hard reload to
-  recover).
+  recover). **Atlas/manifest cache coherency is content-versioned**: `pack_tiles.mjs` stamps
+  `manifest.version` = `md5(atlasSVG).slice(0,10)` (the SVG fully determines the PNG, so it
+  changes iff the art changes), `loadSprites` fetches `manifest.json` with `{cache:"no-cache"}`
+  (always current) and requests the atlas as `atlas.png?v=<version>`. This is **load-bearing, not
+  cosmetic**: adding/removing **any** sprite reflows the deterministic shelf-pack and moves *most*
+  regions (the door commit moved 82/95), so a returning visitor holding a stale cached `atlas.png`
+  against a fresh `manifest.json` would slice the old image with new coordinates and **mis-map the
+  entire town** (grey-tiled corruption) — the `?v=` busts the atlas to match. **So after any
+  sprite add/remove you MUST re-run `pack_tiles.mjs --manifest`** (regenerates the version) — a
+  hand-edited atlas/manifest pair with a stale version silently reintroduces the bug. The
+  **character atlas** has the identical guard: `assemble_atlas.mjs` stamps `characters.json`'s
+  `version`, `loadCharacterSheets` appends `?v=`, and `characters.js`'s `normalize()` must keep
+  **forwarding `version`** (it rebuilds the manifest object, so an unforwarded field is dropped and
+  the guard silently no-ops).
 
 High-DPI: Pixi `resolution = CONFIG.rendering.resolutionScale` (devicePixelRatio, capped 2) +
 `autoDensity`; canvas backs the store at `cssPx*dpr` — with **raw, uncapped** `devicePixelRatio`,
@@ -715,9 +728,13 @@ The building art targets a **top-down RPG cutaway** look: apartment shells with 
 away to reveal walled units — light-grey plaster walls (no colored roofs), salmon diamond-tile
 baths, cream-carpet bedrooms, warm-orange wood-plank common rooms, detailed furniture, and a
 red/yellow dining set per common room. Iterate with the verify loop: edit a tile SVG (or the
-`townArt.js` placement) → `node tools/pack_tiles.mjs /tmp/tile_atlas.svg && node tools/svg2png.mjs
-/tmp/tile_atlas.svg assets/sprites/atlas.png` (rebuild the atlas — tile-art changes only; add
-`--manifest` to `pack_tiles` when sprite regions/sizes change) → serve →
+`townArt.js` placement) → `node tools/pack_tiles.mjs /tmp/tile_atlas.svg --manifest && node tools/svg2png.mjs
+/tmp/tile_atlas.svg assets/sprites/atlas.png` (rebuild the atlas; **always pass `--manifest` now** —
+any pixel change alters the atlas SVG, and only `--manifest` refreshes `manifest.version`, the
+cache-bust key the loader appends as `?v=`. Skip it and the new `atlas.png` ships under the old
+`?v=`, so returning visitors keep the stale cached atlas — the live render won't update for them.
+`--manifest` is also still required, as before, whenever sprite **regions/sizes** change so the
+`{x,y,w,h}` coords match) → serve →
 `node tools/screenshot.mjs <url> <out.png> --eval <frame js>` to capture the live town and eyeball
 it against the reference (mind the day/night ambient tint — see *Rendering*).
 
